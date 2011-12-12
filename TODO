@@ -13,13 +13,6 @@ Fix up API to have 'err' return codes
     => and full error checking 
     => better error messages?  "bad version 0x4 in header" vs. "bad version in header"
 
-Fix API to only expose things that actually need to be exposed
-   basically, only NewVerifier, NewCrypter, NewEncrypter, NewSigner
-    KeyReader, FileReader, EncryptedReader
-    errors
-    Everything else should be hidden
-    Since this is a large renaming, do it in individual commits
-
 Make sure we have real tests cases
     Add test cases for:
         encodeWeb64String
