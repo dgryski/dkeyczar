@@ -207,7 +207,7 @@ const HEADERLENGTH = 5
 const HMACSIGLENGTH = 20
 
 func header(key Key) []byte {
-	b := make([]byte, 5)
+	b := make([]byte, HEADERLENGTH)
 	b[0] = VERSION
 	copy(b[1:], key.KeyID())
 
@@ -329,9 +329,9 @@ func (ak *AesKey) Decrypt(data []byte) []byte {
 
 	crypter := cipher.NewCBCDecrypter(aesCipher, iv_bytes)
 
-	plainBytes := make([]byte, len(data)-5-20-16)
+	plainBytes := make([]byte, len(data)-HEADERLENGTH-HMACSIGLENGTH-aes.BlockSize)
 
-	crypter.CryptBlocks(plainBytes, data[5+aes.BlockSize:len(data)-20])
+	crypter.CryptBlocks(plainBytes, data[HEADERLENGTH+aes.BlockSize:len(data)-HMACSIGLENGTH])
 
 	plainBytes = pkcs5unpad(plainBytes)
 
