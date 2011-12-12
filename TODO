@@ -1,0 +1,51 @@
+Finish key types:
+    aes
+    aes.encrypted
+    dsa
+    dsa.public
+    hmac
+    rsa
+    rsa-sign
+    rsa-sign.public
+
+Build KeyCzar main API
+   Crypter
+   Signer
+   what are the other main classes?
+
+Refactor common code
+    duplicate code in newFOOkeys
+
+keymeta.keys[keyid] = key
+keymeta.primary is uint32 keyid
+
+Fix up API to have 'err' return codes
+    => and full error checking 
+    => better error messages?  "bad version 0x4 in header" vs. "bad version in header"
+
+Fix API to only expose things that actually need to be exposed
+
+Make sure we have real tests cases
+    Add test cases for:
+        EncodeWeb64String
+        DecodeWeb64String
+
+isPurpose checking at Crypter (or whatever) construction time
+
+function to split a stream into
+   header, iv, ciphertext, signature
+
+type header {
+   uint8 version
+   uint32 keyid
+}
+
+HMAC key needs signing functionality
+
+Output format: 0.5b or 0.6b ?
+   header|msg|sign(msg . VERSION)
+      or
+   header|msg|sign(header|msg)
+   Need to be able to detect and verify both versions?
+   VERSION == 1 => 0.5b
+   VERSION == 0 => 0.6b
