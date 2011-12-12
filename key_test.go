@@ -63,6 +63,24 @@ func testVerify(t *testing.T, keytype string) {
 	}
 }
 
+func testSignVerify(t *testing.T, keytype string) {
+
+	f := NewFileReader(TESTDATA + keytype)
+
+	kz, _ := NewSigner(f)
+
+	s := kz.Sign([]byte(INPUT))
+
+	kv, _ := NewVerifier(f)
+
+	b := kv.Verify([]byte(INPUT), s)
+
+	if !b {
+		t.Error(keytype + " verify failed")
+	}
+}
+
+
 func testDecrypt(t *testing.T, keytype string) {
 
 	f := NewFileReader(TESTDATA + keytype)
@@ -100,6 +118,10 @@ func TestAesDecrypt(t *testing.T) {
 
 func TestHmacVerify(t *testing.T) {
 	testVerify(t, "hmac")
+}
+
+func TestHmacSign(t *testing.T) {
+	testSignVerify(t, "hmac")
 }
 
 var pkcs5tests = []struct {

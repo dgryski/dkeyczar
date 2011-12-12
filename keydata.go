@@ -79,11 +79,12 @@ func (kz *KeyCzar) Verify(msg []byte, signature string) bool {
 		log.Fatal("bad version: ", sigB[0])
 	}
 
-        keyid, sig := sigB[1:5], sigB[5:]
+	keyid, sig := sigB[1:5], sigB[5:]
 
 	// FIXME: ugly :( -- change Verifier.Verify() call instead?
 	signedbytes := make([]byte, len(msg)+1)
 	copy(signedbytes, msg)
+	signedbytes[len(msg)] = VERSION
 
 	for _, k := range kz.keys {
 		if bytes.Compare(k.KeyID(), keyid) == 0 {
@@ -97,8 +98,24 @@ func (kz *KeyCzar) Verify(msg []byte, signature string) bool {
 	return false
 }
 
-func (kz *KeyCzar) Sign(msg []byte, signature []byte) []byte {
-	return msg
+func (kz *KeyCzar) Sign(msg []byte) string {
+
+	key := kz.keys[kz.primary]
+
+	signingKey := key.(SignVerifyKey)
+
+	signedbytes := make([]byte, len(msg)+1)
+	copy(signedbytes, msg)
+	signedbytes[len(msg)] = VERSION
+
+	signature := signingKey.Sign(signedbytes)
+
+	h := header(key)
+	signature = append(h, signature...)
+
+	s := encodeWeb64String(signature)
+
+	return s
 }
 
 func NewCrypter(r KeyReader) (Crypter, error) {
@@ -113,11 +130,9 @@ func NewVerifier(r KeyReader) (Verifier, error) {
 	return newKeyCzar(r, VERIFY)
 }
 
-/*
 func NewSigner(r KeyReader) (Signer, error) {
 	return newKeyCzar(r, SIGN_AND_VERIFY)
 }
-*/
 
 func newKeyCzar(r KeyReader, purpose KeyPurpose) (*KeyCzar, error) {
 
@@ -184,7 +199,7 @@ type VerifyKey interface {
 type SignVerifyKey interface {
 	VerifyKey
 	Sign(message []byte) []byte
-	PublicKey() Key
+//	PublicKey() Key
 }
 
 const VERSION = 0
