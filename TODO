@@ -1,9 +1,4 @@
 Finish key types:
-    aes
-    aes.encrypted
-    dsa
-    dsa.public
-    hmac
     rsa
     rsa-sign
     rsa-sign.public
@@ -19,13 +14,16 @@ Fix up API to have 'err' return codes
     => better error messages?  "bad version 0x4 in header" vs. "bad version in header"
 
 Fix API to only expose things that actually need to be exposed
+   basically, only NewVerifier, NewCrypter, NewEncrypter, NewSigner
+    KeyReader, FileReader, EncryptedReader
+    errors
+    Everything else should be hidden
+    Since this is a large renaming, do it in individual commits
 
 Make sure we have real tests cases
     Add test cases for:
         encodeWeb64String
         decodeWeb64String
-
-isPurpose checking at Crypter (or whatever) construction time
 
 function to split a stream into
    header, iv, ciphertext, signature
@@ -43,4 +41,5 @@ Output format: 0.5b or 0.6b ?
    VERSION == 1 => 0.5b
    VERSION == 0 => 0.6b
 
-Seperate json objects from our actual internal crypto types?
+Separate json objects from our actual internal crypto types?
+Use json attributes on structs rather than naming?
