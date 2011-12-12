@@ -8,11 +8,6 @@ Finish key types:
     rsa-sign
     rsa-sign.public
 
-Build KeyCzar main API
-   Crypter
-   Signer
-   what are the other main classes?
-
 Refactor common code
     duplicate code in newFOOkeys
 
@@ -27,20 +22,18 @@ Fix API to only expose things that actually need to be exposed
 
 Make sure we have real tests cases
     Add test cases for:
-        EncodeWeb64String
-        DecodeWeb64String
+        encodeWeb64String
+        decodeWeb64String
 
 isPurpose checking at Crypter (or whatever) construction time
 
 function to split a stream into
    header, iv, ciphertext, signature
 
-type header {
+type header struct {
    uint8 version
    uint32 keyid
 }
-
-HMAC key needs signing functionality
 
 Output format: 0.5b or 0.6b ?
    header|msg|sign(msg . VERSION)
