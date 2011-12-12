@@ -63,7 +63,6 @@ func testVerify(t *testing.T, keytype string) {
 	}
 }
 
-
 func testVerifyPublic(t *testing.T, keytype string) {
 
 	f := NewFileReader(TESTDATA + keytype + ".public")
@@ -87,7 +86,6 @@ func testVerifyPublic(t *testing.T, keytype string) {
 	}
 }
 
-
 func testSignVerify(t *testing.T, keytype string) {
 
 	f := NewFileReader(TESTDATA + keytype)
@@ -104,7 +102,6 @@ func testSignVerify(t *testing.T, keytype string) {
 		t.Error(keytype + " verify failed")
 	}
 }
-
 
 func testDecrypt(t *testing.T, keytype string) {
 
@@ -163,6 +160,33 @@ func TestDsaVerify(t *testing.T) {
 
 func TestDsaPublicVerifyPublic(t *testing.T) {
 	testVerifyPublic(t, "dsa")
+}
+
+func TestEncryptedReader(t *testing.T) {
+
+	f := NewFileReader(TESTDATA + "aes")
+
+	cr, _ := NewCrypter(f)
+
+	er := NewEncryptedReader(TESTDATA+"aes-crypted", cr)
+
+	kz, _ := NewCrypter(er)
+
+	c, _ := slurp(TESTDATA + "aes-crypted" + "/1.out")
+
+	p := kz.Decrypt(c)
+
+	if string(p) != INPUT {
+		t.Error("failed to decrypt 1.out with encrypted reader")
+	}
+
+	c, _ = slurp(TESTDATA + "aes-crypted" + "/2.out")
+
+	p = kz.Decrypt(c)
+
+	if string(p) != INPUT {
+		t.Error("failed to decrypt 2.out with encrypted reader")
+	}
 }
 
 var pkcs5tests = []struct {
