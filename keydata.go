@@ -221,21 +221,21 @@ func header(key Key) []byte {
 	return b
 }
 
-type HmacKey struct {
+type hmacKey struct {
 	HmacKeyString string
 	Size          int
 	key           []byte
 }
 
-type AesKey struct {
+type aesKey struct {
 	AesKeyString string
 	Size         int
-	HmacKey      HmacKey
+	HmacKey      hmacKey
 	Mode         CipherMode
 	key          []byte
 }
 
-func (ak *AesKey) KeyID() []byte {
+func (ak *aesKey) KeyID() []byte {
 
 	h := sha1.New()
 
@@ -255,7 +255,7 @@ func newAesKeys(r KeyReader, km KeyMeta) map[int]Key {
 
 	for _, kv := range km.Versions {
 		s, _ := r.GetKey(kv.VersionNumber)
-		aeskey := new(AesKey)
+		aeskey := new(aesKey)
 		json.Unmarshal([]byte(s), &aeskey)
 
 		// FIXME: move to NewAesKey constructor
@@ -284,7 +284,7 @@ func pkcs5unpad(data []byte) []byte {
 	return data[0 : len(data)-pad]
 }
 
-func (ak *AesKey) Encrypt(data []byte) []byte {
+func (ak *aesKey) Encrypt(data []byte) []byte {
 
 	data = pkcs5pad(data, aes.BlockSize)
 
@@ -313,7 +313,7 @@ func (ak *AesKey) Encrypt(data []byte) []byte {
 
 }
 
-func (ak *AesKey) Decrypt(data []byte) []byte {
+func (ak *aesKey) Decrypt(data []byte) []byte {
 
 	if data[0] != VERSION {
 
@@ -351,7 +351,7 @@ func newHmacKeys(r KeyReader, km KeyMeta) map[int]Key {
 
 	for _, kv := range km.Versions {
 		s, _ := r.GetKey(kv.VersionNumber)
-		hmackey := new(HmacKey)
+		hmackey := new(hmacKey)
 		json.Unmarshal([]byte(s), &hmackey)
 
 		hmackey.key, _ = decodeWeb64String(hmackey.HmacKeyString)
@@ -363,7 +363,7 @@ func newHmacKeys(r KeyReader, km KeyMeta) map[int]Key {
 }
 
 // FIXME: cache this?
-func (hm *HmacKey) KeyID() []byte {
+func (hm *hmacKey) KeyID() []byte {
 
 	h := sha1.New()
 	h.Write(hm.key)
@@ -372,7 +372,7 @@ func (hm *HmacKey) KeyID() []byte {
 	return id[0:4]
 }
 
-func (hm *HmacKey) Sign(msg []byte) []byte {
+func (hm *hmacKey) Sign(msg []byte) []byte {
 
 	sha1hmac := hmac.NewSHA1(hm.key)
 	sha1hmac.Write(msg)
@@ -380,7 +380,7 @@ func (hm *HmacKey) Sign(msg []byte) []byte {
 	return sigBytes
 }
 
-func (hm *HmacKey) Verify(msg []byte, signature []byte) bool {
+func (hm *hmacKey) Verify(msg []byte, signature []byte) bool {
 
 	sha1hmac := hmac.NewSHA1(hm.key)
 	sha1hmac.Write(msg)
@@ -389,7 +389,7 @@ func (hm *HmacKey) Verify(msg []byte, signature []byte) bool {
 	return subtle.ConstantTimeCompare(sigBytes, signature) == 1
 }
 
-type DsaPublicKey struct {
+type dsaPublicKey struct {
 	Q    string
 	P    string
 	Y    string
@@ -398,8 +398,8 @@ type DsaPublicKey struct {
 	key  dsa.PublicKey
 }
 
-type DsaKey struct {
-	PublicKey DsaPublicKey
+type dsaKey struct {
+	PublicKey dsaPublicKey
 	Size      int
 	X         string
 	key       dsa.PrivateKey
@@ -413,7 +413,7 @@ func newDsaPublicKeys(r KeyReader, km KeyMeta) map[int]Key {
 
 	for _, kv := range km.Versions {
 		s, _ := r.GetKey(kv.VersionNumber)
-		dsakey := new(DsaPublicKey)
+		dsakey := new(dsaPublicKey)
 		json.Unmarshal([]byte(s), &dsakey)
 
                 b, _ := decodeWeb64String(dsakey.Y)
@@ -440,7 +440,7 @@ func newDsaKeys(r KeyReader, km KeyMeta) map[int]Key {
 
 	for _, kv := range km.Versions {
 		s, _ := r.GetKey(kv.VersionNumber)
-		dsakey := new(DsaKey)
+		dsakey := new(dsaKey)
 		json.Unmarshal([]byte(s), &dsakey)
 
 		b, _ := decodeWeb64String(dsakey.X)
@@ -468,7 +468,7 @@ func newDsaKeys(r KeyReader, km KeyMeta) map[int]Key {
 	return keys
 }
 
-func (dk *DsaPublicKey) KeyID() []byte {
+func (dk *dsaPublicKey) KeyID() []byte {
 
 	h := sha1.New()
 
@@ -484,39 +484,39 @@ func (dk *DsaPublicKey) KeyID() []byte {
 
 }
 
-func (dk *DsaKey) KeyID() []byte {
+func (dk *dsaKey) KeyID() []byte {
 	return dk.PublicKey.KeyID()
 }
 
-type DsaSignature struct {
+type dsaSignature struct {
 	R *big.Int
 	S *big.Int
 }
 
-func (dk *DsaKey) Sign(msg []byte) []byte {
+func (dk *dsaKey) Sign(msg []byte) []byte {
 
 	h := sha1.New()
 	h.Write(msg)
 
 	r, s, _ := dsa.Sign(rand.Reader, &dk.key, h.Sum(nil))
 
-	sig := DsaSignature{r, s}
+	sig := dsaSignature{r, s}
 
 	b, _ := asn1.Marshal(sig)
 
 	return b
 }
 
-func (dk *DsaKey) Verify(msg []byte, signature []byte) bool {
+func (dk *dsaKey) Verify(msg []byte, signature []byte) bool {
 	return dk.PublicKey.Verify(msg, signature)
 }
 
-func (dk *DsaPublicKey) Verify(msg []byte, signature []byte) bool {
+func (dk *dsaPublicKey) Verify(msg []byte, signature []byte) bool {
 
 	h := sha1.New()
 	h.Write(msg)
 
-	var rs DsaSignature
+	var rs dsaSignature
 	asn1.Unmarshal(signature, &rs)
 
 	return dsa.Verify(&dk.key, h.Sum(nil), rs.R, rs.S)
