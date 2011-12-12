@@ -12,7 +12,6 @@ import (
 	"encoding/asn1"
 	"encoding/binary"
 	"encoding/json"
-	"fmt"
 	"log"
 	"math/big"
 )
