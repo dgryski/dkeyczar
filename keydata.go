@@ -16,9 +16,9 @@ import (
 	"math/big"
 )
 
-type KeyCzar struct {
-	keymeta KeyMeta
-	keys    map[int]Key
+type keyCzar struct {
+	keymeta keyMeta
+	keys    map[int]keyIDer
 	primary int
 }
 
@@ -40,11 +40,11 @@ type Verifier interface {
 	Verify(message []byte, signature string) bool
 }
 
-func (kz *KeyCzar) Encrypt(plaintext []uint8) string {
+func (kz *keyCzar) Encrypt(plaintext []uint8) string {
 
 	key := kz.keys[kz.primary]
 
-	encryptKey := key.(EncryptKey)
+	encryptKey := key.(encryptKey)
 
 	ciphertext := encryptKey.Encrypt(plaintext)
 	s := encodeWeb64String(ciphertext)
@@ -53,7 +53,7 @@ func (kz *KeyCzar) Encrypt(plaintext []uint8) string {
 
 }
 
-func (kz *KeyCzar) Decrypt(ciphertext string) []uint8 {
+func (kz *keyCzar) Decrypt(ciphertext string) []uint8 {
 
 	b, _ := decodeWeb64String(ciphertext)
 
@@ -65,7 +65,7 @@ func (kz *KeyCzar) Decrypt(ciphertext string) []uint8 {
 
 	for _, k := range kz.keys {
 		if bytes.Compare(k.KeyID(), keyid) == 0 {
-			decryptKey := k.(DecryptEncryptKey)
+			decryptKey := k.(decryptEncryptKey)
 			return decryptKey.Decrypt(b)
 		}
 	}
@@ -75,7 +75,7 @@ func (kz *KeyCzar) Decrypt(ciphertext string) []uint8 {
 	return nil
 }
 
-func (kz *KeyCzar) Verify(msg []byte, signature string) bool {
+func (kz *keyCzar) Verify(msg []byte, signature string) bool {
 
 	sigB, _ := decodeWeb64String(signature)
 
@@ -92,7 +92,7 @@ func (kz *KeyCzar) Verify(msg []byte, signature string) bool {
 
 	for _, k := range kz.keys {
 		if bytes.Compare(k.KeyID(), keyid) == 0 {
-			verifyKey := k.(VerifyKey)
+			verifyKey := k.(verifyKey)
 			return verifyKey.Verify(signedbytes, sig)
 		}
 	}
@@ -102,11 +102,11 @@ func (kz *KeyCzar) Verify(msg []byte, signature string) bool {
 	return false
 }
 
-func (kz *KeyCzar) Sign(msg []byte) string {
+func (kz *keyCzar) Sign(msg []byte) string {
 
 	key := kz.keys[kz.primary]
 
-	signingKey := key.(SignVerifyKey)
+	signingKey := key.(signVerifyKey)
 
 	signedbytes := make([]byte, len(msg)+1)
 	copy(signedbytes, msg)
@@ -123,26 +123,26 @@ func (kz *KeyCzar) Sign(msg []byte) string {
 }
 
 func NewCrypter(r KeyReader) (Crypter, error) {
-	return newKeyCzar(r, DECRYPT_AND_ENCRYPT)
+	return newKeyCzar(r, kpDECRYPT_AND_ENCRYPT)
 }
 
 func NewEncrypter(r KeyReader) (Crypter, error) {
-	return newKeyCzar(r, ENCRYPT)
+	return newKeyCzar(r, kpENCRYPT)
 }
 
 func NewVerifier(r KeyReader) (Verifier, error) {
-	return newKeyCzar(r, VERIFY)
+	return newKeyCzar(r, kpVERIFY)
 }
 
 func NewSigner(r KeyReader) (Signer, error) {
-	return newKeyCzar(r, SIGN_AND_VERIFY)
+	return newKeyCzar(r, kpSIGN_AND_VERIFY)
 }
 
-func newKeyCzar(r KeyReader, purpose KeyPurpose) (*KeyCzar, error) {
+func newKeyCzar(r KeyReader, purpose keyPurpose) (*keyCzar, error) {
 
-	kz := new(KeyCzar)
+	kz := new(keyCzar)
 
-	s, _ := r.GetMetadata()
+	s, _ := r.getMetadata()
 
 	err := json.Unmarshal([]byte(s), &kz.keymeta)
 
@@ -156,7 +156,7 @@ func newKeyCzar(r KeyReader, purpose KeyPurpose) (*KeyCzar, error) {
 
 	kz.primary = -1
 	for _, v := range kz.keymeta.Versions {
-		if v.Status == PRIMARY {
+		if v.Status == ksPRIMARY {
 			if kz.primary == -1 {
 				kz.primary = v.VersionNumber
 			} else {
@@ -170,13 +170,13 @@ func newKeyCzar(r KeyReader, purpose KeyPurpose) (*KeyCzar, error) {
 	}
 
 	switch kz.keymeta.Type {
-	case AES:
+	case ktAES:
 		kz.keys = newAesKeys(r, kz.keymeta)
-	case HMAC_SHA1:
+	case ktHMAC_SHA1:
 		kz.keys = newHmacKeys(r, kz.keymeta)
-	case DSA_PRIV:
+	case ktDSA_PRIV:
 		kz.keys = newDsaKeys(r, kz.keymeta)
-	case DSA_PUB:
+	case ktDSA_PUB:
 		kz.keys = newDsaPublicKeys(r, kz.keymeta)
 	default:
 		return nil, UnsupportedTypeException
@@ -185,27 +185,27 @@ func newKeyCzar(r KeyReader, purpose KeyPurpose) (*KeyCzar, error) {
 	return kz, nil
 }
 
-type Key interface {
+type keyIDer interface {
 	KeyID() []byte
 }
 
-type EncryptKey interface {
-	Key
+type encryptKey interface {
+	keyIDer
 	Encrypt(b []byte) []byte
 }
 
-type DecryptEncryptKey interface {
-	EncryptKey
+type decryptEncryptKey interface {
+	encryptKey
 	Decrypt(b []byte) []byte
 }
 
-type VerifyKey interface {
-	Key
+type verifyKey interface {
+	keyIDer
 	Verify(message []byte, signature []byte) bool
 }
 
-type SignVerifyKey interface {
-	VerifyKey
+type signVerifyKey interface {
+	verifyKey
 	Sign(message []byte) []byte
 }
 
@@ -213,7 +213,7 @@ const VERSION = 0
 const HEADERLENGTH = 5
 const HMACSIGLENGTH = 20
 
-func header(key Key) []byte {
+func header(key keyIDer) []byte {
 	b := make([]byte, HEADERLENGTH)
 	b[0] = VERSION
 	copy(b[1:], key.KeyID())
@@ -231,7 +231,7 @@ type aesKey struct {
 	AesKeyString string
 	Size         int
 	HmacKey      hmacKey
-	Mode         CipherMode
+	Mode         cipherMode
 	key          []byte
 }
 
@@ -249,12 +249,12 @@ func (ak *aesKey) KeyID() []byte {
 
 }
 
-func newAesKeys(r KeyReader, km KeyMeta) map[int]Key {
+func newAesKeys(r KeyReader, km keyMeta) map[int]keyIDer {
 
-	keys := make(map[int]Key)
+	keys := make(map[int]keyIDer)
 
 	for _, kv := range km.Versions {
-		s, _ := r.GetKey(kv.VersionNumber)
+		s, _ := r.getKey(kv.VersionNumber)
 		aeskey := new(aesKey)
 		json.Unmarshal([]byte(s), &aeskey)
 
@@ -345,12 +345,12 @@ func (ak *aesKey) Decrypt(data []byte) []byte {
 	return plainBytes
 }
 
-func newHmacKeys(r KeyReader, km KeyMeta) map[int]Key {
+func newHmacKeys(r KeyReader, km keyMeta) map[int]keyIDer {
 
-	keys := make(map[int]Key)
+	keys := make(map[int]keyIDer)
 
 	for _, kv := range km.Versions {
-		s, _ := r.GetKey(kv.VersionNumber)
+		s, _ := r.getKey(kv.VersionNumber)
 		hmackey := new(hmacKey)
 		json.Unmarshal([]byte(s), &hmackey)
 
@@ -405,18 +405,18 @@ type dsaKey struct {
 	key       dsa.PrivateKey
 }
 
-func newDsaPublicKeys(r KeyReader, km KeyMeta) map[int]Key {
+func newDsaPublicKeys(r KeyReader, km keyMeta) map[int]keyIDer {
 
-	keys := make(map[int]Key)
+	keys := make(map[int]keyIDer)
 
 	// FIXME: ugg, more duplicated code
 
 	for _, kv := range km.Versions {
-		s, _ := r.GetKey(kv.VersionNumber)
+		s, _ := r.getKey(kv.VersionNumber)
 		dsakey := new(dsaPublicKey)
 		json.Unmarshal([]byte(s), &dsakey)
 
-                b, _ := decodeWeb64String(dsakey.Y)
+		b, _ := decodeWeb64String(dsakey.Y)
 		dsakey.key.Y = big.NewInt(0).SetBytes(b)
 
 		b, _ = decodeWeb64String(dsakey.G)
@@ -434,12 +434,12 @@ func newDsaPublicKeys(r KeyReader, km KeyMeta) map[int]Key {
 	return keys
 }
 
-func newDsaKeys(r KeyReader, km KeyMeta) map[int]Key {
+func newDsaKeys(r KeyReader, km keyMeta) map[int]keyIDer {
 
-	keys := make(map[int]Key)
+	keys := make(map[int]keyIDer)
 
 	for _, kv := range km.Versions {
-		s, _ := r.GetKey(kv.VersionNumber)
+		s, _ := r.getKey(kv.VersionNumber)
 		dsakey := new(dsaKey)
 		json.Unmarshal([]byte(s), &dsakey)
 

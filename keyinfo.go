@@ -1,46 +1,46 @@
 package dkeyczar
 
-type KeyType int
+type keyType int
 
 // FIXME need key size info
 const (
-	AES KeyType = iota
-	HMAC_SHA1
-	DSA_PRIV
-	DSA_PUB
-	RSA_PRIV
-	RSA_PUB
+	ktAES keyType = iota
+	ktHMAC_SHA1
+	ktDSA_PRIV
+	ktDSA_PUB
+	ktRSA_PRIV
+	ktRSA_PUB
 )
 
-func (k KeyType) String() string {
+func (k keyType) String() string {
 	switch k {
-	case AES:
+	case ktAES:
 		return "AES"
-	case HMAC_SHA1:
+	case ktHMAC_SHA1:
 		return "HMAC_SHA1"
-	case DSA_PRIV:
+	case ktDSA_PRIV:
 		return "DSA_PRIV"
-	case DSA_PUB:
+	case ktDSA_PUB:
 		return "DSA_PUB"
-	case RSA_PRIV:
+	case ktRSA_PRIV:
 		return "RSA_PRIV"
-	case RSA_PUB:
+	case ktRSA_PUB:
 		return "RSA_PUB"
 	}
 
 	return "(unknown KeyType)"
 }
 
-var keyTypeLookup = map[string]KeyType{
-	"AES":       AES,
-	"HMAC_SHA1": HMAC_SHA1,
-	"DSA_PRIV":  DSA_PRIV,
-	"DSA_PUB":   DSA_PUB,
-	"RSA_PRIV":  RSA_PRIV,
-	"RSA_PUB":   RSA_PUB,
+var keyTypeLookup = map[string]keyType{
+	"AES":       ktAES,
+	"HMAC_SHA1": ktHMAC_SHA1,
+	"DSA_PRIV":  ktDSA_PRIV,
+	"DSA_PUB":   ktDSA_PUB,
+	"RSA_PRIV":  ktRSA_PRIV,
+	"RSA_PUB":   ktRSA_PUB,
 }
 
-func (k *KeyType) UnmarshalJSON(b []byte) error {
+func (k *keyType) UnmarshalJSON(b []byte) error {
 	kt, ok := keyTypeLookup[string(b[1:len(b)-1])]
 	if ok {
 		*k = kt
@@ -48,34 +48,34 @@ func (k *KeyType) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
-type KeyStatus int
+type keyStatus int
 
 const (
-	PRIMARY KeyStatus = iota
-	ACTIVE
-	INVALID
+	ksPRIMARY keyStatus = iota
+	ksACTIVE
+	ksINVALID
 )
 
-func (k KeyStatus) String() string {
+func (k keyStatus) String() string {
 	switch k {
-	case PRIMARY:
+	case ksPRIMARY:
 		return "PRIMARY"
-	case ACTIVE:
+	case ksACTIVE:
 		return "ACTIVE"
-	case INVALID:
+	case ksINVALID:
 		return "INVALID"
 	}
 
 	return "(unknown KeyStatus)"
 }
 
-var keyStatusLookup = map[string]KeyStatus{
-	"PRIMARY": PRIMARY,
-	"ACTIVE":  ACTIVE,
-	"INVALID": INVALID,
+var keyStatusLookup = map[string]keyStatus{
+	"PRIMARY": ksPRIMARY,
+	"ACTIVE":  ksACTIVE,
+	"INVALID": ksINVALID,
 }
 
-func (k *KeyStatus) UnmarshalJSON(b []byte) error {
+func (k *keyStatus) UnmarshalJSON(b []byte) error {
 	ks, ok := keyStatusLookup[string(b[1:len(b)-1])]
 
 	if ok {
@@ -84,58 +84,58 @@ func (k *KeyStatus) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
-type KeyPurpose int
+type keyPurpose int
 
 const (
-	DECRYPT_AND_ENCRYPT KeyPurpose = iota
-	ENCRYPT
-	SIGN_AND_VERIFY
-	VERIFY
-	TEST
+	kpDECRYPT_AND_ENCRYPT keyPurpose = iota
+	kpENCRYPT
+	kpSIGN_AND_VERIFY
+	kpVERIFY
+	kpTEST
 )
 
-func (k KeyPurpose) String() string {
+func (k keyPurpose) String() string {
 	switch k {
-	case DECRYPT_AND_ENCRYPT:
+	case kpDECRYPT_AND_ENCRYPT:
 		return "DECRYPT_AND_ENCRYPT"
-	case ENCRYPT:
+	case kpENCRYPT:
 		return "ENCRYPT"
-	case SIGN_AND_VERIFY:
+	case kpSIGN_AND_VERIFY:
 		return "SIGN_AND_VERIFY"
-	case VERIFY:
+	case kpVERIFY:
 		return "VERIFY"
-	case TEST:
+	case kpTEST:
 		return "TEST"
 	}
 
-	return "(unknown KeyPurpose)"
+	return "(unknown keyPurpose)"
 }
 
-var keyPurposeLookup = map[string]KeyPurpose{
-	"DECRYPT_AND_ENCRYPT": DECRYPT_AND_ENCRYPT,
-	"ENCRYPT":             ENCRYPT,
-	"SIGN_AND_VERIFY":     SIGN_AND_VERIFY,
-	"VERIFY":              VERIFY,
-	"TEST":                TEST,
+var keyPurposeLookup = map[string]keyPurpose{
+	"DECRYPT_AND_ENCRYPT": kpDECRYPT_AND_ENCRYPT,
+	"ENCRYPT":             kpENCRYPT,
+	"SIGN_AND_VERIFY":     kpSIGN_AND_VERIFY,
+	"VERIFY":              kpVERIFY,
+	"TEST":                kpTEST,
 }
 
-func (have KeyPurpose) isValidPurpose(want KeyPurpose) bool {
+func (have keyPurpose) isValidPurpose(want keyPurpose) bool {
 
 	switch want {
-	case ENCRYPT:
-		return have == DECRYPT_AND_ENCRYPT || have == ENCRYPT
-	case DECRYPT_AND_ENCRYPT:
-		return have == DECRYPT_AND_ENCRYPT
-	case VERIFY:
-		return have == SIGN_AND_VERIFY || have == VERIFY
-	case SIGN_AND_VERIFY:
-		return have == SIGN_AND_VERIFY
+	case kpENCRYPT:
+		return have == kpDECRYPT_AND_ENCRYPT || have == kpENCRYPT
+	case kpDECRYPT_AND_ENCRYPT:
+		return have == kpDECRYPT_AND_ENCRYPT
+	case kpVERIFY:
+		return have == kpSIGN_AND_VERIFY || have == kpVERIFY
+	case kpSIGN_AND_VERIFY:
+		return have == kpSIGN_AND_VERIFY
 	}
 
 	panic("unknown purpose: " + string(want))
 }
 
-func (k *KeyPurpose) UnmarshalJSON(b []byte) error {
+func (k *keyPurpose) UnmarshalJSON(b []byte) error {
 	kp, ok := keyPurposeLookup[string(b[1:len(b)-1])]
 	if ok {
 		*k = kp
@@ -143,53 +143,53 @@ func (k *KeyPurpose) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
-type KeyMeta struct {
+type keyMeta struct {
 	Name      string
-	Type      KeyType
-	Purpose   KeyPurpose
+	Type      keyType
+	Purpose   keyPurpose
 	Encrypted bool
-	Versions  []KeyVersion
+	Versions  []keyVersion
 }
 
-type KeyVersion struct {
+type keyVersion struct {
 	VersionNumber int
-	Status        KeyStatus
+	Status        keyStatus
 	Exportable    bool
 }
 
-type CipherMode int
+type cipherMode int
 
 // FIXME: need rest of info for cipher modes
 const (
-	CBC     CipherMode = iota
-	CTR                // unsupported
-	ECB                // unsupported
-	DET_CBC            // unsupported
+	cmCBC     cipherMode = iota
+	cmCTR                // unsupported
+	cmECB                // unsupported
+	cmDET_CBC            // unsupported
 )
 
-func (c CipherMode) String() string {
+func (c cipherMode) String() string {
 	switch c {
-	case CBC:
+	case cmCBC:
 		return "CBC"
-	case CTR:
+	case cmCTR:
 		return "CTR"
-	case ECB:
+	case cmECB:
 		return "ECB"
-	case DET_CBC:
+	case cmDET_CBC:
 		return "DET_CBC"
 	}
 
 	return "(unknown CipherMode)"
 }
 
-var cipherModeLookup = map[string]CipherMode{
-	"CBC":     CBC,
-	"CTR":     CTR,
-	"ECB":     ECB,
-	"DET_CBC": DET_CBC,
+var cipherModeLookup = map[string]cipherMode{
+	"CBC":     cmCBC,
+	"CTR":     cmCTR,
+	"ECB":     cmECB,
+	"DET_CBC": cmDET_CBC,
 }
 
-func (c *CipherMode) UnmarshalJSON(b []byte) error {
+func (c *cipherMode) UnmarshalJSON(b []byte) error {
 	cm, ok := cipherModeLookup[string(b[1:len(b)-1])]
 	if ok {
 		*c = cm

@@ -9,8 +9,8 @@ import (
 )
 
 type KeyReader interface {
-	GetMetadata() (string, error)
-	GetKey(version int) (string, error)
+	getMetadata() (string, error)
+	getKey(version int) (string, error)
 }
 
 type FileReader struct {
@@ -76,15 +76,15 @@ func slurp(path string) (string, error) {
 	return string(meta), nil
 }
 
-func (r *FileReader) GetMetadata() (string, error) {
+func (r *FileReader) getMetadata() (string, error) {
 	return slurp(r.location + "meta")
 }
 
-func (r *FileReader) GetKey(version int) (string, error) {
+func (r *FileReader) getKey(version int) (string, error) {
 	return slurp(r.location + strconv.Itoa(version))
 }
 
-func (r *EncryptedReader) GetKey(version int) (string, error) {
+func (r *EncryptedReader) getKey(version int) (string, error) {
 	s, err := slurp(r.location + strconv.Itoa(version))
 	if err != nil {
 		return "", err
