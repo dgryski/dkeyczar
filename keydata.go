@@ -4,12 +4,17 @@ import (
 	"bytes"
 	"crypto/aes"
 	"crypto/cipher"
+	"crypto/dsa"
 	"crypto/hmac"
+	"crypto/rand"
 	"crypto/sha1"
 	"crypto/subtle"
+	"encoding/asn1"
 	"encoding/binary"
 	"encoding/json"
+	"fmt"
 	"log"
+	"math/big"
 )
 
 type KeyCzar struct {
@@ -170,6 +175,10 @@ func newKeyCzar(r KeyReader, purpose KeyPurpose) (*KeyCzar, error) {
 		kz.keys = newAesKeys(r, kz.keymeta)
 	case HMAC_SHA1:
 		kz.keys = newHmacKeys(r, kz.keymeta)
+	case DSA_PRIV:
+		kz.keys = newDsaKeys(r, kz.keymeta)
+	case DSA_PUB:
+		kz.keys = newDsaPublicKeys(r, kz.keymeta)
 	default:
 		return nil, UnsupportedTypeException
 	}
@@ -199,7 +208,6 @@ type VerifyKey interface {
 type SignVerifyKey interface {
 	VerifyKey
 	Sign(message []byte) []byte
-//	PublicKey() Key
 }
 
 const VERSION = 0
@@ -380,4 +388,137 @@ func (hm *HmacKey) Verify(msg []byte, signature []byte) bool {
 	sigBytes := sha1hmac.Sum(nil)
 
 	return subtle.ConstantTimeCompare(sigBytes, signature) == 1
+}
+
+type DsaPublicKey struct {
+	Q    string
+	P    string
+	Y    string
+	G    string
+	Size int
+	key  dsa.PublicKey
+}
+
+type DsaKey struct {
+	PublicKey DsaPublicKey
+	Size      int
+	X         string
+	key       dsa.PrivateKey
+}
+
+func newDsaPublicKeys(r KeyReader, km KeyMeta) map[int]Key {
+
+	keys := make(map[int]Key)
+
+	// FIXME: ugg, more duplicated code
+
+	for _, kv := range km.Versions {
+		s, _ := r.GetKey(kv.VersionNumber)
+		dsakey := new(DsaPublicKey)
+		json.Unmarshal([]byte(s), &dsakey)
+
+                b, _ := decodeWeb64String(dsakey.Y)
+		dsakey.key.Y = big.NewInt(0).SetBytes(b)
+
+		b, _ = decodeWeb64String(dsakey.G)
+		dsakey.key.G = big.NewInt(0).SetBytes(b)
+
+		b, _ = decodeWeb64String(dsakey.P)
+		dsakey.key.P = big.NewInt(0).SetBytes(b)
+
+		b, _ = decodeWeb64String(dsakey.Q)
+		dsakey.key.Q = big.NewInt(0).SetBytes(b)
+
+		keys[kv.VersionNumber] = dsakey
+	}
+
+	return keys
+}
+
+func newDsaKeys(r KeyReader, km KeyMeta) map[int]Key {
+
+	keys := make(map[int]Key)
+
+	for _, kv := range km.Versions {
+		s, _ := r.GetKey(kv.VersionNumber)
+		dsakey := new(DsaKey)
+		json.Unmarshal([]byte(s), &dsakey)
+
+		b, _ := decodeWeb64String(dsakey.X)
+		dsakey.key.X = big.NewInt(0).SetBytes(b)
+
+		b, _ = decodeWeb64String(dsakey.PublicKey.Y)
+		dsakey.key.Y = big.NewInt(0).SetBytes(b)
+		dsakey.PublicKey.key.Y = dsakey.key.Y
+
+		b, _ = decodeWeb64String(dsakey.PublicKey.G)
+		dsakey.key.G = big.NewInt(0).SetBytes(b)
+		dsakey.PublicKey.key.G = dsakey.key.G
+
+		b, _ = decodeWeb64String(dsakey.PublicKey.P)
+		dsakey.key.P = big.NewInt(0).SetBytes(b)
+		dsakey.PublicKey.key.P = dsakey.key.P
+
+		b, _ = decodeWeb64String(dsakey.PublicKey.Q)
+		dsakey.key.Q = big.NewInt(0).SetBytes(b)
+		dsakey.PublicKey.key.Q = dsakey.key.Q
+
+		keys[kv.VersionNumber] = dsakey
+	}
+
+	return keys
+}
+
+func (dk *DsaPublicKey) KeyID() []byte {
+
+	h := sha1.New()
+
+	for _, n := range []*big.Int{dk.key.P, dk.key.Q, dk.key.G, dk.key.Y} {
+		b := n.Bytes()
+		binary.Write(h, binary.BigEndian, uint32(len(b)))
+		h.Write(b)
+	}
+
+	id := h.Sum(nil)
+
+	return id[0:4]
+
+}
+
+func (dk *DsaKey) KeyID() []byte {
+	return dk.PublicKey.KeyID()
+}
+
+type DsaSignature struct {
+	R *big.Int
+	S *big.Int
+}
+
+func (dk *DsaKey) Sign(msg []byte) []byte {
+
+	h := sha1.New()
+	h.Write(msg)
+
+	r, s, _ := dsa.Sign(rand.Reader, &dk.key, h.Sum(nil))
+
+	sig := DsaSignature{r, s}
+
+	b, _ := asn1.Marshal(sig)
+
+	return b
+}
+
+func (dk *DsaKey) Verify(msg []byte, signature []byte) bool {
+	return dk.PublicKey.Verify(msg, signature)
+}
+
+func (dk *DsaPublicKey) Verify(msg []byte, signature []byte) bool {
+
+	h := sha1.New()
+	h.Write(msg)
+
+	var rs DsaSignature
+	asn1.Unmarshal(signature, &rs)
+
+	return dsa.Verify(&dk.key, h.Sum(nil), rs.R, rs.S)
 }

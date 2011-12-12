@@ -63,6 +63,31 @@ func testVerify(t *testing.T, keytype string) {
 	}
 }
 
+
+func testVerifyPublic(t *testing.T, keytype string) {
+
+	f := NewFileReader(TESTDATA + keytype + ".public")
+
+	kz, _ := NewVerifier(f)
+
+	c, _ := slurp(TESTDATA + keytype + "/1.out")
+
+	goodsig := kz.Verify([]byte(INPUT), c)
+
+	if !goodsig {
+		t.Error("failed signature for " + keytype + "/1.out")
+	}
+
+	c, _ = slurp(TESTDATA + keytype + "/2.out")
+
+	goodsig = kz.Verify([]byte(INPUT), c)
+
+	if !goodsig {
+		t.Error("failed signature for " + keytype + "/2.out")
+	}
+}
+
+
 func testSignVerify(t *testing.T, keytype string) {
 
 	f := NewFileReader(TESTDATA + keytype)
@@ -122,6 +147,22 @@ func TestHmacVerify(t *testing.T) {
 
 func TestHmacSign(t *testing.T) {
 	testSignVerify(t, "hmac")
+}
+
+func TestDsa(t *testing.T) {
+	testVerify(t, "dsa")
+}
+
+func TestDsaSign(t *testing.T) {
+	testSignVerify(t, "dsa")
+}
+
+func TestDsaVerify(t *testing.T) {
+	testVerify(t, "dsa")
+}
+
+func TestDsaPublicVerifyPublic(t *testing.T) {
+	testVerifyPublic(t, "dsa")
 }
 
 var pkcs5tests = []struct {
