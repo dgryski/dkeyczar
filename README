@@ -5,8 +5,8 @@ This code is licensed under the Apache License, version 2.0
 You can learn more about the Keyczar library at http://www.keyczar.org/
 
 This was basically a proof-of-concept, hacked up in a weekend.  There's still a
-lot of work to do, but at the moment AES-HMAC for encryption and HMAC_SHA1 for
-verifying works.  There's a list of TODO items, many of which are source code
+lot of work to do, but at the moment AES-HMAC for encryption and HMAC_SHA1 and DSA for
+signing and verification.  There's a list of TODO items, many of which are source code
 cleanup tasks, not just missing functionality.
 
 At the moment, the tests require the keyczar-py source tree, since that's where
