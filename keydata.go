@@ -126,7 +126,7 @@ func NewCrypter(r KeyReader) (Crypter, error) {
 	return newKeyCzar(r, kpDECRYPT_AND_ENCRYPT)
 }
 
-func NewEncrypter(r KeyReader) (Crypter, error) {
+func NewEncrypter(r KeyReader) (Encrypter, error) {
 	return newKeyCzar(r, kpENCRYPT)
 }
 
