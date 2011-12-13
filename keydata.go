@@ -57,7 +57,7 @@ func (kz *keyCzar) Decrypt(ciphertext string) []uint8 {
 
 	b, _ := decodeWeb64String(ciphertext)
 
-	if b[0] != VERSION {
+	if b[0] != kzVersion {
 		log.Fatal("bad version: ", b[0])
 	}
 
@@ -79,7 +79,7 @@ func (kz *keyCzar) Verify(msg []byte, signature string) bool {
 
 	sigB, _ := decodeWeb64String(signature)
 
-	if sigB[0] != VERSION {
+	if sigB[0] != kzVersion {
 		log.Fatal("bad version: ", sigB[0])
 	}
 
@@ -88,7 +88,7 @@ func (kz *keyCzar) Verify(msg []byte, signature string) bool {
 	// FIXME: ugly :( -- change Verifier.Verify() call instead?
 	signedbytes := make([]byte, len(msg)+1)
 	copy(signedbytes, msg)
-	signedbytes[len(msg)] = VERSION
+	signedbytes[len(msg)] = kzVersion
 
 	for _, k := range kz.keys {
 		if bytes.Compare(k.KeyID(), keyid) == 0 {
@@ -110,7 +110,7 @@ func (kz *keyCzar) Sign(msg []byte) string {
 
 	signedbytes := make([]byte, len(msg)+1)
 	copy(signedbytes, msg)
-	signedbytes[len(msg)] = VERSION
+	signedbytes[len(msg)] = kzVersion
 
 	signature := signingKey.Sign(signedbytes)
 
@@ -209,18 +209,18 @@ type signVerifyKey interface {
 	Sign(message []byte) []byte
 }
 
-const VERSION = 0
-const HEADERLENGTH = 5
-const HMACSIGLENGTH = 20
+const kzVersion = uint8(0)
+const kzHeaderLength = 5
 
 func header(key keyIDer) []byte {
-	b := make([]byte, HEADERLENGTH)
-	b[0] = VERSION
+	b := make([]byte, kzHeaderLength)
+	b[0] = kzVersion
 	copy(b[1:], key.KeyID())
 
 	return b
 }
 
+const hmacSigLength = 20
 type hmacKey struct {
 	HmacKeyString string
 	Size          int
@@ -300,7 +300,7 @@ func (ak *aesKey) Encrypt(data []byte) []byte {
 
 	h := header(ak)
 
-	msgBytes := make([]byte, 0, len(h)+aes.BlockSize+len(cipherBytes)+HMACSIGLENGTH)
+	msgBytes := make([]byte, 0, len(h)+aes.BlockSize+len(cipherBytes)+hmacSigLength)
 
 	msgBytes = append(msgBytes, h...)
 	msgBytes = append(msgBytes, iv_bytes...)
@@ -315,7 +315,7 @@ func (ak *aesKey) Encrypt(data []byte) []byte {
 
 func (ak *aesKey) Decrypt(data []byte) []byte {
 
-	if data[0] != VERSION {
+	if data[0] != kzVersion {
 
 	}
 
@@ -323,8 +323,8 @@ func (ak *aesKey) Decrypt(data []byte) []byte {
 		log.Fatal("bad key: ", data[1:5])
 	}
 
-	msg := data[0 : len(data)-HMACSIGLENGTH]
-	sig := data[len(data)-HMACSIGLENGTH:]
+	msg := data[0 : len(data)-hmacSigLength]
+	sig := data[len(data)-hmacSigLength:]
 
 	if !ak.HmacKey.Verify(msg, sig) {
 		log.Fatal("bad signature: ", sig)
@@ -336,9 +336,9 @@ func (ak *aesKey) Decrypt(data []byte) []byte {
 
 	crypter := cipher.NewCBCDecrypter(aesCipher, iv_bytes)
 
-	plainBytes := make([]byte, len(data)-HEADERLENGTH-HMACSIGLENGTH-aes.BlockSize)
+	plainBytes := make([]byte, len(data)-kzHeaderLength-hmacSigLength-aes.BlockSize)
 
-	crypter.CryptBlocks(plainBytes, data[HEADERLENGTH+aes.BlockSize:len(data)-HMACSIGLENGTH])
+	crypter.CryptBlocks(plainBytes, data[kzHeaderLength+aes.BlockSize:len(data)-hmacSigLength])
 
 	plainBytes = pkcs5unpad(plainBytes)
 
