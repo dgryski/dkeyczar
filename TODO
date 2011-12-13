@@ -41,5 +41,7 @@ Split code better among the files:
     pull pkcs5pad into util
     any other pending reorgs?
 
+Cache key id so it's only calculated once at key load time?
+
 
 
