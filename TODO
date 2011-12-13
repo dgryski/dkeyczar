@@ -36,3 +36,10 @@ Output format: 0.5b or 0.6b ?
 
 Separate json objects from our actual internal crypto types?
 Use json attributes on structs rather than naming?
+
+Split code better among the files:
+    pull pkcs5pad into util
+    any other pending reorgs?
+
+
+
