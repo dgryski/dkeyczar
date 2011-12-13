@@ -13,12 +13,12 @@ type KeyReader interface {
 	getKey(version int) (string, error)
 }
 
-type FileReader struct {
+type fileReader struct {
 	location string
 }
 
 func NewFileReader(location string) KeyReader {
-	r := new(FileReader)
+	r := new(fileReader)
 
 	// make sure 'location' ends with our path separator
 	if location[len(location)-1] == os.PathSeparator {
@@ -30,13 +30,13 @@ func NewFileReader(location string) KeyReader {
 	return r
 }
 
-type EncryptedReader struct {
-	FileReader
+type encryptedReader struct {
+	fileReader
 	crypter Crypter
 }
 
 func NewEncryptedReader(location string, crypter Crypter) KeyReader {
-	r := new(EncryptedReader)
+	r := new(encryptedReader)
 
 	r.crypter = crypter
 
@@ -76,15 +76,15 @@ func slurp(path string) (string, error) {
 	return string(meta), nil
 }
 
-func (r *FileReader) getMetadata() (string, error) {
+func (r *fileReader) getMetadata() (string, error) {
 	return slurp(r.location + "meta")
 }
 
-func (r *FileReader) getKey(version int) (string, error) {
+func (r *fileReader) getKey(version int) (string, error) {
 	return slurp(r.location + strconv.Itoa(version))
 }
 
-func (r *EncryptedReader) getKey(version int) (string, error) {
+func (r *encryptedReader) getKey(version int) (string, error) {
 	s, err := slurp(r.location + strconv.Itoa(version))
 	if err != nil {
 		return "", err
