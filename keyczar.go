@@ -1,3 +1,18 @@
+/*
+DKeyczar is a simplified wrapper around Go's native cryptography libraries.  It
+is modeled after and compatible with Google's Keyczar library
+(http://keyczar.org)
+
+Sample usage is:
+   reader = NewFileReader("/path/to/keys")
+   crypter = NewCrypter(reader)
+   crypter.Encrypt(data)
+
+   Decryption, Signing and Verification use the same minimal API.
+
+   Encrypted data and signatures are encoding with a web-safe base64 encoding.
+
+*/
 package dkeyczar
 
 import (
@@ -7,9 +22,9 @@ import (
 )
 
 type keyCzar struct {
-	keymeta keyMeta
-	keys    map[int]keyIDer
-	primary int
+	keymeta keyMeta         // metadata for this key
+	keys    map[int]keyIDer // maps versions to keys
+	primary int             // integer version of the primary key
 }
 
 type Encrypter interface {
