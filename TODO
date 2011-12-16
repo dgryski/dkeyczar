@@ -37,3 +37,11 @@ Split code better among the files:
     any other pending reorgs?
 
 Cache key id so it's only calculated once at key load time?
+
+Session encryption (close to being merged; see the python_sessions branch)
+
+Certificate import
+
+PKCS#8 private key import/export
+
+Password-based key encryption
