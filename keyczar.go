@@ -8,9 +8,9 @@ Sample usage is:
    crypter = NewCrypter(reader)
    crypter.Encrypt(data)
 
-   Decryption, Signing and Verification use the same minimal API.
+Decryption, Signing and Verification use the same minimal API.
 
-   Encrypted data and signatures are encoding with a web-safe base64 encoding.
+Encrypted data and signatures are encoding with a web-safe base64 encoding.
 
 */
 package dkeyczar
