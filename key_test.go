@@ -2,11 +2,17 @@ package dkeyczar
 
 import (
 	"bytes"
+	"os"
 	"testing"
 )
 
 const INPUT = "This is some test data"
-const TESTDATA = "/Users/dgryski/work/src/cvs/keyczar-py/testdata/"
+
+var TESTDATA = ""
+
+func init() {
+	TESTDATA = os.Getenv("KEYCZAR_TESTDATA")
+}
 
 func testEncrypt(t *testing.T, keytype string) {
 
@@ -169,7 +175,6 @@ func TestRsasignVerify(t *testing.T) {
 func TestRsasignPublicVerifyPublic(t *testing.T) {
 	testVerifyPublic(t, "rsa-sign")
 }
-
 
 func TestRsaEncrypt(t *testing.T) {
 	testEncrypt(t, "rsa")
