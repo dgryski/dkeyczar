@@ -1,22 +1,24 @@
 package dkeyczar
 
-// FIXME: change API to include errors
-
 import (
 	"io"
 	"os"
 	"strconv"
 )
 
+// KeyReader provides an interface for returning information about a particular key.
 type KeyReader interface {
+	// getMetadata returns the meta information for this key
 	getMetadata() (string, error)
+	// getKey returns the key material for a particular version of this key
 	getKey(version int) (string, error)
 }
 
 type fileReader struct {
-	location string
+	location string // directory path of keyfiles
 }
 
+// NewFileReader returns a KeyReader that reads a keyczar key from a directory on the file system.
 func NewFileReader(location string) KeyReader {
 	r := new(fileReader)
 
@@ -35,6 +37,7 @@ type encryptedReader struct {
 	crypter Crypter
 }
 
+// NewEncryptedReader returns a KeyReader which decrypts the key returned by the wrapped 'reader'.
 func NewEncryptedReader(reader KeyReader, crypter Crypter) KeyReader {
 	r := new(encryptedReader)
 
@@ -44,6 +47,7 @@ func NewEncryptedReader(reader KeyReader, crypter Crypter) KeyReader {
 	return r
 }
 
+// return the entire contents of a file as a string
 func slurp(path string) (string, error) {
 	f, err := os.Open(path)
 
@@ -70,18 +74,22 @@ func slurp(path string) (string, error) {
 	return string(meta), nil
 }
 
+// slurp and return the meta file
 func (r *fileReader) getMetadata() (string, error) {
 	return slurp(r.location + "meta")
 }
 
+// slurp and return the requested key version
 func (r *fileReader) getKey(version int) (string, error) {
 	return slurp(r.location + strconv.Itoa(version))
 }
 
+// return the meta information from the wrapper reader.  Meta information is not encrypted.
 func (r *encryptedReader) getMetadata() (string, error) {
-    return r.reader.getMetadata()
+	return r.reader.getMetadata()
 }
 
+// decrypt and return an encrypted key
 func (r *encryptedReader) getKey(version int) (string, error) {
 	s, err := r.reader.getKey(version)
 
