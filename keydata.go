@@ -42,18 +42,25 @@ type signVerifyKey interface {
 
 const hmacSigLength = 20
 
-type hmacKey struct {
+type hmacKeyJSON struct {
 	HmacKeyString string
 	Size          int
-	key           []byte
+}
+
+type hmacKey struct {
+	key []byte
+}
+
+type aesKeyJSON struct {
+	AesKeyString string
+	Size         int
+	HmacKey      hmacKeyJSON
+	Mode         cipherMode
 }
 
 type aesKey struct {
-	AesKeyString string
-	Size         int
-	HmacKey      hmacKey
-	Mode         cipherMode
-	key          []byte
+	key     []byte
+	hmacKey hmacKey
 }
 
 func (ak *aesKey) KeyID() []byte {
@@ -62,7 +69,7 @@ func (ak *aesKey) KeyID() []byte {
 
 	binary.Write(h, binary.BigEndian, uint32(len(ak.key)))
 	h.Write(ak.key)
-	h.Write(ak.HmacKey.key)
+	h.Write(ak.hmacKey.key)
 
 	id := h.Sum(nil)
 
@@ -77,12 +84,13 @@ func newAesKeys(r KeyReader, km keyMeta) map[int]keyIDer {
 	for _, kv := range km.Versions {
 		s, _ := r.GetKey(kv.VersionNumber)
 		aeskey := new(aesKey)
-		json.Unmarshal([]byte(s), &aeskey)
+		aesjson := new(aesKeyJSON)
+		json.Unmarshal([]byte(s), &aesjson)
 
 		// FIXME: move to NewAesKey constructor
-		aeskey.key, _ = decodeWeb64String(aeskey.AesKeyString)
+		aeskey.key, _ = decodeWeb64String(aesjson.AesKeyString)
 		// FIXME: move to NewHmacKey constructor?
-		aeskey.HmacKey.key, _ = decodeWeb64String(aeskey.HmacKey.HmacKeyString)
+		aeskey.hmacKey.key, _ = decodeWeb64String(aesjson.HmacKey.HmacKeyString)
 
 		keys[kv.VersionNumber] = aeskey
 	}
@@ -133,7 +141,7 @@ func (ak *aesKey) Encrypt(data []byte) ([]byte, error) {
 	msgBytes = append(msgBytes, iv_bytes...)
 	msgBytes = append(msgBytes, cipherBytes...)
 
-	sigBytes, err := ak.HmacKey.Sign(msgBytes)
+	sigBytes, err := ak.hmacKey.Sign(msgBytes)
 	if err != nil {
 		return nil, err
 	}
@@ -148,7 +156,7 @@ func (ak *aesKey) Decrypt(data []byte) ([]byte, error) {
 	msg := data[0 : len(data)-hmacSigLength]
 	sig := data[len(data)-hmacSigLength:]
 
-	if ok, err := ak.HmacKey.Verify(msg, sig); !ok || err != nil {
+	if ok, err := ak.hmacKey.Verify(msg, sig); !ok || err != nil {
 		if err == nil {
 			err = ErrInvalidSignature
 		}
@@ -180,9 +188,10 @@ func newHmacKeys(r KeyReader, km keyMeta) map[int]keyIDer {
 	for _, kv := range km.Versions {
 		s, _ := r.GetKey(kv.VersionNumber)
 		hmackey := new(hmacKey)
-		json.Unmarshal([]byte(s), &hmackey)
+		hmacjson := new(hmacKeyJSON)
+		json.Unmarshal([]byte(s), &hmacjson)
 
-		hmackey.key, _ = decodeWeb64String(hmackey.HmacKeyString)
+		hmackey.key, _ = decodeWeb64String(hmacjson.HmacKeyString)
 
 		keys[kv.VersionNumber] = hmackey
 	}
@@ -216,20 +225,27 @@ func (hm *hmacKey) Verify(msg []byte, signature []byte) (bool, error) {
 	return subtle.ConstantTimeCompare(sigBytes, signature) == 1, nil
 }
 
-type dsaPublicKey struct {
+type dsaPublicKeyJSON struct {
 	Q    string
 	P    string
 	Y    string
 	G    string
 	Size int
-	key  dsa.PublicKey
+}
+
+type dsaPublicKey struct {
+	key dsa.PublicKey
+}
+
+type dsaKeyJSON struct {
+	PublicKey dsaPublicKeyJSON
+	Size      int
+	X         string
 }
 
 type dsaKey struct {
-	PublicKey dsaPublicKey
-	Size      int
-	X         string
-	key       dsa.PrivateKey
+	key dsa.PrivateKey
+        publicKey dsaPublicKey
 }
 
 func newDsaPublicKeys(r KeyReader, km keyMeta) map[int]keyIDer {
@@ -241,18 +257,19 @@ func newDsaPublicKeys(r KeyReader, km keyMeta) map[int]keyIDer {
 	for _, kv := range km.Versions {
 		s, _ := r.GetKey(kv.VersionNumber)
 		dsakey := new(dsaPublicKey)
-		json.Unmarshal([]byte(s), &dsakey)
+		dsajson := new(dsaPublicKeyJSON)
+		json.Unmarshal([]byte(s), &dsajson)
 
-		b, _ := decodeWeb64String(dsakey.Y)
+		b, _ := decodeWeb64String(dsajson.Y)
 		dsakey.key.Y = big.NewInt(0).SetBytes(b)
 
-		b, _ = decodeWeb64String(dsakey.G)
+		b, _ = decodeWeb64String(dsajson.G)
 		dsakey.key.G = big.NewInt(0).SetBytes(b)
 
-		b, _ = decodeWeb64String(dsakey.P)
+		b, _ = decodeWeb64String(dsajson.P)
 		dsakey.key.P = big.NewInt(0).SetBytes(b)
 
-		b, _ = decodeWeb64String(dsakey.Q)
+		b, _ = decodeWeb64String(dsajson.Q)
 		dsakey.key.Q = big.NewInt(0).SetBytes(b)
 
 		keys[kv.VersionNumber] = dsakey
@@ -268,26 +285,27 @@ func newDsaKeys(r KeyReader, km keyMeta) map[int]keyIDer {
 	for _, kv := range km.Versions {
 		s, _ := r.GetKey(kv.VersionNumber)
 		dsakey := new(dsaKey)
-		json.Unmarshal([]byte(s), &dsakey)
+		dsajson := new(dsaKeyJSON)
+		json.Unmarshal([]byte(s), &dsajson)
 
-		b, _ := decodeWeb64String(dsakey.X)
+		b, _ := decodeWeb64String(dsajson.X)
 		dsakey.key.X = big.NewInt(0).SetBytes(b)
 
-		b, _ = decodeWeb64String(dsakey.PublicKey.Y)
+		b, _ = decodeWeb64String(dsajson.PublicKey.Y)
 		dsakey.key.Y = big.NewInt(0).SetBytes(b)
-		dsakey.PublicKey.key.Y = dsakey.key.Y
+		dsakey.publicKey.key.Y = dsakey.key.Y
 
-		b, _ = decodeWeb64String(dsakey.PublicKey.G)
+		b, _ = decodeWeb64String(dsajson.PublicKey.G)
 		dsakey.key.G = big.NewInt(0).SetBytes(b)
-		dsakey.PublicKey.key.G = dsakey.key.G
+		dsakey.publicKey.key.G = dsakey.key.G
 
-		b, _ = decodeWeb64String(dsakey.PublicKey.P)
+		b, _ = decodeWeb64String(dsajson.PublicKey.P)
 		dsakey.key.P = big.NewInt(0).SetBytes(b)
-		dsakey.PublicKey.key.P = dsakey.key.P
+		dsakey.publicKey.key.P = dsakey.key.P
 
-		b, _ = decodeWeb64String(dsakey.PublicKey.Q)
+		b, _ = decodeWeb64String(dsajson.PublicKey.Q)
 		dsakey.key.Q = big.NewInt(0).SetBytes(b)
-		dsakey.PublicKey.key.Q = dsakey.key.Q
+		dsakey.publicKey.key.Q = dsakey.key.Q
 
 		keys[kv.VersionNumber] = dsakey
 	}
@@ -312,7 +330,7 @@ func (dk *dsaPublicKey) KeyID() []byte {
 }
 
 func (dk *dsaKey) KeyID() []byte {
-	return dk.PublicKey.KeyID()
+	return dk.publicKey.KeyID()
 }
 
 type dsaSignature struct {
@@ -341,7 +359,7 @@ func (dk *dsaKey) Sign(msg []byte) ([]byte, error) {
 }
 
 func (dk *dsaKey) Verify(msg []byte, signature []byte) (bool, error) {
-	return dk.PublicKey.Verify(msg, signature)
+	return dk.publicKey.Verify(msg, signature)
 }
 
 func (dk *dsaPublicKey) Verify(msg []byte, signature []byte) (bool, error) {
@@ -358,14 +376,17 @@ func (dk *dsaPublicKey) Verify(msg []byte, signature []byte) (bool, error) {
 	return dsa.Verify(&dk.key, h.Sum(nil), rs.R, rs.S), nil
 }
 
-type rsaPublicKey struct {
+type rsaPublicKeyJSON struct {
 	Modulus        string
 	PublicExponent string
 	Size           int
-	key            rsa.PublicKey
 }
 
-type rsaKey struct {
+type rsaPublicKey struct {
+	key rsa.PublicKey
+}
+
+type rsaKeyJSON struct {
 	CrtCoefficient  string
 	PrimeExponentP  string
 	PrimeExponentQ  string
@@ -373,10 +394,13 @@ type rsaKey struct {
 	PrimeQ          string
 	PrivateExponent string
 
-	PublicKey rsaPublicKey
+	PublicKey rsaPublicKeyJSON
 	Size      int
+}
 
-	key rsa.PrivateKey
+type rsaKey struct {
+	key       rsa.PrivateKey
+	publicKey rsaPublicKey
 }
 
 func (rk *rsaPublicKey) KeyID() []byte {
@@ -399,7 +423,7 @@ func (rk *rsaPublicKey) KeyID() []byte {
 }
 
 func (rk *rsaKey) KeyID() []byte {
-	return rk.PublicKey.KeyID()
+	return rk.publicKey.KeyID()
 }
 
 func newRsaPublicKeys(r KeyReader, km keyMeta) map[int]keyIDer {
@@ -411,12 +435,13 @@ func newRsaPublicKeys(r KeyReader, km keyMeta) map[int]keyIDer {
 	for _, kv := range km.Versions {
 		s, _ := r.GetKey(kv.VersionNumber)
 		rsakey := new(rsaPublicKey)
-		json.Unmarshal([]byte(s), &rsakey)
+		rsajson := new(rsaPublicKeyJSON)
+		json.Unmarshal([]byte(s), &rsajson)
 
-		b, _ := decodeWeb64String(rsakey.Modulus)
+		b, _ := decodeWeb64String(rsajson.Modulus)
 		rsakey.key.N = big.NewInt(0).SetBytes(b)
 
-		b, _ = decodeWeb64String(rsakey.PublicExponent)
+		b, _ = decodeWeb64String(rsajson.PublicExponent)
 		rsakey.key.E = int(big.NewInt(0).SetBytes(b).Int64())
 
 		keys[kv.VersionNumber] = rsakey
@@ -432,7 +457,8 @@ func newRsaKeys(r KeyReader, km keyMeta) map[int]keyIDer {
 	for _, kv := range km.Versions {
 		s, _ := r.GetKey(kv.VersionNumber)
 		rsakey := new(rsaKey)
-		json.Unmarshal([]byte(s), &rsakey)
+		rsajson := new(rsaKeyJSON)
+		json.Unmarshal([]byte(s), &rsajson)
 
 		var b []byte
 
@@ -448,24 +474,24 @@ func newRsaKeys(r KeyReader, km keyMeta) map[int]keyIDer {
 			rsakey.key.PrimeExponentQ = big.NewInt(0).SetBytes(b)
 		*/
 
-		b, _ = decodeWeb64String(rsakey.PrimeP)
+		b, _ = decodeWeb64String(rsajson.PrimeP)
 		p := big.NewInt(0).SetBytes(b)
 
-		b, _ = decodeWeb64String(rsakey.PrimeQ)
+		b, _ = decodeWeb64String(rsajson.PrimeQ)
 		q := big.NewInt(0).SetBytes(b)
 
 		rsakey.key.Primes = []*big.Int{p, q}
 
-		b, _ = decodeWeb64String(rsakey.PrivateExponent)
+		b, _ = decodeWeb64String(rsajson.PrivateExponent)
 		rsakey.key.D = big.NewInt(0).SetBytes(b)
 
-		b, _ = decodeWeb64String(rsakey.PublicKey.Modulus)
+		b, _ = decodeWeb64String(rsajson.PublicKey.Modulus)
 		rsakey.key.PublicKey.N = big.NewInt(0).SetBytes(b)
-		rsakey.PublicKey.key.N = rsakey.key.PublicKey.N
+		rsakey.publicKey.key.N = rsakey.key.PublicKey.N
 
-		b, _ = decodeWeb64String(rsakey.PublicKey.PublicExponent)
+		b, _ = decodeWeb64String(rsajson.PublicKey.PublicExponent)
 		rsakey.key.PublicKey.E = int(big.NewInt(0).SetBytes(b).Int64())
-		rsakey.PublicKey.key.E = rsakey.key.PublicKey.E
+		rsakey.publicKey.key.E = rsakey.key.PublicKey.E
 
 		keys[kv.VersionNumber] = rsakey
 	}
@@ -485,7 +511,7 @@ func (rk *rsaKey) Sign(msg []byte) ([]byte, error) {
 }
 
 func (rk *rsaKey) Verify(msg []byte, signature []byte) (bool, error) {
-	return rk.PublicKey.Verify(msg, signature)
+	return rk.publicKey.Verify(msg, signature)
 }
 
 func (rk *rsaPublicKey) Verify(msg []byte, signature []byte) (bool, error) {
