@@ -4,9 +4,7 @@ Refactor common code
 keymeta.keys[keyid] = key
 keymeta.primary is uint32 keyid
 
-Fix up API to have 'err' return codes
-    => and full error checking 
-    => better error messages?  "bad version 0x4 in header" vs. "bad version in header"
+better error messages?  "bad version 0x4 in header" vs. "bad version in header"
 
 Make sure we have real tests cases
     Add test cases for:
