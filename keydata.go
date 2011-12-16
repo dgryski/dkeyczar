@@ -1,11 +1,13 @@
 package dkeyczar
 
 import (
+	"crypto"
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/dsa"
 	"crypto/hmac"
 	"crypto/rand"
+	"crypto/rsa"
 	"crypto/sha1"
 	"crypto/subtle"
 	"encoding/asn1"
@@ -341,4 +343,142 @@ func (dk *dsaPublicKey) Verify(msg []byte, signature []byte) bool {
 	asn1.Unmarshal(signature, &rs)
 
 	return dsa.Verify(&dk.key, h.Sum(nil), rs.R, rs.S)
+}
+
+type rsaPublicKey struct {
+	Modulus        string
+	PublicExponent string
+	Size           int
+	key            rsa.PublicKey
+}
+
+type rsaKey struct {
+	CrtCoefficient  string
+	PrimeExponentP  string
+	PrimeExponentQ  string
+	PrimeP          string
+	PrimeQ          string
+	PrivateExponent string
+
+	PublicKey rsaPublicKey
+	Size      int
+
+	key rsa.PrivateKey
+}
+
+func (rk *rsaPublicKey) KeyID() []byte {
+
+	h := sha1.New()
+
+	b := rk.key.N.Bytes()
+	binary.Write(h, binary.BigEndian, uint32(len(b)))
+	h.Write(b)
+
+	e := big.NewInt(int64(rk.key.E))
+	b = e.Bytes()
+
+	binary.Write(h, binary.BigEndian, uint32(len(b)))
+	h.Write(b)
+
+	id := h.Sum(nil)
+
+	return id[0:4]
+}
+
+func (rk *rsaKey) KeyID() []byte {
+	return rk.PublicKey.KeyID()
+}
+
+func newRsaPublicKeys(r KeyReader, km keyMeta) map[int]keyIDer {
+
+	keys := make(map[int]keyIDer)
+
+	// FIXME: ugg, more duplicated code
+
+	for _, kv := range km.Versions {
+		s, _ := r.getKey(kv.VersionNumber)
+		rsakey := new(rsaPublicKey)
+		json.Unmarshal([]byte(s), &rsakey)
+
+		b, _ := decodeWeb64String(rsakey.Modulus)
+		rsakey.key.N = big.NewInt(0).SetBytes(b)
+
+		b, _ = decodeWeb64String(rsakey.PublicExponent)
+		rsakey.key.E = int(big.NewInt(0).SetBytes(b).Int64())
+
+		keys[kv.VersionNumber] = rsakey
+	}
+
+	return keys
+}
+
+func newRsaKeys(r KeyReader, km keyMeta) map[int]keyIDer {
+
+	keys := make(map[int]keyIDer)
+
+	for _, kv := range km.Versions {
+		s, _ := r.getKey(kv.VersionNumber)
+		rsakey := new(rsaKey)
+		json.Unmarshal([]byte(s), &rsakey)
+
+		var b []byte
+
+		/*
+
+			b, _ = decodeWeb64String(rsakey.CrtCoefficient)
+			rsakey.key.CrtCoefficient = big.NewInt(0).SetBytes(b)
+
+			b, _ = decodeWeb64String(rsakey.PrimeExponentP)
+			rsakey.key.PrimeExponentP = big.NewInt(0).SetBytes(b)
+
+			b, _ = decodeWeb64String(rsakey.PrimeExponentQ)
+			rsakey.key.PrimeExponentQ = big.NewInt(0).SetBytes(b)
+		*/
+
+		b, _ = decodeWeb64String(rsakey.PrimeP)
+		p := big.NewInt(0).SetBytes(b)
+
+		b, _ = decodeWeb64String(rsakey.PrimeQ)
+		q := big.NewInt(0).SetBytes(b)
+
+		rsakey.key.Primes = []*big.Int{p, q}
+
+		b, _ = decodeWeb64String(rsakey.PrivateExponent)
+		rsakey.key.D = big.NewInt(0).SetBytes(b)
+
+		b, _ = decodeWeb64String(rsakey.PublicKey.Modulus)
+		rsakey.key.PublicKey.N = big.NewInt(0).SetBytes(b)
+		rsakey.PublicKey.key.N = rsakey.key.PublicKey.N
+
+		b, _ = decodeWeb64String(rsakey.PublicKey.PublicExponent)
+		rsakey.key.PublicKey.E = int(big.NewInt(0).SetBytes(b).Int64())
+		rsakey.PublicKey.key.E = rsakey.key.PublicKey.E
+
+		keys[kv.VersionNumber] = rsakey
+	}
+
+	return keys
+}
+
+func (rk *rsaKey) Sign(msg []byte) []byte {
+
+	h := sha1.New()
+	h.Write(msg)
+
+	s, _ := rsa.SignPKCS1v15(rand.Reader, &rk.key, crypto.SHA1, h.Sum(nil))
+
+	return s
+
+}
+
+func (rk *rsaKey) Verify(msg []byte, signature []byte) bool {
+	return rk.PublicKey.Verify(msg, signature)
+}
+
+func (rk *rsaPublicKey) Verify(msg []byte, signature []byte) bool {
+
+	h := sha1.New()
+	h.Write(msg)
+
+	return rsa.VerifyPKCS1v15(&rk.key, crypto.SHA1, h.Sum(nil), signature) == nil
 }

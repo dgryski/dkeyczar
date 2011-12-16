@@ -168,6 +168,10 @@ func newKeyCzar(r KeyReader, purpose keyPurpose) (*keyCzar, error) {
 		kz.keys = newDsaKeys(r, kz.keymeta)
 	case ktDSA_PUB:
 		kz.keys = newDsaPublicKeys(r, kz.keymeta)
+	case ktRSA_PRIV:
+		kz.keys = newRsaKeys(r, kz.keymeta)
+	case ktRSA_PUB:
+		kz.keys = newRsaPublicKeys(r, kz.keymeta)
 	default:
 		return nil, UnsupportedTypeException
 	}
