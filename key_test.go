@@ -146,10 +146,6 @@ func TestHmacSign(t *testing.T) {
 	testSignVerify(t, "hmac")
 }
 
-func TestDsa(t *testing.T) {
-	testVerify(t, "dsa")
-}
-
 func TestDsaSign(t *testing.T) {
 	testSignVerify(t, "dsa")
 }
