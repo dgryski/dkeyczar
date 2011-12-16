@@ -1,8 +1,3 @@
-Finish key types:
-    rsa
-    rsa-sign
-    rsa-sign.public
-
 Refactor common code
     duplicate code in newFOOkeys
 
@@ -42,6 +37,3 @@ Split code better among the files:
     any other pending reorgs?
 
 Cache key id so it's only calculated once at key load time?
-
-
-
