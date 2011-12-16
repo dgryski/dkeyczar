@@ -98,7 +98,10 @@ func (r *encryptedReader) GetKey(version int) (string, error) {
 
 	}
 
-	b := r.crypter.Decrypt(s)
+	b, err := r.crypter.Decrypt(s)
+	if err != nil {
+		return "", err
+	}
 
 	return string(b), nil
 }

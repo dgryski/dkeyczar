@@ -20,11 +20,11 @@ func testEncrypt(t *testing.T, keytype string) {
 
 	kz, _ := NewEncrypter(f)
 
-	c := kz.Encrypt([]byte(INPUT))
+	c, _ := kz.Encrypt([]byte(INPUT))
 
 	crypter, _ := NewCrypter(f)
 
-	p := crypter.Decrypt(c)
+	p, _ := crypter.Decrypt(c)
 
 	if string(p) != INPUT {
 		t.Error(keytype + " encryption failed")
@@ -37,9 +37,9 @@ func testEncryptDecrypt(t *testing.T, keytype string) {
 
 	kz, _ := NewCrypter(f)
 
-	c := kz.Encrypt([]byte(INPUT))
+	c, _ := kz.Encrypt([]byte(INPUT))
 
-	p := kz.Decrypt(c)
+	p, _ := kz.Decrypt(c)
 
 	if string(p) != INPUT {
 		t.Error(keytype + " decrypt(encrypt(p)) != p")
@@ -54,7 +54,7 @@ func testVerify(t *testing.T, keytype string) {
 
 	c, _ := slurp(TESTDATA + keytype + "/1.out")
 
-	goodsig := kz.Verify([]byte(INPUT), c)
+	goodsig, _ := kz.Verify([]byte(INPUT), c)
 
 	if !goodsig {
 		t.Error("failed signature for " + keytype + "/1.out")
@@ -62,7 +62,7 @@ func testVerify(t *testing.T, keytype string) {
 
 	c, _ = slurp(TESTDATA + keytype + "/2.out")
 
-	goodsig = kz.Verify([]byte(INPUT), c)
+	goodsig, _ = kz.Verify([]byte(INPUT), c)
 
 	if !goodsig {
 		t.Error("failed signature for " + keytype + "/2.out")
@@ -77,7 +77,7 @@ func testVerifyPublic(t *testing.T, keytype string) {
 
 	c, _ := slurp(TESTDATA + keytype + "/1.out")
 
-	goodsig := kz.Verify([]byte(INPUT), c)
+	goodsig, _ := kz.Verify([]byte(INPUT), c)
 
 	if !goodsig {
 		t.Error("failed signature for " + keytype + "/1.out")
@@ -85,7 +85,7 @@ func testVerifyPublic(t *testing.T, keytype string) {
 
 	c, _ = slurp(TESTDATA + keytype + "/2.out")
 
-	goodsig = kz.Verify([]byte(INPUT), c)
+	goodsig, _ = kz.Verify([]byte(INPUT), c)
 
 	if !goodsig {
 		t.Error("failed signature for " + keytype + "/2.out")
@@ -98,11 +98,11 @@ func testSignVerify(t *testing.T, keytype string) {
 
 	kz, _ := NewSigner(f)
 
-	s := kz.Sign([]byte(INPUT))
+	s, _ := kz.Sign([]byte(INPUT))
 
 	kv, _ := NewVerifier(f)
 
-	b := kv.Verify([]byte(INPUT), s)
+	b, _ := kv.Verify([]byte(INPUT), s)
 
 	if !b {
 		t.Error(keytype + " verify failed")
@@ -117,7 +117,7 @@ func testDecrypt(t *testing.T, keytype string) {
 
 	c, _ := slurp(TESTDATA + keytype + "/1.out")
 
-	p := kz.Decrypt(c)
+	p, _ := kz.Decrypt(c)
 
 	if string(p) != INPUT {
 		t.Error("decrypt failed for " + keytype + "/1.out")
@@ -125,7 +125,7 @@ func testDecrypt(t *testing.T, keytype string) {
 
 	c, _ = slurp(TESTDATA + keytype + "/2.out")
 
-	p = kz.Decrypt(c)
+	p, _ = kz.Decrypt(c)
 
 	if string(p) != INPUT {
 		t.Error("decrypt failed for " + keytype + "/2.out")
@@ -200,7 +200,7 @@ func TestEncryptedReader(t *testing.T) {
 
 	c, _ := slurp(TESTDATA + "aes-crypted" + "/1.out")
 
-	p := kz.Decrypt(c)
+	p, _ := kz.Decrypt(c)
 
 	if string(p) != INPUT {
 		t.Error("failed to decrypt 1.out with encrypted reader")
@@ -208,7 +208,7 @@ func TestEncryptedReader(t *testing.T) {
 
 	c, _ = slurp(TESTDATA + "aes-crypted" + "/2.out")
 
-	p = kz.Decrypt(c)
+	p, _ = kz.Decrypt(c)
 
 	if string(p) != INPUT {
 		t.Error("failed to decrypt 2.out with encrypted reader")

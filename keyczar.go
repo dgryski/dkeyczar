@@ -18,7 +18,6 @@ package dkeyczar
 import (
 	"bytes"
 	"encoding/json"
-	"log"
 )
 
 type keyCzar struct {
@@ -28,46 +27,53 @@ type keyCzar struct {
 }
 
 type Encrypter interface {
-	// Encrypt returns an encrypted representing the plaintext bytes passed
-	Encrypt(plaintext []uint8) string
+	// Encrypt returns an encrypted representing the plaintext bytes passed.
+	Encrypt(plaintext []uint8) (string, error)
 }
 
 type Crypter interface {
 	Encrypter
 	// Decrypt returns the plaintext bytes of an encrypted string
-	Decrypt(ciphertext string) []uint8
+	Decrypt(ciphertext string) ([]uint8, error)
 }
 
 type Signer interface {
 	Verifier
 	// Sign returns a cryptographic signature for the message
-	Sign(message []byte) string
+	Sign(message []byte) (string, error)
 }
 
 type Verifier interface {
 	// Verify checks the cryptographic signature for a message
-	Verify(message []byte, signature string) bool
+	Verify(message []byte, signature string) (bool, error)
 }
 
-func (kz *keyCzar) Encrypt(plaintext []uint8) string {
+func (kz *keyCzar) Encrypt(plaintext []uint8) (string, error) {
 
 	key := kz.keys[kz.primary]
 
 	encryptKey := key.(encryptKey)
 
-	ciphertext := encryptKey.Encrypt(plaintext)
+	ciphertext, err := encryptKey.Encrypt(plaintext)
+	if err != nil {
+		return "", err
+	}
 	s := encodeWeb64String(ciphertext)
 
-	return s
+	return s, nil
 
 }
 
-func (kz *keyCzar) Decrypt(ciphertext string) []uint8 {
+func (kz *keyCzar) Decrypt(ciphertext string) ([]uint8, error) {
 
-	b, _ := decodeWeb64String(ciphertext)
+	b, err := decodeWeb64String(ciphertext)
+
+	if err != nil {
+		return nil, ErrBase64Decoding
+	}
 
 	if b[0] != kzVersion {
-		log.Fatal("bad version: ", b[0])
+		return nil, ErrBadVersion
 	}
 
 	keyid := b[1:5]
@@ -79,17 +85,19 @@ func (kz *keyCzar) Decrypt(ciphertext string) []uint8 {
 		}
 	}
 
-	log.Fatal("unknown keyid=", keyid)
-
-	return nil
+	return nil, ErrKeyNotFound
 }
 
-func (kz *keyCzar) Verify(msg []byte, signature string) bool {
+func (kz *keyCzar) Verify(msg []byte, signature string) (bool, error) {
 
-	sigB, _ := decodeWeb64String(signature)
+	sigB, err := decodeWeb64String(signature)
+
+	if err != nil {
+		return false, ErrBase64Decoding
+	}
 
 	if sigB[0] != kzVersion {
-		log.Fatal("bad version: ", sigB[0])
+		return false, ErrBadVersion
 	}
 
 	keyid, sig := sigB[1:5], sigB[5:]
@@ -106,12 +114,11 @@ func (kz *keyCzar) Verify(msg []byte, signature string) bool {
 		}
 	}
 
-	log.Fatal("unknown keyid=", keyid)
+	return false, ErrKeyNotFound
 
-	return false
 }
 
-func (kz *keyCzar) Sign(msg []byte) string {
+func (kz *keyCzar) Sign(msg []byte) (string, error) {
 
 	key := kz.keys[kz.primary]
 
@@ -121,14 +128,18 @@ func (kz *keyCzar) Sign(msg []byte) string {
 	copy(signedbytes, msg)
 	signedbytes[len(msg)] = kzVersion
 
-	signature := signingKey.Sign(signedbytes)
+	signature, err := signingKey.Sign(signedbytes)
+
+        if err != nil {
+            return "", err
+        }
 
 	h := header(key)
 	signature = append(h, signature...)
 
 	s := encodeWeb64String(signature)
 
-	return s
+	return s, nil
 }
 
 // NewCrypter returns an object capable of encrypting and decrypting using the key provded by the reader
@@ -164,7 +175,7 @@ func newKeyCzar(r KeyReader, purpose keyPurpose) (*keyCzar, error) {
 	}
 
 	if !kz.keymeta.Purpose.isValidPurpose(purpose) {
-		return nil, UnacceptablePurpose
+		return nil, ErrUnacceptablePurpose
 	}
 
 	kz.primary = -1
@@ -173,13 +184,13 @@ func newKeyCzar(r KeyReader, purpose keyPurpose) (*keyCzar, error) {
 			if kz.primary == -1 {
 				kz.primary = v.VersionNumber
 			} else {
-				return nil, NoPrimaryKeyException // FIXME: technically, "MultiplePrimaryKeyException"
+				return nil, ErrNoPrimaryKey // FIXME: technically, "MultiplePrimaryKeyException"
 			}
 		}
 	}
 
 	if kz.primary == -1 {
-		return nil, NoPrimaryKeyException
+		return nil, ErrNoPrimaryKey
 	}
 
 	switch kz.keymeta.Type {
@@ -196,7 +207,7 @@ func newKeyCzar(r KeyReader, purpose keyPurpose) (*keyCzar, error) {
 	case ktRSA_PUB:
 		kz.keys = newRsaPublicKeys(r, kz.keymeta)
 	default:
-		return nil, UnsupportedTypeException
+		return nil, ErrUnsupportedType
 	}
 
 	return kz, nil

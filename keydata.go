@@ -13,7 +13,6 @@ import (
 	"encoding/asn1"
 	"encoding/binary"
 	"encoding/json"
-	"log"
 	"math/big"
 )
 
@@ -23,22 +22,22 @@ type keyIDer interface {
 
 type encryptKey interface {
 	keyIDer
-	Encrypt(b []byte) []byte
+	Encrypt(b []byte) ([]byte, error)
 }
 
 type decryptEncryptKey interface {
 	encryptKey
-	Decrypt(b []byte) []byte
+	Decrypt(b []byte) ([]byte, error)
 }
 
 type verifyKey interface {
 	keyIDer
-	Verify(message []byte, signature []byte) bool
+	Verify(message []byte, signature []byte) (bool, error)
 }
 
 type signVerifyKey interface {
 	verifyKey
-	Sign(message []byte) []byte
+	Sign(message []byte) ([]byte, error)
 }
 
 const hmacSigLength = 20
@@ -106,13 +105,19 @@ func pkcs5unpad(data []byte) []byte {
 	return data[0 : len(data)-pad]
 }
 
-func (ak *aesKey) Encrypt(data []byte) []byte {
+func (ak *aesKey) Encrypt(data []byte) ([]byte, error) {
 
 	data = pkcs5pad(data, aes.BlockSize)
 
-	iv_bytes, _ := randBytes(aes.BlockSize)
+	iv_bytes, err := randBytes(aes.BlockSize)
+	if err != nil {
+		return nil, err
+	}
 
-	aesCipher, _ := aes.NewCipher(ak.key)
+	aesCipher, err := aes.NewCipher(ak.key)
+	if err != nil {
+		return nil, err
+	}
 
 	crypter := cipher.NewCBCEncrypter(aesCipher, iv_bytes)
 
@@ -128,34 +133,34 @@ func (ak *aesKey) Encrypt(data []byte) []byte {
 	msgBytes = append(msgBytes, iv_bytes...)
 	msgBytes = append(msgBytes, cipherBytes...)
 
-	sigBytes := ak.HmacKey.Sign(msgBytes)
+	sigBytes, err := ak.HmacKey.Sign(msgBytes)
+	if err != nil {
+		return nil, err
+	}
 	msgBytes = append(msgBytes, sigBytes...)
 
-	return msgBytes
+	return msgBytes, nil
 
 }
 
-func (ak *aesKey) Decrypt(data []byte) []byte {
-
-	// FIXME: useless error checking?
-	if data[0] != kzVersion {
-		log.Fatal("bad version: ", data[0])
-	}
-
-	if subtle.ConstantTimeCompare(data[1:5], ak.KeyID()) != 1 {
-		log.Fatal("bad key: ", data[1:5])
-	}
+func (ak *aesKey) Decrypt(data []byte) ([]byte, error) {
 
 	msg := data[0 : len(data)-hmacSigLength]
 	sig := data[len(data)-hmacSigLength:]
 
-	if !ak.HmacKey.Verify(msg, sig) {
-		log.Fatal("bad signature: ", sig)
+	if ok, err := ak.HmacKey.Verify(msg, sig); !ok || err != nil {
+		if err == nil {
+			err = ErrInvalidSignature
+		}
+		return nil, err
 	}
 
 	iv_bytes := data[5 : 5+aes.BlockSize]
 
-	aesCipher, _ := aes.NewCipher(ak.key)
+	aesCipher, err := aes.NewCipher(ak.key)
+	if err != nil {
+		return nil, err
+	}
 
 	crypter := cipher.NewCBCDecrypter(aesCipher, iv_bytes)
 
@@ -165,7 +170,7 @@ func (ak *aesKey) Decrypt(data []byte) []byte {
 
 	plainBytes = pkcs5unpad(plainBytes)
 
-	return plainBytes
+	return plainBytes, nil
 }
 
 func newHmacKeys(r KeyReader, km keyMeta) map[int]keyIDer {
@@ -185,7 +190,6 @@ func newHmacKeys(r KeyReader, km keyMeta) map[int]keyIDer {
 	return keys
 }
 
-// FIXME: cache this?
 func (hm *hmacKey) KeyID() []byte {
 
 	h := sha1.New()
@@ -195,21 +199,21 @@ func (hm *hmacKey) KeyID() []byte {
 	return id[0:4]
 }
 
-func (hm *hmacKey) Sign(msg []byte) []byte {
+func (hm *hmacKey) Sign(msg []byte) ([]byte, error) {
 
 	sha1hmac := hmac.NewSHA1(hm.key)
 	sha1hmac.Write(msg)
 	sigBytes := sha1hmac.Sum(nil)
-	return sigBytes
+	return sigBytes, nil
 }
 
-func (hm *hmacKey) Verify(msg []byte, signature []byte) bool {
+func (hm *hmacKey) Verify(msg []byte, signature []byte) (bool, error) {
 
 	sha1hmac := hmac.NewSHA1(hm.key)
 	sha1hmac.Write(msg)
 	sigBytes := sha1hmac.Sum(nil)
 
-	return subtle.ConstantTimeCompare(sigBytes, signature) == 1
+	return subtle.ConstantTimeCompare(sigBytes, signature) == 1, nil
 }
 
 type dsaPublicKey struct {
@@ -316,33 +320,42 @@ type dsaSignature struct {
 	S *big.Int
 }
 
-func (dk *dsaKey) Sign(msg []byte) []byte {
+func (dk *dsaKey) Sign(msg []byte) ([]byte, error) {
 
 	h := sha1.New()
 	h.Write(msg)
 
-	r, s, _ := dsa.Sign(rand.Reader, &dk.key, h.Sum(nil))
+	r, s, err := dsa.Sign(rand.Reader, &dk.key, h.Sum(nil))
+	if err != nil {
+		return nil, err
+	}
 
 	sig := dsaSignature{r, s}
 
-	b, _ := asn1.Marshal(sig)
+	b, err := asn1.Marshal(sig)
+	if err != nil {
+		return nil, err
+	}
 
-	return b
+	return b, nil
 }
 
-func (dk *dsaKey) Verify(msg []byte, signature []byte) bool {
+func (dk *dsaKey) Verify(msg []byte, signature []byte) (bool, error) {
 	return dk.PublicKey.Verify(msg, signature)
 }
 
-func (dk *dsaPublicKey) Verify(msg []byte, signature []byte) bool {
+func (dk *dsaPublicKey) Verify(msg []byte, signature []byte) (bool, error) {
 
 	h := sha1.New()
 	h.Write(msg)
 
 	var rs dsaSignature
-	asn1.Unmarshal(signature, &rs)
+	_, err := asn1.Unmarshal(signature, &rs)
+	if err != nil {
+		return false, err
+	}
 
-	return dsa.Verify(&dk.key, h.Sum(nil), rs.R, rs.S)
+	return dsa.Verify(&dk.key, h.Sum(nil), rs.R, rs.S), nil
 }
 
 type rsaPublicKey struct {
@@ -460,41 +473,51 @@ func newRsaKeys(r KeyReader, km keyMeta) map[int]keyIDer {
 	return keys
 }
 
-func (rk *rsaKey) Sign(msg []byte) []byte {
+func (rk *rsaKey) Sign(msg []byte) ([]byte, error) {
 
 	h := sha1.New()
 	h.Write(msg)
 
-	s, _ := rsa.SignPKCS1v15(rand.Reader, &rk.key, crypto.SHA1, h.Sum(nil))
+	s, err := rsa.SignPKCS1v15(rand.Reader, &rk.key, crypto.SHA1, h.Sum(nil))
 
-	return s
+	return s, err
 
 }
 
-func (rk *rsaKey) Verify(msg []byte, signature []byte) bool {
+func (rk *rsaKey) Verify(msg []byte, signature []byte) (bool, error) {
 	return rk.PublicKey.Verify(msg, signature)
 }
 
-func (rk *rsaPublicKey) Verify(msg []byte, signature []byte) bool {
+func (rk *rsaPublicKey) Verify(msg []byte, signature []byte) (bool, error) {
 
 	h := sha1.New()
 	h.Write(msg)
 
-	return rsa.VerifyPKCS1v15(&rk.key, crypto.SHA1, h.Sum(nil), signature) == nil
+	return rsa.VerifyPKCS1v15(&rk.key, crypto.SHA1, h.Sum(nil), signature) == nil, nil
 }
 
-func (rk *rsaKey) Encrypt(msg []byte) []byte {
+func (rk *rsaKey) Encrypt(msg []byte) ([]byte, error) {
 
 	// FIXME: error check here on len(msg)
-	s, _ := rsa.EncryptOAEP(sha1.New(), rand.Reader, &rk.key.PublicKey, msg, nil)
 
-	return append(header(rk), s...)
+	s, err := rsa.EncryptOAEP(sha1.New(), rand.Reader, &rk.key.PublicKey, msg, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	h := append(header(rk), s...)
+
+	return h, nil
 
 }
 
-func (rk *rsaKey) Decrypt(msg []byte) []byte {
+func (rk *rsaKey) Decrypt(msg []byte) ([]byte, error) {
 
-	s, _ := rsa.DecryptOAEP(sha1.New(), rand.Reader, &rk.key, msg[5:], nil)
+	s, err := rsa.DecryptOAEP(sha1.New(), rand.Reader, &rk.key, msg[5:], nil)
 
-	return s
+	if err != nil {
+		return nil, err
+	}
+
+	return s, nil
 }
