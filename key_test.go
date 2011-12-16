@@ -194,7 +194,7 @@ func TestEncryptedReader(t *testing.T) {
 
 	cr, _ := NewCrypter(f)
 
-	er := NewEncryptedReader(TESTDATA+"aes-crypted", cr)
+	er := NewEncryptedReader(NewFileReader(TESTDATA+"aes-crypted"), cr)
 
 	kz, _ := NewCrypter(er)
 
