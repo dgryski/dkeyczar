@@ -13,20 +13,24 @@ type keyCzar struct {
 }
 
 type Encrypter interface {
+	// Encrypt returns an encrypted representing the plaintext bytes passed
 	Encrypt(plaintext []uint8) string
 }
 
 type Crypter interface {
 	Encrypter
+	// Decrypt returns the plaintext bytes of an encrypted string
 	Decrypt(ciphertext string) []uint8
 }
 
 type Signer interface {
 	Verifier
+	// Sign returns a cryptographic signature for the message
 	Sign(message []byte) string
 }
 
 type Verifier interface {
+	// Verify checks the cryptographic signature for a message
 	Verify(message []byte, signature string) bool
 }
 
@@ -112,18 +116,22 @@ func (kz *keyCzar) Sign(msg []byte) string {
 	return s
 }
 
+// NewCrypter returns an object capable of encrypting and decrypting using the key provded by the reader
 func NewCrypter(r KeyReader) (Crypter, error) {
 	return newKeyCzar(r, kpDECRYPT_AND_ENCRYPT)
 }
 
+// NewEncypter returns an object capable of encrypting using the key provded by the reader
 func NewEncrypter(r KeyReader) (Encrypter, error) {
 	return newKeyCzar(r, kpENCRYPT)
 }
 
+// NewVerifier returns an object capable of verifying signatures using the key provded by the reader
 func NewVerifier(r KeyReader) (Verifier, error) {
 	return newKeyCzar(r, kpVERIFY)
 }
 
+// NewSigner returns an object capable of creating and verifying signatures using the key provded by the reader
 func NewSigner(r KeyReader) (Signer, error) {
 	return newKeyCzar(r, kpSIGN_AND_VERIFY)
 }
