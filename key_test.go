@@ -170,6 +170,19 @@ func TestRsasignPublicVerifyPublic(t *testing.T) {
 	testVerifyPublic(t, "rsa-sign")
 }
 
+
+func TestRsaEncrypt(t *testing.T) {
+	testEncrypt(t, "rsa")
+}
+
+func TestRsaEncryptDecrypt(t *testing.T) {
+	testEncryptDecrypt(t, "rsa")
+}
+
+func TestRsaDecrypt(t *testing.T) {
+	testDecrypt(t, "rsa")
+}
+
 func TestEncryptedReader(t *testing.T) {
 
 	f := NewFileReader(TESTDATA + "aes")
