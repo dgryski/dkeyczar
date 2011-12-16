@@ -132,7 +132,7 @@ func newKeyCzar(r KeyReader, purpose keyPurpose) (*keyCzar, error) {
 
 	kz := new(keyCzar)
 
-	s, _ := r.getMetadata()
+	s, _ := r.GetMetadata()
 
 	err := json.Unmarshal([]byte(s), &kz.keymeta)
 

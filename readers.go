@@ -8,10 +8,10 @@ import (
 
 // KeyReader provides an interface for returning information about a particular key.
 type KeyReader interface {
-	// getMetadata returns the meta information for this key
-	getMetadata() (string, error)
-	// getKey returns the key material for a particular version of this key
-	getKey(version int) (string, error)
+	// GetMetadata returns the meta information for this key
+	GetMetadata() (string, error)
+	// GetKey returns the key material for a particular version of this key
+	GetKey(version int) (string, error)
 }
 
 type fileReader struct {
@@ -75,23 +75,23 @@ func slurp(path string) (string, error) {
 }
 
 // slurp and return the meta file
-func (r *fileReader) getMetadata() (string, error) {
+func (r *fileReader) GetMetadata() (string, error) {
 	return slurp(r.location + "meta")
 }
 
 // slurp and return the requested key version
-func (r *fileReader) getKey(version int) (string, error) {
+func (r *fileReader) GetKey(version int) (string, error) {
 	return slurp(r.location + strconv.Itoa(version))
 }
 
 // return the meta information from the wrapper reader.  Meta information is not encrypted.
-func (r *encryptedReader) getMetadata() (string, error) {
-	return r.reader.getMetadata()
+func (r *encryptedReader) GetMetadata() (string, error) {
+	return r.reader.GetMetadata()
 }
 
 // decrypt and return an encrypted key
-func (r *encryptedReader) getKey(version int) (string, error) {
-	s, err := r.reader.getKey(version)
+func (r *encryptedReader) GetKey(version int) (string, error) {
+	s, err := r.reader.GetKey(version)
 
 	if err != nil {
 		return "", err

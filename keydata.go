@@ -76,7 +76,7 @@ func newAesKeys(r KeyReader, km keyMeta) map[int]keyIDer {
 	keys := make(map[int]keyIDer)
 
 	for _, kv := range km.Versions {
-		s, _ := r.getKey(kv.VersionNumber)
+		s, _ := r.GetKey(kv.VersionNumber)
 		aeskey := new(aesKey)
 		json.Unmarshal([]byte(s), &aeskey)
 
@@ -173,7 +173,7 @@ func newHmacKeys(r KeyReader, km keyMeta) map[int]keyIDer {
 	keys := make(map[int]keyIDer)
 
 	for _, kv := range km.Versions {
-		s, _ := r.getKey(kv.VersionNumber)
+		s, _ := r.GetKey(kv.VersionNumber)
 		hmackey := new(hmacKey)
 		json.Unmarshal([]byte(s), &hmackey)
 
@@ -235,7 +235,7 @@ func newDsaPublicKeys(r KeyReader, km keyMeta) map[int]keyIDer {
 	// FIXME: ugg, more duplicated code
 
 	for _, kv := range km.Versions {
-		s, _ := r.getKey(kv.VersionNumber)
+		s, _ := r.GetKey(kv.VersionNumber)
 		dsakey := new(dsaPublicKey)
 		json.Unmarshal([]byte(s), &dsakey)
 
@@ -262,7 +262,7 @@ func newDsaKeys(r KeyReader, km keyMeta) map[int]keyIDer {
 	keys := make(map[int]keyIDer)
 
 	for _, kv := range km.Versions {
-		s, _ := r.getKey(kv.VersionNumber)
+		s, _ := r.GetKey(kv.VersionNumber)
 		dsakey := new(dsaKey)
 		json.Unmarshal([]byte(s), &dsakey)
 
@@ -396,7 +396,7 @@ func newRsaPublicKeys(r KeyReader, km keyMeta) map[int]keyIDer {
 	// FIXME: ugg, more duplicated code
 
 	for _, kv := range km.Versions {
-		s, _ := r.getKey(kv.VersionNumber)
+		s, _ := r.GetKey(kv.VersionNumber)
 		rsakey := new(rsaPublicKey)
 		json.Unmarshal([]byte(s), &rsakey)
 
@@ -417,7 +417,7 @@ func newRsaKeys(r KeyReader, km keyMeta) map[int]keyIDer {
 	keys := make(map[int]keyIDer)
 
 	for _, kv := range km.Versions {
-		s, _ := r.getKey(kv.VersionNumber)
+		s, _ := r.GetKey(kv.VersionNumber)
 		rsakey := new(rsaKey)
 		json.Unmarshal([]byte(s), &rsakey)
 
