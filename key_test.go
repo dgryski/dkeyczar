@@ -251,6 +251,25 @@ func TestEncryptedReader(t *testing.T) {
 	}
 }
 
+func TestSessionEncryptDecrypt(t *testing.T) {
+
+	f := NewFileReader(TESTDATA + "rsa")
+
+	kz, _ := NewCrypter(f)
+
+	sess1, keys, _ := NewSessionEncrypter(kz)
+
+	c, _ := sess1.Encrypt([]byte(INPUT))
+
+	sess2, _ := NewSessionDecrypter(kz, keys)
+
+	p, _ := sess2.Decrypt(c)
+
+	if string(p) != INPUT {
+		t.Error("session decrypt(encrypt(p)) != p")
+	}
+}
+
 var pkcs5tests = []struct {
 	s   []byte
 	pad int

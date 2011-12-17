@@ -130,9 +130,9 @@ func (kz *keyCzar) Sign(msg []byte) (string, error) {
 
 	signature, err := signingKey.Sign(signedbytes)
 
-        if err != nil {
-            return "", err
-        }
+	if err != nil {
+		return "", err
+	}
 
 	h := header(key)
 	signature = append(h, signature...)
@@ -160,6 +160,29 @@ func NewVerifier(r KeyReader) (Verifier, error) {
 // NewSigner returns an object capable of creating and verifying signatures using the key provded by the reader
 func NewSigner(r KeyReader) (Signer, error) {
 	return newKeyCzar(r, kpSIGN_AND_VERIFY)
+}
+
+func NewSessionEncrypter(crypter Crypter) (Encrypter, string, error) {
+
+	aeskey := GenerateAesKey()
+	r := NewImportedAesKeyReader(aeskey)
+
+        keys, err := crypter.Encrypt(aeskey.packedKeys())
+        if err != nil {
+            return nil, "", err
+        }
+        sessionCrypter, err := NewEncrypter(r)
+
+	return sessionCrypter, keys, err
+}
+
+func NewSessionDecrypter(crypter Crypter, sessionKeys string) (Crypter, error) {
+
+	packedKeys, _ := crypter.Decrypt(sessionKeys)
+	aeskey := newAesFromPackedKeys(packedKeys)
+	r := NewImportedAesKeyReader(aeskey)
+
+	return NewCrypter(r)
 }
 
 func newKeyCzar(r KeyReader, purpose keyPurpose) (*keyCzar, error) {
