@@ -85,20 +85,20 @@ func GenerateAesKey() *aesKey {
 }
 
 func (ak *aesKey) packedKeys() []byte {
-    return lenPrefixPack(ak.key, ak.hmacKey.key)
+	return lenPrefixPack(ak.key, ak.hmacKey.key)
 }
 
 func newAesFromPackedKeys(b []byte) *aesKey {
-    // FIXME: should validate 'keys' here
-    keys := lenPrefixUnpack(b)
+	// FIXME: should validate 'keys' here
+	keys := lenPrefixUnpack(b)
 
-    ak := new(aesKey)
+	ak := new(aesKey)
 
-    // FIXME: should probably make+copy
-    ak.key = keys[0]
-    ak.hmacKey.key = keys[1]
+	// FIXME: should probably make+copy
+	ak.key = keys[0]
+	ak.hmacKey.key = keys[1]
 
-    return ak
+	return ak
 }
 
 func (ak *aesKey) KeyID() []byte {
