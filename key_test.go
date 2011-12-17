@@ -207,6 +207,24 @@ func TestRsaPemImportDecrypt(t *testing.T) {
 
 }
 
+func TestGeneratedAesEncryptDecrypt(t *testing.T) {
+
+	aeskey := GenerateAesKey()
+
+        r := NewImportedAesKeyReader(aeskey)
+
+	kz, _ := NewCrypter(r)
+
+	c, _ := kz.Encrypt([]byte(INPUT))
+
+	p, _ := kz.Decrypt(c)
+
+	if string(p) != INPUT {
+		t.Error("aes generated decrypt(encrypt(p)) != p")
+	}
+}
+
+
 func TestEncryptedReader(t *testing.T) {
 
 	f := NewFileReader(TESTDATA + "aes")

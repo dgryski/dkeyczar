@@ -13,6 +13,7 @@ import (
 	"encoding/asn1"
 	"encoding/binary"
 	"encoding/json"
+	"io"
 	"math/big"
 )
 
@@ -51,6 +52,15 @@ type hmacKey struct {
 	key []byte
 }
 
+func GenerateHmacKey() *hmacKey {
+	hk := new(hmacKey)
+
+	hk.key = make([]byte, 32)
+	io.ReadFull(rand.Reader, hk.key)
+
+	return hk
+}
+
 type aesKeyJSON struct {
 	AesKeyString string      `json:"aesKeyString"`
 	Size         int         `json:"size"`
@@ -61,6 +71,17 @@ type aesKeyJSON struct {
 type aesKey struct {
 	key     []byte
 	hmacKey hmacKey
+}
+
+func GenerateAesKey() *aesKey {
+	ak := new(aesKey)
+
+	ak.key = make([]byte, 16)
+	io.ReadFull(rand.Reader, ak.key)
+
+	ak.hmacKey = *GenerateHmacKey()
+
+	return ak
 }
 
 func (ak *aesKey) KeyID() []byte {

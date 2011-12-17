@@ -143,7 +143,6 @@ func (r *importedRsaPrivateKeyReader) GetMetadata() (string, error) {
 
 func (r *importedRsaPrivateKeyReader) GetKey(version int) (string, error) {
 	b, err := json.Marshal(r.rsajson)
-	fmt.Println("getkey=", string(b))
 	return string(b), err
 }
 
@@ -156,4 +155,34 @@ func ImportRSAKeyFromPEM(location string) (*rsa.PrivateKey, error) {
 
 	return priv, nil
 
+}
+
+type importedAesKeyReader struct {
+	km      keyMeta
+	aesjson aesKeyJSON
+}
+
+func NewImportedAesKeyReader(key *aesKey) KeyReader {
+	r := new(importedAesKeyReader)
+	kv := keyVersion{1, ksPRIMARY, false}
+	r.km = keyMeta{"Imported AES Key", ktAES, kpDECRYPT_AND_ENCRYPT, false, []keyVersion{kv}}
+
+	// inverse of code with newAesKeys
+        r.aesjson.AesKeyString = encodeWeb64String(key.key)
+        r.aesjson.Size = len(key.key) * 8
+        r.aesjson.HmacKey.HmacKeyString = encodeWeb64String(key.hmacKey.key)
+        r.aesjson.HmacKey.Size = len(key.hmacKey.key) * 8
+        r.aesjson.Mode = cmCBC
+
+	return r
+}
+
+func (r *importedAesKeyReader) GetMetadata() (string, error) {
+	b, err := json.Marshal(r.km)
+	return string(b), err
+}
+
+func (r *importedAesKeyReader) GetKey(version int) (string, error) {
+	b, err := json.Marshal(r.aesjson)
+	return string(b), err
 }
