@@ -48,6 +48,26 @@ func (k *keyType) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
+func (k keyType) MarshalJSON() ([]byte, error) {
+
+	switch k {
+	case ktAES:
+		return []byte("\"AES\""), nil
+	case ktHMAC_SHA1:
+		return []byte("\"HMAC_SHA1\""), nil
+	case ktDSA_PRIV:
+		return []byte("\"DSA_PRIV\""), nil
+	case ktDSA_PUB:
+		return []byte("\"DSA_PUB\""), nil
+	case ktRSA_PRIV:
+		return []byte("\"RSA_PRIV\""), nil
+	case ktRSA_PUB:
+		return []byte("\"RSA_PUB\""), nil
+	}
+
+	return []byte("\"(unknown KeyType\""), nil
+}
+
 type keyStatus int
 
 const (
@@ -82,6 +102,19 @@ func (k *keyStatus) UnmarshalJSON(b []byte) error {
 		*k = ks
 	}
 	return nil
+}
+
+func (k keyStatus) MarshalJSON() ([]byte, error) {
+	switch k {
+	case ksPRIMARY:
+		return []byte("\"PRIMARY\""), nil
+	case ksACTIVE:
+		return []byte("\"ACTIVE\""), nil
+	case ksINVALID:
+		return []byte("\"INVALID\""), nil
+	}
+
+	return []byte("\"(unknown KeyStatus)\""), nil
 }
 
 type keyPurpose int
@@ -143,18 +176,35 @@ func (k *keyPurpose) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
+func (k keyPurpose) MarshalJSON() ([]byte, error) {
+	switch k {
+	case kpDECRYPT_AND_ENCRYPT:
+		return []byte("\"DECRYPT_AND_ENCRYPT\""), nil
+	case kpENCRYPT:
+		return []byte("\"ENCRYPT\""), nil
+	case kpSIGN_AND_VERIFY:
+		return []byte("\"SIGN_AND_VERIFY\""), nil
+	case kpVERIFY:
+		return []byte("\"VERIFY\""), nil
+	case kpTEST:
+		return []byte("\"TEST\""), nil
+	}
+
+	return []byte("\"(unknown keyPurpose)\""), nil
+}
+
 type keyMeta struct {
-	Name      string
-	Type      keyType
-	Purpose   keyPurpose
-	Encrypted bool
-	Versions  []keyVersion
+	Name      string       `json:"name"`
+	Type      keyType      `json:"type"`
+	Purpose   keyPurpose   `json:"purpose"`
+	Encrypted bool         `json:"encrypted"`
+	Versions  []keyVersion `json:"versions"`
 }
 
 type keyVersion struct {
-	VersionNumber int
-	Status        keyStatus
-	Exportable    bool
+	VersionNumber int       `json:"versionNumber"`
+	Status        keyStatus `json:"status"`
+	Exportable    bool      `json:"exportable"`
 }
 
 type cipherMode int
@@ -195,4 +245,19 @@ func (c *cipherMode) UnmarshalJSON(b []byte) error {
 		*c = cm
 	}
 	return nil
+}
+
+func (c cipherMode) MarshalJSON() ([]byte, error) {
+	switch c {
+	case cmCBC:
+		return []byte("\"CBC\""), nil
+	case cmCTR:
+		return []byte("\"CTR\""), nil
+	case cmECB:
+		return []byte("\"ECB\""), nil
+	case cmDET_CBC:
+		return []byte("\"DET_CBC\""), nil
+	}
+
+	return []byte("\"(unknown CipherMode)\""), nil
 }

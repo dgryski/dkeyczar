@@ -43,8 +43,8 @@ type signVerifyKey interface {
 const hmacSigLength = 20
 
 type hmacKeyJSON struct {
-	HmacKeyString string
-	Size          int
+	HmacKeyString string `json:"hmacKeyString"`
+	Size          int    `json:"size"`
 }
 
 type hmacKey struct {
@@ -52,10 +52,10 @@ type hmacKey struct {
 }
 
 type aesKeyJSON struct {
-	AesKeyString string
-	Size         int
-	HmacKey      hmacKeyJSON
-	Mode         cipherMode
+	AesKeyString string      `json:"aesKeyString"`
+	Size         int         `json:"size"`
+	HmacKey      hmacKeyJSON `json:"hmacKey"`
+	Mode         cipherMode  `json:"mode"`
 }
 
 type aesKey struct {
@@ -226,11 +226,11 @@ func (hm *hmacKey) Verify(msg []byte, signature []byte) (bool, error) {
 }
 
 type dsaPublicKeyJSON struct {
-	Q    string
-	P    string
-	Y    string
-	G    string
-	Size int
+	Q    string `json:"Q"`
+	P    string `json:"P"`
+	Y    string `json:"Y"`
+	G    string `json:"G"`
+	Size int    `json:"size"`
 }
 
 type dsaPublicKey struct {
@@ -238,14 +238,14 @@ type dsaPublicKey struct {
 }
 
 type dsaKeyJSON struct {
-	PublicKey dsaPublicKeyJSON
-	Size      int
-	X         string
+	PublicKey dsaPublicKeyJSON `json:"publicKey"`
+	Size      int              `json:"size"`
+	X         string           `json:"x"`
 }
 
 type dsaKey struct {
-	key dsa.PrivateKey
-        publicKey dsaPublicKey
+	key       dsa.PrivateKey
+	publicKey dsaPublicKey
 }
 
 func newDsaPublicKeys(r KeyReader, km keyMeta) map[int]keyIDer {
@@ -377,9 +377,9 @@ func (dk *dsaPublicKey) Verify(msg []byte, signature []byte) (bool, error) {
 }
 
 type rsaPublicKeyJSON struct {
-	Modulus        string
-	PublicExponent string
-	Size           int
+	Modulus        string `json:"modulus"`
+	PublicExponent string `json:"publicExponent"`
+	Size           int    `json:"size"`
 }
 
 type rsaPublicKey struct {
@@ -387,15 +387,15 @@ type rsaPublicKey struct {
 }
 
 type rsaKeyJSON struct {
-	CrtCoefficient  string
-	PrimeExponentP  string
-	PrimeExponentQ  string
-	PrimeP          string
-	PrimeQ          string
-	PrivateExponent string
+	CrtCoefficient  string `json:"crtCoefficient"`
+	PrimeExponentP  string `json:"primeExponentP"`
+	PrimeExponentQ  string `json:"primeExponentQ"`
+	PrimeP          string `json:"primeP"`
+	PrimeQ          string `json:"primeQ"`
+	PrivateExponent string `json:"privateExponent"`
 
-	PublicKey rsaPublicKeyJSON
-	Size      int
+	PublicKey rsaPublicKeyJSON `json:"publicKey"`
+	Size      int              `json:"size"`
 }
 
 type rsaKey struct {
