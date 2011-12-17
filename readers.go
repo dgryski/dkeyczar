@@ -167,11 +167,11 @@ func NewImportedAesKeyReader(key *aesKey) KeyReader {
 	r.km = keyMeta{"Imported AES Key", ktAES, kpDECRYPT_AND_ENCRYPT, false, []keyVersion{kv}}
 
 	// inverse of code with newAesKeys
-        r.aesjson.AesKeyString = encodeWeb64String(key.key)
-        r.aesjson.Size = len(key.key) * 8
-        r.aesjson.HmacKey.HmacKeyString = encodeWeb64String(key.hmacKey.key)
-        r.aesjson.HmacKey.Size = len(key.hmacKey.key) * 8
-        r.aesjson.Mode = cmCBC
+	r.aesjson.AesKeyString = encodeWeb64String(key.key)
+	r.aesjson.Size = len(key.key) * 8
+	r.aesjson.HmacKey.HmacKeyString = encodeWeb64String(key.hmacKey.key)
+	r.aesjson.HmacKey.Size = len(key.hmacKey.key) * 8
+	r.aesjson.Mode = cmCBC
 
 	return r
 }
