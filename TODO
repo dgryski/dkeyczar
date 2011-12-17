@@ -19,26 +19,26 @@ type header struct {
    uint32 keyid
 }
 
-Output format: 0.5b or 0.6b ?
-   header|msg|sign(msg . VERSION)
-      or
-   header|msg|sign(header|msg)
-   Need to be able to detect and verify both versions?
-   VERSION == 1 => 0.5b
-   VERSION == 0 => 0.6b
-
 Split code better among the files:
     pull pkcs5pad into util
-    any other pending reorgs?
+    keytypes into key_aes, key_rsa, ... ?
 
 Cache key id so it's only calculated once at key load time?
 
 Session encryption (close to being merged; see the python_sessions branch)
+    ImportedKeyReader
+    aes.Generate() to create session keys
+
 
 Certificate import
 
 PKCS#8 private key import/export
+      block, _ := pem.Decode(buf)
+      priv, _ := x509.ParsePKCS1PrivateKey(block.Bytes)
+      (dsa not supported -- must implement)
+      ImportedKeyReader
 
 Password-based key encryption
+    implement pkcs12
 
 Do we want to export all our enums again?
