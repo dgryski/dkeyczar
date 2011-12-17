@@ -5,7 +5,6 @@ import (
 	"crypto/x509"
 	"encoding/json"
 	"encoding/pem"
-	"fmt"
 	"io"
 	"math/big"
 	"os"
