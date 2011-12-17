@@ -1,7 +1,13 @@
 package dkeyczar
 
 import (
+	"crypto/rsa"
+	"crypto/x509"
+	"encoding/json"
+	"encoding/pem"
+	"fmt"
 	"io"
+	"math/big"
 	"os"
 	"strconv"
 )
@@ -104,4 +110,50 @@ func (r *encryptedReader) GetKey(version int) (string, error) {
 	}
 
 	return string(b), nil
+}
+
+type importedRsaPrivateKeyReader struct {
+	km      keyMeta
+	rsajson rsaKeyJSON
+}
+
+// ugly name -- if we exported key purpose it would be easier
+func NewImportedRsaPrivateKeyReader(key *rsa.PrivateKey) KeyReader {
+	r := new(importedRsaPrivateKeyReader)
+	kv := keyVersion{1, ksPRIMARY, false}
+	r.km = keyMeta{"Imported RSA Private Key", ktRSA_PRIV, kpDECRYPT_AND_ENCRYPT, false, []keyVersion{kv}}
+
+	// inverse of code with newRsaKeys
+	r.rsajson.PublicKey.Modulus = encodeWeb64String(key.PublicKey.N.Bytes())
+
+	e := big.NewInt(int64(key.PublicKey.E))
+	r.rsajson.PublicKey.PublicExponent = encodeWeb64String(e.Bytes())
+
+	r.rsajson.PrimeP = encodeWeb64String(key.Primes[0].Bytes())
+	r.rsajson.PrimeQ = encodeWeb64String(key.Primes[1].Bytes())
+	r.rsajson.PrivateExponent = encodeWeb64String(key.D.Bytes())
+
+	return r
+}
+
+func (r *importedRsaPrivateKeyReader) GetMetadata() (string, error) {
+	b, err := json.Marshal(r.km)
+	return string(b), err
+}
+
+func (r *importedRsaPrivateKeyReader) GetKey(version int) (string, error) {
+	b, err := json.Marshal(r.rsajson)
+	fmt.Println("getkey=", string(b))
+	return string(b), err
+}
+
+func ImportRSAKeyFromPEM(location string) (*rsa.PrivateKey, error) {
+
+	buf, _ := slurp(location)
+
+	block, _ := pem.Decode([]byte(buf))
+	priv, _ := x509.ParsePKCS1PrivateKey(block.Bytes)
+
+	return priv, nil
+
 }

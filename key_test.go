@@ -188,6 +188,25 @@ func TestRsaDecrypt(t *testing.T) {
 	testDecrypt(t, "rsa")
 }
 
+func TestRsaPemImportDecrypt(t *testing.T) {
+
+        // from keyczar cpp test data 06b
+	key, _ := ImportRSAKeyFromPEM(TESTDATA + "rsa_pem/rsa_priv.pem")
+
+	r := NewImportedRsaPrivateKeyReader(key)
+
+	kz, _ := NewCrypter(r)
+
+	c, _ := kz.Encrypt([]byte(INPUT))
+
+	p, _ := kz.Decrypt(c)
+
+	if string(p) != INPUT {
+		t.Error("rsa pem import decrypt(encrypt(p)) != p")
+	}
+
+}
+
 func TestEncryptedReader(t *testing.T) {
 
 	f := NewFileReader(TESTDATA + "aes")
