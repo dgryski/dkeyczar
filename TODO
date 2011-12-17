@@ -39,10 +39,7 @@ Session encryption (close to being merged; see the python_sessions branch)
 Certificate import
 
 PKCS#8 private key import/export
-      block, _ := pem.Decode(buf)
-      priv, _ := x509.ParsePKCS1PrivateKey(block.Bytes)
       (dsa not supported -- must implement)
-      ImportedKeyReader
 
 Password-based key encryption
     implement pkcs12
