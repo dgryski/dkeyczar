@@ -1,8 +1,10 @@
 package dkeyczar
 
 import (
+	"bytes"
 	"crypto/rand"
 	"encoding/base64"
+	"encoding/binary"
 	"io"
 )
 
@@ -53,4 +55,49 @@ func encodeWeb64String(b []byte) string {
 	}
 
 	return s[0 : i+1]
+}
+
+func lenPrefixPack(arrays ...[]byte) []byte {
+
+	data := 0
+	for _, a := range arrays {
+		data += len(a)
+	}
+
+	headers := 1 + (4 * len(arrays))
+
+	output := make([]byte, 0, headers+data)
+
+	buf := bytes.NewBuffer(output)
+
+	binary.Write(buf, binary.BigEndian, uint32(len(arrays)))
+
+	for _, a := range arrays {
+		binary.Write(buf, binary.BigEndian, uint32(len(a)))
+		buf.Write(a)
+	}
+
+	return buf.Bytes()
+}
+
+func lenPrefixUnpack(packed []byte) [][]byte {
+
+	var numArrays uint32
+
+	buf := bytes.NewBuffer(packed)
+
+	binary.Read(buf, binary.BigEndian, &numArrays)
+
+	arrays := make([][]byte, numArrays)
+
+	for i := uint32(0); i < numArrays; i++ {
+		var size uint32
+		binary.Read(buf, binary.BigEndian, &size)
+
+		arrays[i] = make([]byte, size)
+		buf.Read(arrays[i])
+	}
+
+	return arrays
+
 }

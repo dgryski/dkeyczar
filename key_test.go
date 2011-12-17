@@ -190,7 +190,7 @@ func TestRsaDecrypt(t *testing.T) {
 
 func TestRsaPemImportDecrypt(t *testing.T) {
 
-        // from keyczar cpp test data 06b
+	// from keyczar cpp test data 06b
 	key, _ := ImportRSAKeyFromPEM(TESTDATA + "rsa_pem/rsa_priv.pem")
 
 	r := NewImportedRsaPrivateKeyReader(key)
@@ -211,7 +211,7 @@ func TestGeneratedAesEncryptDecrypt(t *testing.T) {
 
 	aeskey := GenerateAesKey()
 
-        r := NewImportedAesKeyReader(aeskey)
+	r := NewImportedAesKeyReader(aeskey)
 
 	kz, _ := NewCrypter(r)
 
@@ -223,7 +223,6 @@ func TestGeneratedAesEncryptDecrypt(t *testing.T) {
 		t.Error("aes generated decrypt(encrypt(p)) != p")
 	}
 }
-
 
 func TestEncryptedReader(t *testing.T) {
 
@@ -280,6 +279,19 @@ func TestPKCS5Pad(t *testing.T) {
 		}
 
 	}
+}
+
+func TestLenPrefixPack(t *testing.T) {
+
+	b := lenPrefixPack([]byte{4, 5, 6, 2, 1}, []byte{1, 4, 2, 8, 5, 7}, []byte{1, 2, 3, 4, 5, 6, 7, 8, 9}, []byte{1})
+	arrays := lenPrefixUnpack(b)
+
+	// FIXME: make this test more complete
+
+	if arrays[3][0] != 1 {
+		t.Error("unpack error")
+	}
+
 }
 
 // FIXME: DecodeWeb64String / EncodeWeb64String
