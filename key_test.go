@@ -211,7 +211,7 @@ func TestGeneratedAesEncryptDecrypt(t *testing.T) {
 
 	aeskey := GenerateAesKey()
 
-	r := NewImportedAesKeyReader(aeskey)
+	r := newImportedAesKeyReader(aeskey)
 
 	kz, _ := NewCrypter(r)
 
