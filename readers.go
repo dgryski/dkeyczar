@@ -161,7 +161,7 @@ type importedAesKeyReader struct {
 	aesjson aesKeyJSON
 }
 
-func NewImportedAesKeyReader(key *aesKey) KeyReader {
+func newImportedAesKeyReader(key *aesKey) KeyReader {
 	r := new(importedAesKeyReader)
 	kv := keyVersion{1, ksPRIMARY, false}
 	r.km = keyMeta{"Imported AES Key", ktAES, kpDECRYPT_AND_ENCRYPT, false, []keyVersion{kv}}

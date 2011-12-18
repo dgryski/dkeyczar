@@ -166,7 +166,7 @@ func NewSigner(r KeyReader) (Signer, error) {
 func NewSessionEncrypter(crypter Crypter) (Encrypter, string, error) {
 
 	aeskey := GenerateAesKey()
-	r := NewImportedAesKeyReader(aeskey)
+	r := newImportedAesKeyReader(aeskey)
 
         keys, err := crypter.Encrypt(aeskey.packedKeys())
         if err != nil {
@@ -182,7 +182,7 @@ func NewSessionDecrypter(crypter Crypter, sessionKeys string) (Crypter, error) {
 
 	packedKeys, _ := crypter.Decrypt(sessionKeys)
 	aeskey := newAesFromPackedKeys(packedKeys)
-	r := NewImportedAesKeyReader(aeskey)
+	r := newImportedAesKeyReader(aeskey)
 
 	return NewCrypter(r)
 }
