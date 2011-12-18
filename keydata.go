@@ -560,11 +560,11 @@ func (rk *rsaPublicKey) Verify(msg []byte, signature []byte) (bool, error) {
 	return rsa.VerifyPKCS1v15(&rk.key, crypto.SHA1, h.Sum(nil), signature) == nil, nil
 }
 
-func (rk *rsaKey) Encrypt(msg []byte) ([]byte, error) {
+func (rk *rsaPublicKey) Encrypt(msg []byte) ([]byte, error) {
 
 	// FIXME: error check here on len(msg)
 
-	s, err := rsa.EncryptOAEP(sha1.New(), rand.Reader, &rk.key.PublicKey, msg, nil)
+	s, err := rsa.EncryptOAEP(sha1.New(), rand.Reader, &rk.key, msg, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -573,6 +573,10 @@ func (rk *rsaKey) Encrypt(msg []byte) ([]byte, error) {
 
 	return h, nil
 
+}
+
+func (rk *rsaKey) Encrypt(msg []byte) ([]byte, error) {
+    return rk.publicKey.Encrypt(msg)
 }
 
 func (rk *rsaKey) Decrypt(msg []byte) ([]byte, error) {
