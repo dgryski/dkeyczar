@@ -131,6 +131,9 @@ func newImportedRsaPrivateKeyReader(key *rsa.PrivateKey) KeyReader {
 	r.rsajson.PrimeP = encodeWeb64String(key.Primes[0].Bytes())
 	r.rsajson.PrimeQ = encodeWeb64String(key.Primes[1].Bytes())
 	r.rsajson.PrivateExponent = encodeWeb64String(key.D.Bytes())
+	r.rsajson.PrimeExponentP = encodeWeb64String(key.Precomputed.Dp.Bytes())
+	r.rsajson.PrimeExponentQ = encodeWeb64String(key.Precomputed.Dq.Bytes())
+	r.rsajson.CrtCoefficient = encodeWeb64String(key.Precomputed.Qinv.Bytes())
 
 	return r
 }
