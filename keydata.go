@@ -573,7 +573,7 @@ func (rk *rsaPublicKey) Encrypt(msg []byte) ([]byte, error) {
 }
 
 func (rk *rsaKey) Encrypt(msg []byte) ([]byte, error) {
-    return rk.publicKey.Encrypt(msg)
+	return rk.publicKey.Encrypt(msg)
 }
 
 func (rk *rsaKey) Decrypt(msg []byte) ([]byte, error) {

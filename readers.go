@@ -156,9 +156,9 @@ func ImportRSAKeyFromPEM(location string) (KeyReader, error) {
 	block, _ := pem.Decode([]byte(buf))
 	priv, _ := x509.ParsePKCS1PrivateKey(block.Bytes)
 
-        r := newImportedRsaPrivateKeyReader(priv)
+	r := newImportedRsaPrivateKeyReader(priv)
 
-        return r, nil
+	return r, nil
 
 }
 
@@ -191,7 +191,6 @@ func (r *importedRsaPublicKeyReader) GetKey(version int) (string, error) {
 	return string(b), err
 }
 
-
 // ImportRSAPublicKeyFromPEM returns a KeyReader for the RSA Public Key contained in the PEM file specified in the location.
 func ImportRSAPublicKeyFromPEM(location string) (KeyReader, error) {
 
@@ -200,14 +199,13 @@ func ImportRSAPublicKeyFromPEM(location string) (KeyReader, error) {
 	block, _ := pem.Decode([]byte(buf))
 	pub, _ := x509.ParsePKIXPublicKey(block.Bytes)
 
-        rsapub := pub.(*rsa.PublicKey)
+	rsapub := pub.(*rsa.PublicKey)
 
-        r := newImportedRsaPublicKeyReader(rsapub)
+	r := newImportedRsaPublicKeyReader(rsapub)
 
-        return r, nil
+	return r, nil
 
 }
-
 
 type importedAesKeyReader struct {
 	km      keyMeta
