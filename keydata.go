@@ -125,9 +125,7 @@ func newAesKeys(r KeyReader, km keyMeta) map[int]keyIDer {
 		aesjson := new(aesKeyJSON)
 		json.Unmarshal([]byte(s), &aesjson)
 
-		// FIXME: move to NewAesKey constructor
 		aeskey.key, _ = decodeWeb64String(aesjson.AesKeyString)
-		// FIXME: move to NewHmacKey constructor?
 		aeskey.hmacKey.key, _ = decodeWeb64String(aesjson.HmacKey.HmacKeyString)
 
 		keys[kv.VersionNumber] = aeskey
@@ -554,8 +552,9 @@ func (rk *rsaPublicKey) Verify(msg []byte, signature []byte) (bool, error) {
 
 func (rk *rsaPublicKey) Encrypt(msg []byte) ([]byte, error) {
 
-	// FIXME: error check here on len(msg)
-
+        // FIXME: If msg is too long for keysize, EncryptOAEP returns an error
+        // Do we want to return a Keyczar error here, either by checking
+        // ourselves for this case or by wrapping the returned error?
 	s, err := rsa.EncryptOAEP(sha1.New(), rand.Reader, &rk.key, msg, nil)
 	if err != nil {
 		return nil, err
