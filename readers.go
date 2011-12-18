@@ -117,7 +117,7 @@ type importedRsaPrivateKeyReader struct {
 }
 
 // ugly name -- if we exported key purpose it would be easier
-func NewImportedRsaPrivateKeyReader(key *rsa.PrivateKey) KeyReader {
+func newImportedRsaPrivateKeyReader(key *rsa.PrivateKey) KeyReader {
 	r := new(importedRsaPrivateKeyReader)
 	kv := keyVersion{1, ksPRIMARY, false}
 	r.km = keyMeta{"Imported RSA Private Key", ktRSA_PRIV, kpDECRYPT_AND_ENCRYPT, false, []keyVersion{kv}}
@@ -145,14 +145,16 @@ func (r *importedRsaPrivateKeyReader) GetKey(version int) (string, error) {
 	return string(b), err
 }
 
-func ImportRSAKeyFromPEM(location string) (*rsa.PrivateKey, error) {
+func ImportRSAKeyFromPEM(location string) (KeyReader, error) {
 
 	buf, _ := slurp(location)
 
 	block, _ := pem.Decode([]byte(buf))
 	priv, _ := x509.ParsePKCS1PrivateKey(block.Bytes)
 
-	return priv, nil
+        r := newImportedRsaPrivateKeyReader(priv)
+
+        return r, nil
 
 }
 

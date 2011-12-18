@@ -191,9 +191,7 @@ func TestRsaDecrypt(t *testing.T) {
 func TestRsaPemImportDecrypt(t *testing.T) {
 
 	// from keyczar cpp test data 06b
-	key, _ := ImportRSAKeyFromPEM(TESTDATA + "rsa_pem/rsa_priv.pem")
-
-	r := NewImportedRsaPrivateKeyReader(key)
+	r, _ := ImportRSAKeyFromPEM(TESTDATA + "rsa_pem/rsa_priv.pem")
 
 	kz, _ := NewCrypter(r)
 
