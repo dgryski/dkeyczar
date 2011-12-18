@@ -145,6 +145,7 @@ func (r *importedRsaPrivateKeyReader) GetKey(version int) (string, error) {
 	return string(b), err
 }
 
+// ImportRSAKeyFromPEM returns a KeyReader for the RSA Private Key contained in the PEM file specified in the location.
 func ImportRSAKeyFromPEM(location string) (KeyReader, error) {
 
 	buf, _ := slurp(location)
