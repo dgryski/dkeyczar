@@ -117,10 +117,10 @@ type importedRsaPrivateKeyReader struct {
 }
 
 // ugly name -- if we exported key purpose it would be easier
-func newImportedRsaPrivateKeyReader(key *rsa.PrivateKey) KeyReader {
+func newImportedRsaPrivateKeyReader(key *rsa.PrivateKey, purpose keyPurpose) KeyReader {
 	r := new(importedRsaPrivateKeyReader)
 	kv := keyVersion{1, ksPRIMARY, false}
-	r.km = keyMeta{"Imported RSA Private Key", ktRSA_PRIV, kpDECRYPT_AND_ENCRYPT, false, []keyVersion{kv}}
+	r.km = keyMeta{"Imported RSA Private Key", ktRSA_PRIV, purpose, false, []keyVersion{kv}}
 
 	// inverse of code with newRsaKeys
 	r.rsajson.PublicKey.Modulus = encodeWeb64String(key.PublicKey.N.Bytes())
@@ -148,15 +148,33 @@ func (r *importedRsaPrivateKeyReader) GetKey(version int) (string, error) {
 	return string(b), err
 }
 
-// ImportRSAKeyFromPEM returns a KeyReader for the RSA Private Key contained in the PEM file specified in the location.
-func ImportRSAKeyFromPEM(location string) (KeyReader, error) {
+func getRsaKeyFromPem(location string) (*rsa.PrivateKey, error) {
 
 	buf, _ := slurp(location)
 
 	block, _ := pem.Decode([]byte(buf))
 	priv, _ := x509.ParsePKCS1PrivateKey(block.Bytes)
 
-	r := newImportedRsaPrivateKeyReader(priv)
+	return priv, nil
+}
+
+// ImportRSAKeyFromPEM returns a KeyReader for the RSA Private Key contained in the PEM file specified in the location.
+// The resulting key can be used for signing and verification only
+func ImportRSAKeyFromPEMForSigning(location string) (KeyReader, error) {
+
+	priv, _ := getRsaKeyFromPem(location)
+	r := newImportedRsaPrivateKeyReader(priv, kpSIGN_AND_VERIFY)
+
+	return r, nil
+
+}
+
+// ImportRSAKeyFromPEM returns a KeyReader for the RSA Private Key contained in the PEM file specified in the location.
+// The resulting key can be used for encryption and decryption only
+func ImportRSAKeyFromPEMForCrypt(location string) (KeyReader, error) {
+
+	priv, _ := getRsaKeyFromPem(location)
+	r := newImportedRsaPrivateKeyReader(priv, kpDECRYPT_AND_ENCRYPT)
 
 	return r, nil
 
@@ -167,10 +185,10 @@ type importedRsaPublicKeyReader struct {
 	rsajson rsaPublicKeyJSON
 }
 
-func newImportedRsaPublicKeyReader(key *rsa.PublicKey) KeyReader {
+func newImportedRsaPublicKeyReader(key *rsa.PublicKey, purpose keyPurpose) KeyReader {
 	r := new(importedRsaPublicKeyReader)
 	kv := keyVersion{1, ksPRIMARY, false}
-	r.km = keyMeta{"Imported RSA Public Key", ktRSA_PUB, kpENCRYPT, false, []keyVersion{kv}}
+	r.km = keyMeta{"Imported RSA Public Key", ktRSA_PUB, purpose, false, []keyVersion{kv}}
 
 	// inverse of code with newRsaKeys
 	r.rsajson.Modulus = encodeWeb64String(key.N.Bytes())
@@ -191,8 +209,7 @@ func (r *importedRsaPublicKeyReader) GetKey(version int) (string, error) {
 	return string(b), err
 }
 
-// ImportRSAPublicKeyFromPEM returns a KeyReader for the RSA Public Key contained in the PEM file specified in the location.
-func ImportRSAPublicKeyFromPEM(location string) (KeyReader, error) {
+func getRsaPublicKeyFromPem(location string) (*rsa.PublicKey, error) {
 
 	buf, _ := slurp(location)
 
@@ -201,7 +218,28 @@ func ImportRSAPublicKeyFromPEM(location string) (KeyReader, error) {
 
 	rsapub := pub.(*rsa.PublicKey)
 
-	r := newImportedRsaPublicKeyReader(rsapub)
+	return rsapub, nil
+}
+
+// ImportRSAPublicKeyFromPEM returns a KeyReader for the RSA Public Key contained in the PEM file specified in the location.
+// The resulting key can be used for encryption only.
+func ImportRSAPublicKeyFromPEMForEncryption(location string) (KeyReader, error) {
+
+	rsapub, _ := getRsaPublicKeyFromPem(location)
+
+	r := newImportedRsaPublicKeyReader(rsapub, kpENCRYPT)
+
+	return r, nil
+
+}
+
+// ImportRSAPublicKeyFromPEMForVerify returns a KeyReader for the RSA Public Key contained in the PEM file specified in the location.
+// The resulting key can be used for verification only.
+func ImportRSAPublicKeyFromPEMForVerify(location string) (KeyReader, error) {
+
+	rsapub, _ := getRsaPublicKeyFromPem(location)
+
+	r := newImportedRsaPublicKeyReader(rsapub, kpVERIFY)
 
 	return r, nil
 

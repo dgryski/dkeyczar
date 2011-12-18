@@ -191,7 +191,7 @@ func TestRsaDecrypt(t *testing.T) {
 func TestRsaPemImportDecrypt(t *testing.T) {
 
 	// from keyczar cpp test data 06b
-	r, _ := ImportRSAKeyFromPEM(TESTDATA + "rsa_pem/rsa_priv.pem")
+	r, _ := ImportRSAKeyFromPEMForCrypt(TESTDATA + "rsa_pem/rsa_priv.pem")
 
 	kz, _ := NewCrypter(r)
 
@@ -201,6 +201,23 @@ func TestRsaPemImportDecrypt(t *testing.T) {
 
 	if string(p) != INPUT {
 		t.Error("rsa pem import decrypt(encrypt(p)) != p")
+	}
+
+}
+
+func TestRsaPemImportSign(t *testing.T) {
+
+	// from keyczar cpp test data 06b
+	r, _ := ImportRSAKeyFromPEMForSigning(TESTDATA + "rsa_pem/rsa_priv.pem")
+
+	kz, _ := NewSigner(r)
+
+	c, _ := kz.Sign([]byte(INPUT))
+
+	v, _ := kz.Verify([]byte(INPUT), c)
+
+	if !v {
+		t.Error("rsa pem import verify(sign(p)) == false")
 	}
 
 }
