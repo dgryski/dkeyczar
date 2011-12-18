@@ -159,6 +159,53 @@ func ImportRSAKeyFromPEM(location string) (KeyReader, error) {
 
 }
 
+type importedRsaPublicKeyReader struct {
+	km      keyMeta
+	rsajson rsaPublicKeyJSON
+}
+
+func newImportedRsaPublicKeyReader(key *rsa.PublicKey) KeyReader {
+	r := new(importedRsaPublicKeyReader)
+	kv := keyVersion{1, ksPRIMARY, false}
+	r.km = keyMeta{"Imported RSA Public Key", ktRSA_PUB, kpENCRYPT, false, []keyVersion{kv}}
+
+	// inverse of code with newRsaKeys
+	r.rsajson.Modulus = encodeWeb64String(key.N.Bytes())
+
+	e := big.NewInt(int64(key.E))
+	r.rsajson.PublicExponent = encodeWeb64String(e.Bytes())
+
+	return r
+}
+
+func (r *importedRsaPublicKeyReader) GetMetadata() (string, error) {
+	b, err := json.Marshal(r.km)
+	return string(b), err
+}
+
+func (r *importedRsaPublicKeyReader) GetKey(version int) (string, error) {
+	b, err := json.Marshal(r.rsajson)
+	return string(b), err
+}
+
+
+// ImportRSAPublicKeyFromPEM returns a KeyReader for the RSA Public Key contained in the PEM file specified in the location.
+func ImportRSAPublicKeyFromPEM(location string) (KeyReader, error) {
+
+	buf, _ := slurp(location)
+
+	block, _ := pem.Decode([]byte(buf))
+	pub, _ := x509.ParsePKIXPublicKey(block.Bytes)
+
+        rsapub := pub.(*rsa.PublicKey)
+
+        r := newImportedRsaPublicKeyReader(rsapub)
+
+        return r, nil
+
+}
+
+
 type importedAesKeyReader struct {
 	km      keyMeta
 	aesjson aesKeyJSON
