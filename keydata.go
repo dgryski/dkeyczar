@@ -500,17 +500,14 @@ func newRsaKeys(r KeyReader, km keyMeta) map[int]keyIDer {
 
 		var b []byte
 
-		/*
+		b, _ = decodeWeb64String(rsajson.CrtCoefficient)
+		rsakey.key.Precomputed.Qinv = big.NewInt(0).SetBytes(b)
 
-			b, _ = decodeWeb64String(rsakey.CrtCoefficient)
-			rsakey.key.CrtCoefficient = big.NewInt(0).SetBytes(b)
+		b, _ = decodeWeb64String(rsajson.PrimeExponentP)
+		rsakey.key.Precomputed.Dp = big.NewInt(0).SetBytes(b)
 
-			b, _ = decodeWeb64String(rsakey.PrimeExponentP)
-			rsakey.key.PrimeExponentP = big.NewInt(0).SetBytes(b)
-
-			b, _ = decodeWeb64String(rsakey.PrimeExponentQ)
-			rsakey.key.PrimeExponentQ = big.NewInt(0).SetBytes(b)
-		*/
+		b, _ = decodeWeb64String(rsajson.PrimeExponentQ)
+		rsakey.key.Precomputed.Dq = big.NewInt(0).SetBytes(b)
 
 		b, _ = decodeWeb64String(rsajson.PrimeP)
 		p := big.NewInt(0).SetBytes(b)
