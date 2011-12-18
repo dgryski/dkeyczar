@@ -290,8 +290,6 @@ func newDsaPublicKeys(r KeyReader, km keyMeta) map[int]keyIDer {
 
 	keys := make(map[int]keyIDer)
 
-	// FIXME: ugg, more duplicated code
-
 	for _, kv := range km.Versions {
 		s, _ := r.GetKey(kv.VersionNumber)
 		dsakey := new(dsaPublicKey)
@@ -364,7 +362,6 @@ func (dk *dsaPublicKey) KeyID() []byte {
 	id := h.Sum(nil)
 
 	return id[0:4]
-
 }
 
 func (dk *dsaKey) KeyID() []byte {
@@ -467,8 +464,6 @@ func (rk *rsaKey) KeyID() []byte {
 func newRsaPublicKeys(r KeyReader, km keyMeta) map[int]keyIDer {
 
 	keys := make(map[int]keyIDer)
-
-	// FIXME: ugg, more duplicated code
 
 	for _, kv := range km.Versions {
 		s, _ := r.GetKey(kv.VersionNumber)
