@@ -4,10 +4,10 @@ This code is licensed under the Apache License, version 2.0
 
 You can learn more about the Keyczar library at http://www.keyczar.org/
 
-This was basically a proof-of-concept, hacked up in a week.  There's still a
-lot of clean-ups required to get it ready for production, but at the moment all
-the Keyczar keytypes are supported for encryption, decryption, signing and
-verification.
+The library is still in development but should be mostly complete.  You can
+currently load AES, HMAC, RSA, and DSA keys and use them for signing and
+verification.  RSA public and private keys can be loaded from PEM files as well
+as keyczar key files.  The library also supports creating session keys.
 
 At the moment, the tests require the keyczar-py source tree, since that's where
 the test files are kept.  This path can be specified in the KEYCZAR_TESTDATA
