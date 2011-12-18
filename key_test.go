@@ -207,7 +207,7 @@ func TestRsaPemImportDecrypt(t *testing.T) {
 
 func TestGeneratedAesEncryptDecrypt(t *testing.T) {
 
-	aeskey := GenerateAesKey()
+	aeskey := generateAesKey()
 
 	r := newImportedAesKeyReader(aeskey)
 

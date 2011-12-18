@@ -52,7 +52,7 @@ type hmacKey struct {
 	key []byte
 }
 
-func GenerateHmacKey() *hmacKey {
+func generateHmacKey() *hmacKey {
 	hk := new(hmacKey)
 
 	hk.key = make([]byte, 32)
@@ -73,13 +73,13 @@ type aesKey struct {
 	hmacKey hmacKey
 }
 
-func GenerateAesKey() *aesKey {
+func generateAesKey() *aesKey {
 	ak := new(aesKey)
 
 	ak.key = make([]byte, 16)
 	io.ReadFull(rand.Reader, ak.key)
 
-	ak.hmacKey = *GenerateHmacKey()
+	ak.hmacKey = *generateHmacKey()
 
 	return ak
 }
