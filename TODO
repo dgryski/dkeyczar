@@ -17,10 +17,10 @@ Make sure we have real tests cases
 function to split a stream into
    header, iv, ciphertext, signature
 
-type header struct {
-   uint8 version
-   uint32 keyid
-}
+    type header struct {
+       uint8 version
+       uint32 keyid
+    }
 
 Split code better among the files:
     pull pkcs5pad into util
@@ -32,10 +32,6 @@ newFOOJsonFromKey()
 
 Cache key id so it's only calculated once at key load time?
 
-Session encryption (close to being merged; see the python_sessions branch)
-    SessionEncrypter/Decryptor objects
-    getSessionMaterial
-
 Certificate import
 
 PKCS#8 private key import/export
@@ -43,5 +39,9 @@ PKCS#8 private key import/export
 
 Password-based key encryption
     implement pkcs12
+
+Timed Signatures
+
+Unversioned Signatures
 
 Do we want to export all our enums again?

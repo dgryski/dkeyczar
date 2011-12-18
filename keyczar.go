@@ -10,7 +10,7 @@ Sample usage is:
 
 Decryption, Signing and Verification use the same minimal API.
 
-Encrypted data and signatures are encoding with a web-safe base64 encoding.
+Encrypted data and signatures are encoded with web-safe base64.
 
 */
 package dkeyczar
