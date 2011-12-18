@@ -305,7 +305,7 @@ func TestLenPrefixPack(t *testing.T) {
 
 	// FIXME: make this test more complete
 
-	if arrays[3][0] != 1 {
+	if len(arrays[3]) != 1 || arrays[3][0] != 1 {
 		t.Error("unpack error")
 	}
 
