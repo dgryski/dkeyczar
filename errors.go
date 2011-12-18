@@ -2,7 +2,6 @@ package dkeyczar
 
 import "errors"
 
-// FIXME: Should some of these be parameterized? "bad version 0x04 number in header" ?
 var (
 	ErrBadVersion          = errors.New("keyczar: bad version number in header")
 	ErrBase64Decoding      = errors.New("keyczar: error during base64 decode")
