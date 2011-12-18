@@ -162,6 +162,7 @@ func NewSigner(r KeyReader) (Signer, error) {
 	return newKeyCzar(r, kpSIGN_AND_VERIFY)
 }
 
+// NewSessionEncrypter returns an Encrypter that has been initailized with a random session key.  This key material is encrypted with crypter and returned.
 func NewSessionEncrypter(crypter Crypter) (Encrypter, string, error) {
 
 	aeskey := GenerateAesKey()
@@ -176,6 +177,7 @@ func NewSessionEncrypter(crypter Crypter) (Encrypter, string, error) {
 	return sessionCrypter, keys, err
 }
 
+// NewSessionDecrypter decrypts the sessionKeys string and returns a new Crypter using these keys.
 func NewSessionDecrypter(crypter Crypter, sessionKeys string) (Crypter, error) {
 
 	packedKeys, _ := crypter.Decrypt(sessionKeys)
