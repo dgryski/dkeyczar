@@ -5,7 +5,7 @@ import (
 	"crypto/x509"
 	"encoding/json"
 	"encoding/pem"
-	"io"
+	"io/ioutil"
 	"math/big"
 	"os"
 	"strconv"
@@ -54,29 +54,8 @@ func NewEncryptedReader(reader KeyReader, crypter Crypter) KeyReader {
 
 // return the entire contents of a file as a string
 func slurp(path string) (string, error) {
-	f, err := os.Open(path)
-
-	if err != nil {
-		return "", err
-	}
-
-	meta := make([]byte, 0, 512)
-	var buf [512]byte
-
-	for {
-		n, err := f.Read(buf[:])
-		if n == 0 && err == io.EOF {
-			break
-		}
-
-		if err != nil {
-			return "", err
-		}
-
-		meta = append(meta, buf[0:n]...)
-	}
-
-	return string(meta), nil
+	b, err := ioutil.ReadFile(path)
+	return string(b), err
 }
 
 // slurp and return the meta file
@@ -166,7 +145,6 @@ func ImportRSAKeyFromPEMForSigning(location string) (KeyReader, error) {
 	r := newImportedRsaPrivateKeyReader(priv, kpSIGN_AND_VERIFY)
 
 	return r, nil
-
 }
 
 // ImportRSAKeyFromPEM returns a KeyReader for the RSA Private Key contained in the PEM file specified in the location.
@@ -177,7 +155,6 @@ func ImportRSAKeyFromPEMForCrypt(location string) (KeyReader, error) {
 	r := newImportedRsaPrivateKeyReader(priv, kpDECRYPT_AND_ENCRYPT)
 
 	return r, nil
-
 }
 
 type importedRsaPublicKeyReader struct {
@@ -226,11 +203,9 @@ func getRsaPublicKeyFromPem(location string) (*rsa.PublicKey, error) {
 func ImportRSAPublicKeyFromPEMForEncryption(location string) (KeyReader, error) {
 
 	rsapub, _ := getRsaPublicKeyFromPem(location)
-
 	r := newImportedRsaPublicKeyReader(rsapub, kpENCRYPT)
 
 	return r, nil
-
 }
 
 // ImportRSAPublicKeyFromPEMForVerify returns a KeyReader for the RSA Public Key contained in the PEM file specified in the location.
@@ -238,11 +213,9 @@ func ImportRSAPublicKeyFromPEMForEncryption(location string) (KeyReader, error) 
 func ImportRSAPublicKeyFromPEMForVerify(location string) (KeyReader, error) {
 
 	rsapub, _ := getRsaPublicKeyFromPem(location)
-
 	r := newImportedRsaPublicKeyReader(rsapub, kpVERIFY)
 
 	return r, nil
-
 }
 
 type importedAesKeyReader struct {
