@@ -2,10 +2,8 @@ package dkeyczar
 
 import (
 	"bytes"
-	"crypto/rand"
 	"encoding/base64"
 	"encoding/binary"
-	"io"
 )
 
 // A Web64 string is a base64 encoded string with a web-safe character set and no trailing equal signs.
