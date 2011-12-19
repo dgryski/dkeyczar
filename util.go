@@ -8,6 +8,7 @@ import (
 	"io"
 )
 
+// return a slice of l cryptographically strong random bytes, or error
 func randBytes(l int) ([]byte, error) {
 
 	b := make([]byte, l, l)
@@ -28,6 +29,7 @@ func randBytes(l int) ([]byte, error) {
 	return b[0:l], nil
 }
 
+// A Web64 string is a base64 encoded string with a web-safe character set and no trailing equal signs.
 func decodeWeb64String(key string) ([]byte, error) {
 
 	var equals string
@@ -57,6 +59,10 @@ func encodeWeb64String(b []byte) string {
 	return s[0 : i+1]
 }
 
+// Encode a list of arrays as a single byte-stream:
+//    <number_of_arrays> <len1> <array1> <len2> <array2> ...
+// The number of arrays and lengths are big-endian uint32.
+// The byte arrays themselves are sent as-is.
 func lenPrefixPack(arrays ...[]byte) []byte {
 
 	data := 0
@@ -80,6 +86,7 @@ func lenPrefixPack(arrays ...[]byte) []byte {
 	return buf.Bytes()
 }
 
+// Unpack a list of arrays packed with lenPrefixPack
 func lenPrefixUnpack(packed []byte) [][]byte {
 
 	var numArrays uint32
@@ -99,5 +106,4 @@ func lenPrefixUnpack(packed []byte) [][]byte {
 	}
 
 	return arrays
-
 }

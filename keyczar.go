@@ -20,29 +20,34 @@ import (
 	"encoding/json"
 )
 
+// Our main base type.  We only expose this through one of the interfaces.
 type keyCzar struct {
 	keymeta keyMeta         // metadata for this key
 	keys    map[int]keyIDer // maps versions to keys
 	primary int             // integer version of the primary key
 }
 
+// A type that can used for encrypting
 type Encrypter interface {
 	// Encrypt returns an encrypted representing the plaintext bytes passed.
 	Encrypt(plaintext []uint8) (string, error)
 }
 
+// A type that can used for encrypting or decrypting
 type Crypter interface {
 	Encrypter
 	// Decrypt returns the plaintext bytes of an encrypted string
 	Decrypt(ciphertext string) ([]uint8, error)
 }
 
+// A type that can be sued for signing and verification
 type Signer interface {
 	Verifier
 	// Sign returns a cryptographic signature for the message
 	Sign(message []byte) (string, error)
 }
 
+// A type that can be sued for verification
 type Verifier interface {
 	// Verify checks the cryptographic signature for a message
 	Verify(message []byte, signature string) (bool, error)
@@ -102,7 +107,6 @@ func (kz *keyCzar) Verify(msg []byte, signature string) (bool, error) {
 
 	keyid, sig := sigB[1:5], sigB[5:]
 
-	// FIXME: ugly :( -- change Verifier.Verify() call instead?
 	signedbytes := make([]byte, len(msg)+1)
 	copy(signedbytes, msg)
 	signedbytes[len(msg)] = kzVersion
@@ -180,40 +184,50 @@ func NewSessionEncrypter(crypter Crypter) (Encrypter, string, error) {
 // NewSessionDecrypter decrypts the sessionKeys string and returns a new Crypter using these keys.
 func NewSessionDecrypter(crypter Crypter, sessionKeys string) (Crypter, error) {
 
-	packedKeys, _ := crypter.Decrypt(sessionKeys)
+	packedKeys, err := crypter.Decrypt(sessionKeys)
+        if err != nil {
+            return nil, err
+        }
+
 	aeskey := newAesFromPackedKeys(packedKeys)
 	r := newImportedAesKeyReader(aeskey)
 
 	return NewCrypter(r)
 }
 
+// construct a keyczar object from a reader for a given purpose
 func newKeyCzar(r KeyReader, purpose keyPurpose) (*keyCzar, error) {
 
 	kz := new(keyCzar)
 
-	s, _ := r.GetMetadata()
-
-	err := json.Unmarshal([]byte(s), &kz.keymeta)
-
+	s, err := r.GetMetadata()
 	if err != nil {
 		return nil, err
 	}
 
+	err = json.Unmarshal([]byte(s), &kz.keymeta)
+	if err != nil {
+		return nil, err
+	}
+
+        // check if the key we're loading can be used for what we're asking it to do
 	if !kz.keymeta.Purpose.isValidPurpose(purpose) {
 		return nil, ErrUnacceptablePurpose
 	}
 
+        // search for the primary key
 	kz.primary = -1
 	for _, v := range kz.keymeta.Versions {
 		if v.Status == ksPRIMARY {
 			if kz.primary == -1 {
 				kz.primary = v.VersionNumber
 			} else {
-				return nil, ErrNoPrimaryKey // FIXME: technically, "MultiplePrimaryKeyException"
+				return nil, ErrNoPrimaryKey // technically, ErrMultiplePrimaryKey
 			}
 		}
 	}
 
+        // not found :(
 	if kz.primary == -1 {
 		return nil, ErrNoPrimaryKey
 	}
@@ -241,6 +255,7 @@ func newKeyCzar(r KeyReader, purpose keyPurpose) (*keyCzar, error) {
 const kzVersion = uint8(0)
 const kzHeaderLength = 5
 
+// make and return a header for the given key
 func header(key keyIDer) []byte {
 	b := make([]byte, kzHeaderLength)
 	b[0] = kzVersion

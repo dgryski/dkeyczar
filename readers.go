@@ -38,8 +38,8 @@ func NewFileReader(location string) KeyReader {
 }
 
 type encryptedReader struct {
-	reader  KeyReader
-	crypter Crypter
+	reader  KeyReader // our wrapped reader
+	crypter Crypter   // the crypter we use to decrypt what we've read
 }
 
 // NewEncryptedReader returns a KeyReader which decrypts the key returned by the wrapped 'reader'.
@@ -90,12 +90,13 @@ func (r *encryptedReader) GetKey(version int) (string, error) {
 	return string(b), nil
 }
 
+// a fake reader for an RSA private key
 type importedRsaPrivateKeyReader struct {
-	km      keyMeta
-	rsajson rsaKeyJSON
+	km      keyMeta    // our fake meta info
+	rsajson rsaKeyJSON // the rsa key we're importing
 }
 
-// ugly name -- if we exported key purpose it would be easier
+// construct a fake keyreader for the provided rsa private key and purpose
 func newImportedRsaPrivateKeyReader(key *rsa.PrivateKey, purpose keyPurpose) KeyReader {
 	r := new(importedRsaPrivateKeyReader)
 	kv := keyVersion{1, ksPRIMARY, false}
@@ -127,12 +128,20 @@ func (r *importedRsaPrivateKeyReader) GetKey(version int) (string, error) {
 	return string(b), err
 }
 
+// load and return an rsa private key from a PEM file specified in 'location'
 func getRsaKeyFromPem(location string) (*rsa.PrivateKey, error) {
 
-	buf, _ := slurp(location)
+	buf, err := slurp(location)
+	if err != nil {
+		return nil, err
+	}
 
 	block, _ := pem.Decode([]byte(buf))
-	priv, _ := x509.ParsePKCS1PrivateKey(block.Bytes)
+
+	priv, err := x509.ParsePKCS1PrivateKey(block.Bytes)
+	if err != nil {
+		return nil, err
+	}
 
 	return priv, nil
 }
@@ -141,7 +150,11 @@ func getRsaKeyFromPem(location string) (*rsa.PrivateKey, error) {
 // The resulting key can be used for signing and verification only
 func ImportRSAKeyFromPEMForSigning(location string) (KeyReader, error) {
 
-	priv, _ := getRsaKeyFromPem(location)
+	priv, err := getRsaKeyFromPem(location)
+	if err != nil {
+		return nil, err
+	}
+
 	r := newImportedRsaPrivateKeyReader(priv, kpSIGN_AND_VERIFY)
 
 	return r, nil
@@ -151,17 +164,23 @@ func ImportRSAKeyFromPEMForSigning(location string) (KeyReader, error) {
 // The resulting key can be used for encryption and decryption only
 func ImportRSAKeyFromPEMForCrypt(location string) (KeyReader, error) {
 
-	priv, _ := getRsaKeyFromPem(location)
+	priv, err := getRsaKeyFromPem(location)
+	if err != nil {
+		return nil, err
+	}
+
 	r := newImportedRsaPrivateKeyReader(priv, kpDECRYPT_AND_ENCRYPT)
 
 	return r, nil
 }
 
+// a fake reader for an RSA public key
 type importedRsaPublicKeyReader struct {
-	km      keyMeta
-	rsajson rsaPublicKeyJSON
+	km      keyMeta          // our fake meta info
+	rsajson rsaPublicKeyJSON // the rsa key we're importing
 }
 
+// construct a fake keyreader for the provided rsa public key and purpose
 func newImportedRsaPublicKeyReader(key *rsa.PublicKey, purpose keyPurpose) KeyReader {
 	r := new(importedRsaPublicKeyReader)
 	kv := keyVersion{1, ksPRIMARY, false}
@@ -186,13 +205,22 @@ func (r *importedRsaPublicKeyReader) GetKey(version int) (string, error) {
 	return string(b), err
 }
 
+// load and return an rsa public key from a PEM file specified in 'location'
 func getRsaPublicKeyFromPem(location string) (*rsa.PublicKey, error) {
 
-	buf, _ := slurp(location)
+	buf, err := slurp(location)
+	if err != nil {
+		return nil, err
+	}
 
 	block, _ := pem.Decode([]byte(buf))
-	pub, _ := x509.ParsePKIXPublicKey(block.Bytes)
 
+	pub, err := x509.ParsePKIXPublicKey(block.Bytes)
+	if err != nil {
+		return nil, err
+	}
+
+	// FIXME: check this type so we fail instead of panic
 	rsapub := pub.(*rsa.PublicKey)
 
 	return rsapub, nil
@@ -202,7 +230,10 @@ func getRsaPublicKeyFromPem(location string) (*rsa.PublicKey, error) {
 // The resulting key can be used for encryption only.
 func ImportRSAPublicKeyFromPEMForEncryption(location string) (KeyReader, error) {
 
-	rsapub, _ := getRsaPublicKeyFromPem(location)
+	rsapub, err := getRsaPublicKeyFromPem(location)
+	if err != nil {
+		return nil, err
+	}
 	r := newImportedRsaPublicKeyReader(rsapub, kpENCRYPT)
 
 	return r, nil
@@ -212,17 +243,22 @@ func ImportRSAPublicKeyFromPEMForEncryption(location string) (KeyReader, error) 
 // The resulting key can be used for verification only.
 func ImportRSAPublicKeyFromPEMForVerify(location string) (KeyReader, error) {
 
-	rsapub, _ := getRsaPublicKeyFromPem(location)
+	rsapub, err := getRsaPublicKeyFromPem(location)
+	if err != nil {
+		return nil, err
+	}
 	r := newImportedRsaPublicKeyReader(rsapub, kpVERIFY)
 
 	return r, nil
 }
 
+// fake reader for an AES key
 type importedAesKeyReader struct {
-	km      keyMeta
-	aesjson aesKeyJSON
+	km      keyMeta    // our fake meta info
+	aesjson aesKeyJSON // the aes key we're importing
 }
 
+// construct a fake keyreader for the provided aes key
 func newImportedAesKeyReader(key *aesKey) KeyReader {
 	r := new(importedAesKeyReader)
 	kv := keyVersion{1, ksPRIMARY, false}
