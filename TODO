@@ -1,47 +1,57 @@
-Refactor common code
-    duplicate code in newFOOkeys
-    marshaljson quoted string creation
 
-keymeta.keys[keyid] = key
-keymeta.primary is uint32 keyid
+High Priority:
 
-better error messages?  "bad version 0x4 in header" vs. "bad version in header"
+    - implemet keyczar tool so our library is standalone
+        => key generation
+        => write out json keys
+        => other export options
 
-Make sure we have real tests cases
-    Add test cases for:
+    - improve internal documentation
+
+    - certificate import
+
+    - PKCS#8 private key import/export
+      (dsa not supported -- must implement)
+      (rsa export not supported -- must implement)
+
+    - Password-based key encryption
+       => implement pkcs12 appendix b
+
+Low Priority:
+
+    - write functions to abstract byte-stream format
+        - type header struct {
+              uint8 version
+              uint32 keyid
+          }
+        getHeader()
+        getIv()
+        getCipherText()
+        getSignature()
+
+    - newFOOJsonFromKey()
+        => each type should have its own 'json<->key' function
+        => currently logic is in newFOOKeys and readers:ImportFOOKey
+
+    - refactor duplicate code in newFOOkeys
+    - refactor marshaljson quoted string creation ?
+    - better error messages?  "bad version 0x4 in header" vs. "bad version in header"
+    - string -> []byte changes for API?
+
+    - test cases for
         encodeWeb64String
         decodeWeb64String
         lenPrefixPack
         lenPrefixUnpack
 
-function to split a stream into
-   header, iv, ciphertext, signature
+    - cache key id so it's only calculated once at key load time?
 
-    type header struct {
-       uint8 version
-       uint32 keyid
-    }
+    - timed signatures
 
-Split code better among the files:
-    pull pkcs5pad into util
-    keytypes into key_aes, key_rsa, ... ?
+    - unversioned signatures
 
-newFOOJsonFromKey()
-   - move the construction out to readers and into keydata
-   - important for Imported* readers?
+    - code reorg
+        pkcs5pad into util? not gnerally useful though?
+        split keydata into aeskey, rsakey, ... ?
 
-Cache key id so it's only calculated once at key load time?
-
-Certificate import
-
-PKCS#8 private key import/export
-      (dsa not supported -- must implement)
-
-Password-based key encryption
-    implement pkcs12
-
-Timed Signatures
-
-Unversioned Signatures
-
-Do we want to export all our enums again?
+    - decide on visibility of keyinfo enums
