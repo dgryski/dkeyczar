@@ -153,10 +153,8 @@ func (ak *aesKey) Encrypt(data []byte) ([]byte, error) {
 
 	data = pkcs5pad(data, aes.BlockSize)
 
-	iv_bytes, err := randBytes(aes.BlockSize)
-	if err != nil {
-		return nil, err
-	}
+        iv_bytes := make([]byte, aes.BlockSize)
+        io.ReadFull(rand.Reader, iv_bytes)
 
 	aesCipher, err := aes.NewCipher(ak.key)
 	if err != nil {

@@ -8,27 +8,6 @@ import (
 	"io"
 )
 
-// return a slice of l cryptographically strong random bytes, or error
-func randBytes(l int) ([]byte, error) {
-
-	b := make([]byte, l, l)
-
-	v := 0
-
-	for {
-		n, err := rand.Read(b[v:])
-		if n == 0 && err == io.EOF {
-			return nil, err
-		}
-		if len(b) >= l {
-			break
-		}
-		v += n
-	}
-
-	return b[0:l], nil
-}
-
 // A Web64 string is a base64 encoded string with a web-safe character set and no trailing equal signs.
 func decodeWeb64String(key string) ([]byte, error) {
 
