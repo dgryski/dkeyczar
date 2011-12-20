@@ -37,21 +37,6 @@ func NewFileReader(location string) KeyReader {
 	return r
 }
 
-type encryptedReader struct {
-	reader  KeyReader // our wrapped reader
-	crypter Crypter   // the crypter we use to decrypt what we've read
-}
-
-// NewEncryptedReader returns a KeyReader which decrypts the key returned by the wrapped 'reader'.
-func NewEncryptedReader(reader KeyReader, crypter Crypter) KeyReader {
-	r := new(encryptedReader)
-
-	r.crypter = crypter
-	r.reader = reader
-
-	return r
-}
-
 // return the entire contents of a file as a string
 func slurp(path string) (string, error) {
 	b, err := ioutil.ReadFile(path)
@@ -66,6 +51,21 @@ func (r *fileReader) GetMetadata() (string, error) {
 // slurp and return the requested key version
 func (r *fileReader) GetKey(version int) (string, error) {
 	return slurp(r.location + strconv.Itoa(version))
+}
+
+type encryptedReader struct {
+	reader  KeyReader // our wrapped reader
+	crypter Crypter   // the crypter we use to decrypt what we've read
+}
+
+// NewEncryptedReader returns a KeyReader which decrypts the key returned by the wrapped 'reader'.
+func NewEncryptedReader(reader KeyReader, crypter Crypter) KeyReader {
+	r := new(encryptedReader)
+
+	r.crypter = crypter
+	r.reader = reader
+
+	return r
 }
 
 // return the meta information from the wrapper reader.  Meta information is not encrypted.
