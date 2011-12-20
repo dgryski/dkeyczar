@@ -3,6 +3,7 @@ High Priority:
 
     - implemet keyczar tool so our library is standalone
         => key generation
+            => we need size info for the key types
         => write out json keys
         => other export options
 
@@ -13,9 +14,6 @@ High Priority:
     - PKCS#8 private key import/export
       (dsa not supported -- must implement)
       (rsa export not supported -- must implement)
-
-    - Password-based key encryption
-       => implement pkcs12 appendix b
 
 Low Priority:
 
@@ -50,8 +48,11 @@ Low Priority:
 
     - unversioned signatures
 
+    - for pbereader, don't store password, only hmac? (and let it store the password?0
+
     - code reorg
-        pkcs5pad into util? not gnerally useful though?
         split keydata into aeskey, rsakey, ... ?
 
     - decide on visibility of keyinfo enums
+
+    - standardize on RSA/Rsa/...
