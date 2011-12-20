@@ -134,21 +134,6 @@ func newAesKeys(r KeyReader, km keyMeta) map[int]keyIDer {
 	return keys
 }
 
-// only needed by AES? 
-func pkcs5pad(data []byte, blocksize int) []byte {
-	pad := blocksize - len(data)%blocksize
-	b := make([]byte, pad, pad)
-	for i := 0; i < pad; i++ {
-		b[i] = uint8(pad)
-	}
-	return append(data, b...)
-}
-
-func pkcs5unpad(data []byte) []byte {
-	pad := int(data[len(data)-1])
-	return data[0 : len(data)-pad]
-}
-
 func (ak *aesKey) Encrypt(data []byte) ([]byte, error) {
 
 	data = pkcs5pad(data, aes.BlockSize)
