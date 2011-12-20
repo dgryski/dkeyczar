@@ -266,6 +266,24 @@ func TestEncryptedReader(t *testing.T) {
 	}
 }
 
+func TestPBEReader(t *testing.T) {
+
+	f := NewFileReader(TESTDATA + "pbe_json")
+
+	er := NewPBEReader(f, []byte("cartman"))
+
+	kz, _ := NewCrypter(er)
+
+	c, _ := kz.Encrypt([]byte(INPUT))
+
+	p, _ := kz.Decrypt(c)
+
+	if string(p) != INPUT {
+		t.Error("pbe key decrypt(encrypt(p)) != p")
+	}
+
+}
+
 func TestSessionEncryptDecrypt(t *testing.T) {
 
 	f := NewFileReader(TESTDATA + "rsa")
@@ -285,7 +303,7 @@ func TestSessionEncryptDecrypt(t *testing.T) {
 	}
 }
 
-var pkcs5tests = []struct {
+var pkcs5padtests = []struct {
 	s   []byte
 	pad int
 	r   []byte
@@ -299,7 +317,7 @@ var pkcs5tests = []struct {
 
 func TestPKCS5Pad(t *testing.T) {
 
-	for _, pkcs := range pkcs5tests {
+	for _, pkcs := range pkcs5padtests {
 		unpad := make([]byte, len(pkcs.s))
 		copy(unpad, pkcs.s)
 		r := pkcs5pad(pkcs.s, pkcs.pad)
@@ -326,6 +344,28 @@ func TestLenPrefixPack(t *testing.T) {
 		t.Error("unpack error")
 	}
 
+}
+
+var pbkdf2tests = []struct {
+	password []byte
+	salt     []byte
+	count    int
+	dklen    int
+	answer   []byte
+}{
+	{[]byte("password"), []byte{0x78, 0x57, 0x8E, 0x5A, 0x5D, 0x63, 0xCB, 0x06}, 2048, 24, []byte{0xBF, 0xDE, 0x6B, 0xE9, 0x4D, 0xF7, 0xE1, 0x1D, 0xD4, 0x09, 0xBC, 0xE2, 0x0A, 0x02, 0x55, 0xEC, 0x32, 0x7C, 0xB9, 0x36, 0xFF, 0xE9, 0x36, 0x43}},
+}
+
+func TestPKCS5PBE(t *testing.T) {
+
+	for _, pkcs := range pbkdf2tests {
+
+		answer := pbkdf2(pkcs.password, pkcs.salt, pkcs.count, pkcs.dklen)
+
+		if bytes.Compare(pkcs.answer, answer) != 0 {
+			t.Error("pbkdf2: got: ", answer, "expected: ", pkcs.answer)
+		}
+	}
 }
 
 // FIXME: DecodeWeb64String / EncodeWeb64String

@@ -1,6 +1,8 @@
 package dkeyczar
 
 import (
+	"crypto/aes"
+	"crypto/cipher"
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/json"
@@ -88,6 +90,71 @@ func (r *encryptedReader) GetKey(version int) (string, error) {
 	}
 
 	return string(b), nil
+}
+
+type pbeReader struct {
+	reader   KeyReader // our wrapped reader
+	password []byte    // the password to use for the PBE
+}
+
+// NewPBEReader returns a KeyReader which decrypts keys encrypted with password-based encryption
+func NewPBEReader(reader KeyReader, password []byte) KeyReader {
+	r := new(pbeReader)
+
+	r.password = make([]byte, len(password))
+	copy(r.password, password)
+	r.reader = reader
+
+	// FIXME: double check that the reader is looking at an encrypted key?
+
+	return r
+}
+
+// return the meta information from the wrapper reader.  Meta information is not encrypted.
+func (r *pbeReader) GetMetadata() (string, error) {
+	return r.reader.GetMetadata()
+}
+
+type pbeKeyJSON struct {
+	Cipher         string `json:"cipher"`
+	Hmac           string `json:"hmac"`
+	IterationCount int    `json:"iterationCount"`
+	Iv             string `json:"iv"`
+	Key            string `json:"key"`
+	Salt           string `json:"salt"`
+}
+
+// decrypt and return an encrypted key
+func (r *pbeReader) GetKey(version int) (string, error) {
+	s, err := r.reader.GetKey(version)
+
+	if err != nil {
+		return "", err
+
+	}
+
+	var pbejson pbeKeyJSON
+
+	json.Unmarshal([]byte(s), &pbejson)
+
+	// FIXME: assert we know how to deal with this
+	// => cipher == AES128 , hmac == HMAC_SHA1
+
+	salt, _ := decodeWeb64String(pbejson.Salt)
+	iv_bytes, _ := decodeWeb64String(pbejson.Iv)
+	ciphertext, _ := decodeWeb64String(pbejson.Key)
+
+	keybytes := pbkdf2(r.password, salt, pbejson.IterationCount, 128/8)
+
+	aesCipher, _ := aes.NewCipher(keybytes)
+
+	crypter := cipher.NewCBCDecrypter(aesCipher, iv_bytes)
+
+	plaintext := make([]byte, len(ciphertext))
+
+	crypter.CryptBlocks(plaintext, ciphertext)
+
+	return string(plaintext), nil
 }
 
 // a fake reader for an RSA private key
