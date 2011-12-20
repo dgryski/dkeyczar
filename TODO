@@ -15,6 +15,10 @@ High Priority:
       (dsa not supported -- must implement)
       (rsa export not supported -- must implement)
 
+    - toggle compression
+
+    - toggle encoding
+
 Low Priority:
 
     - write functions to abstract byte-stream format
