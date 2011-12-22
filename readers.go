@@ -287,8 +287,12 @@ func getRsaPublicKeyFromPem(location string) (*rsa.PublicKey, error) {
 		return nil, err
 	}
 
-	// FIXME: check this type so we fail instead of panic
-	rsapub := pub.(*rsa.PublicKey)
+	rsapub, ok := pub.(*rsa.PublicKey)
+
+        if !ok {
+            // FIXME: lousy error message :(
+            return nil, ErrUnsupportedType
+        }
 
 	return rsapub, nil
 }
