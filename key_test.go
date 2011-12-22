@@ -222,6 +222,21 @@ func TestRsaPemImportSign(t *testing.T) {
 
 }
 
+// commented until I get around to pointing this at a cert that exists elsewhere than on my machine
+/*
+func TestRsaCertImport(t *testing.T) {
+
+	r, err := ImportRSAPublicKeyFromCertificateForVerify("thawte.crt")
+
+        fmt.Println("err=", err)
+
+	kz, err := NewVerifier(r)
+        fmt.Println("err=", err)
+
+        fmt.Println("kz=", kz)
+}
+*/
+
 func TestGeneratedAesEncryptDecrypt(t *testing.T) {
 
 	aeskey := generateAesKey()
