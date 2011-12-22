@@ -323,6 +323,57 @@ func ImportRSAPublicKeyFromPEMForVerify(location string) (KeyReader, error) {
 	return r, nil
 }
 
+func getRsaPublicKeyFromCertificate(location string) (*rsa.PublicKey, error) {
+
+	buf, err := slurp(location)
+	if err != nil {
+		return nil, err
+	}
+
+	block, _ := pem.Decode([]byte(buf))
+
+	cert, err := x509.ParseCertificate(block.Bytes)
+	if err != nil {
+		return nil, err
+	}
+
+	rsapub, ok := cert.PublicKey.(*rsa.PublicKey)
+
+        if !ok {
+            // FIXME: lousy error message :(
+            return nil, ErrUnsupportedType
+        }
+
+	return rsapub, nil
+}
+
+// ImportRSAPublicKeyFromCertificateForVerify returns a KeyReader for the RSA Public Key contained in the certificate file specified in the location.
+// The resulting key can be used for verification only.
+func ImportRSAPublicKeyFromCertificateForVerify(location string) (KeyReader, error) {
+
+	rsapub, err := getRsaPublicKeyFromCertificate(location)
+	if err != nil {
+		return nil, err
+	}
+	r := newImportedRsaPublicKeyReader(rsapub, kpVERIFY)
+
+	return r, nil
+}
+
+// ImportRSAPublicKeyFromCertificateForCrypt returns a KeyReader for the RSA Public Key contained in the certificate file specified in the location.
+// The resulting key can be used for encryption only.
+func ImportRSAPublicKeyFromCertificateForCrypt(location string) (KeyReader, error) {
+
+	rsapub, err := getRsaPublicKeyFromCertificate(location)
+	if err != nil {
+		return nil, err
+	}
+	r := newImportedRsaPublicKeyReader(rsapub, kpENCRYPT)
+
+	return r, nil
+}
+
+
 // fake reader for an AES key
 type importedAesKeyReader struct {
 	km      keyMeta    // our fake meta info
