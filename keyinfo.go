@@ -2,7 +2,6 @@ package dkeyczar
 
 type keyType int
 
-// FIXME need key size info
 const (
 	ktAES keyType = iota
 	ktHMAC_SHA1
@@ -12,23 +11,31 @@ const (
 	ktRSA_PUB
 )
 
+// This struct copies the Java layout, but suffers from YAGNI
+// The sizing and output fields aren't really used (yet...)
+var keyTypeInfo = map[keyType]struct {
+	str     string
+	qstr    []byte
+	sizes   []uint
+	output  uint
+	outputs []uint
+}{
+	ktAES:       {"AES", []byte("\"AES\""), []uint{128, 192, 256}, 128, nil},
+	ktHMAC_SHA1: {"HMAC_SHA1", []byte("\"HMAC_SHA1\""), []uint{256}, 160, nil},
+	ktDSA_PRIV:  {"DSA_PRIV", []byte("\"DSA_PRIV\""), []uint{1024}, 384, nil},
+	ktDSA_PUB:   {"DSA_PUB", []byte("\"DSA_PUB\""), []uint{1024}, 384, nil},
+	ktRSA_PRIV:  {"RSA_PRIV", []byte("\"RSA_PRIV\""), []uint{4096, 2048, 1024}, 0, []uint{512, 256, 128}},
+	ktRSA_PUB:   {"RSA_PUB", []byte("\"RSA_PUB\""), []uint{4096, 2048, 1024}, 0, []uint{512, 256, 128}},
+}
+
 func (k keyType) String() string {
-	switch k {
-	case ktAES:
-		return "AES"
-	case ktHMAC_SHA1:
-		return "HMAC_SHA1"
-	case ktDSA_PRIV:
-		return "DSA_PRIV"
-	case ktDSA_PUB:
-		return "DSA_PUB"
-	case ktRSA_PRIV:
-		return "RSA_PRIV"
-	case ktRSA_PUB:
-		return "RSA_PUB"
+	ktinfo, ok := keyTypeInfo[k]
+
+	if !ok {
+		panic("unknown keytype in String()!")
 	}
 
-	return "(unknown KeyType)"
+	return ktinfo.str
 }
 
 var keyTypeLookup = map[string]keyType{
@@ -50,23 +57,38 @@ func (k *keyType) UnmarshalJSON(b []byte) error {
 
 func (k keyType) MarshalJSON() ([]byte, error) {
 
-	switch k {
-	case ktAES:
-		return []byte("\"AES\""), nil
-	case ktHMAC_SHA1:
-		return []byte("\"HMAC_SHA1\""), nil
-	case ktDSA_PRIV:
-		return []byte("\"DSA_PRIV\""), nil
-	case ktDSA_PUB:
-		return []byte("\"DSA_PUB\""), nil
-	case ktRSA_PRIV:
-		return []byte("\"RSA_PRIV\""), nil
-	case ktRSA_PUB:
-		return []byte("\"RSA_PUB\""), nil
-	}
+	ktinfo, _ := keyTypeInfo[k]
 
-	return []byte("\"(unknown KeyType\""), nil
+	return ktinfo.qstr, nil
 }
+
+func (k keyType) defaultSize() uint {
+	ktinfo, _ := keyTypeInfo[k]
+
+	return ktinfo.sizes[0]
+}
+
+func (k keyType) outputSize(size uint) uint {
+	ktinfo, _ := keyTypeInfo[k]
+
+        if ktinfo.output != 0 {
+            return ktinfo.output
+        }
+
+        for i, sz := range ktinfo.sizes {
+            if sz == size {
+                return ktinfo.outputs[i]
+            }
+        }
+
+        // FIXME: 0? Is that the best you could do?
+
+        return 0
+}
+
+// missing methods (not yet needed):
+//   isAcceptableSize
+//  ... ?
 
 type keyStatus int
 

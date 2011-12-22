@@ -55,7 +55,7 @@ type hmacKey struct {
 func generateHmacKey() *hmacKey {
 	hk := new(hmacKey)
 
-	hk.key = make([]byte, 32)
+	hk.key = make([]byte, ktHMAC_SHA1.defaultSize() / 8)
 	io.ReadFull(rand.Reader, hk.key)
 
 	return hk
@@ -76,7 +76,7 @@ type aesKey struct {
 func generateAesKey() *aesKey {
 	ak := new(aesKey)
 
-	ak.key = make([]byte, 16)
+	ak.key = make([]byte, ktAES.defaultSize() / 8)
 	io.ReadFull(rand.Reader, ak.key)
 
 	ak.hmacKey = *generateHmacKey()
