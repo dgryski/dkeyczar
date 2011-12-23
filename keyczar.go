@@ -17,18 +17,66 @@ package dkeyczar
 
 import (
 	"bytes"
+	"compress/gzip"
+	"compress/zlib"
 	"encoding/json"
+	"io"
+)
+
+type KeyczarEncoding int
+
+const (
+	NO_ENCODING KeyczarEncoding = iota
+	BASE64W
+)
+
+type KeyczarCompression int
+
+const (
+	NO_COMPRESSION KeyczarCompression = iota
+	GZIP
+	ZLIB
 )
 
 // Our main base type.  We only expose this through one of the interfaces.
 type keyCzar struct {
-	keymeta keyMeta         // metadata for this key
-	keys    map[int]keyIDer // maps versions to keys
-	primary int             // integer version of the primary key
+	keymeta     keyMeta         // metadata for this key
+	keys        map[int]keyIDer // maps versions to keys
+	primary     int             // integer version of the primary key
+	encoding    KeyczarEncoding
+	compression KeyczarCompression
+}
+
+type KeyczarCompressionController interface {
+	SetCompression(compression KeyczarCompression)
+	Compression() KeyczarCompression
+}
+
+type KeyczarEncodingController interface {
+	SetEncoding(encoding KeyczarEncoding)
+	Encoding() KeyczarEncoding
+}
+
+func (kz *keyCzar) Compression() KeyczarCompression {
+	return kz.compression
+}
+
+func (kz *keyCzar) SetCompression(compression KeyczarCompression) {
+	kz.compression = compression
+}
+
+func (kz *keyCzar) Encoding() KeyczarEncoding {
+	return kz.encoding
+}
+
+func (kz *keyCzar) SetEncoding(encoding KeyczarEncoding) {
+	kz.encoding = encoding
 }
 
 // A type that can used for encrypting
 type Encrypter interface {
+	KeyczarEncodingController
+	KeyczarCompressionController
 	// Encrypt returns an encrypted string representing the plaintext bytes passed.
 	Encrypt(plaintext []uint8) (string, error)
 }
@@ -53,25 +101,105 @@ type Verifier interface {
 	Verify(message []byte, signature string) (bool, error)
 }
 
+func (kz *keyCzar) encode(data []byte) []byte {
+
+	switch kz.encoding {
+	case NO_ENCODING:
+		return data
+	case BASE64W:
+		return []byte(encodeWeb64String(data))
+	}
+
+	panic("not reached")
+}
+
+func (kz *keyCzar) decode(data []byte) ([]byte, error) {
+
+	switch kz.encoding {
+	case NO_ENCODING:
+		return data, nil
+	case BASE64W:
+		return decodeWeb64String(string(data))
+	}
+
+	panic("not reached")
+}
+
+func (kz *keyCzar) compress(data []byte) []byte {
+
+	switch kz.compression {
+	case NO_COMPRESSION:
+		return data
+	case GZIP:
+		var b bytes.Buffer
+		w, _ := gzip.NewWriter(&b)
+		w.Write(data)
+		w.Close()
+		return b.Bytes()
+	case ZLIB:
+		var b bytes.Buffer
+		w, _ := zlib.NewWriter(&b)
+		w.Write(data)
+		w.Close()
+		return b.Bytes()
+	}
+
+	panic("not reached")
+}
+
+func (kz *keyCzar) decompress(data []byte) ([]byte, error) {
+
+	switch kz.compression {
+	case NO_COMPRESSION:
+		return data, nil
+
+	case GZIP:
+		b := bytes.NewBuffer(data)
+		r, err := gzip.NewReader(b)
+		if err != nil {
+			return nil, err
+		}
+		var br bytes.Buffer
+		io.Copy(&br, r)
+		r.Close()
+		return (&br).Bytes(), nil
+	case ZLIB:
+		b := bytes.NewBuffer(data)
+		r, err := zlib.NewReader(b)
+		if err != nil {
+			return nil, err
+		}
+		var br bytes.Buffer
+		io.Copy(&br, r)
+		r.Close()
+		return (&br).Bytes(), nil
+	}
+
+	panic("not reached")
+}
+
 func (kz *keyCzar) Encrypt(plaintext []uint8) (string, error) {
 
 	key := kz.keys[kz.primary]
 
 	encryptKey := key.(encryptKey)
 
-	ciphertext, err := encryptKey.Encrypt(plaintext)
+	compressed_plaintext := kz.compress(plaintext)
+
+	ciphertext, err := encryptKey.Encrypt(compressed_plaintext)
 	if err != nil {
 		return "", err
 	}
-	s := encodeWeb64String(ciphertext)
 
-	return s, nil
+	s := kz.encode(ciphertext)
+
+	return string(s), nil
 
 }
 
 func (kz *keyCzar) Decrypt(ciphertext string) ([]uint8, error) {
 
-	b, err := decodeWeb64String(ciphertext)
+	b, err := kz.decode([]byte(ciphertext))
 
 	if err != nil {
 		return nil, ErrBase64Decoding
@@ -86,7 +214,11 @@ func (kz *keyCzar) Decrypt(ciphertext string) ([]uint8, error) {
 	for _, k := range kz.keys {
 		if bytes.Compare(k.KeyID(), keyid) == 0 {
 			decryptKey := k.(decryptEncryptKey)
-			return decryptKey.Decrypt(b)
+			compressed_plaintext, err := decryptKey.Decrypt(b)
+			if err != nil {
+				return nil, err
+			}
+			return kz.decompress(compressed_plaintext)
 		}
 	}
 
@@ -95,7 +227,7 @@ func (kz *keyCzar) Decrypt(ciphertext string) ([]uint8, error) {
 
 func (kz *keyCzar) Verify(msg []byte, signature string) (bool, error) {
 
-	sigB, err := decodeWeb64String(signature)
+	sigB, err := kz.decode([]byte(signature))
 
 	if err != nil {
 		return false, ErrBase64Decoding
@@ -141,9 +273,9 @@ func (kz *keyCzar) Sign(msg []byte) (string, error) {
 	h := header(key)
 	signature = append(h, signature...)
 
-	s := encodeWeb64String(signature)
+	s := kz.encode(signature)
 
-	return s, nil
+	return string(s), nil
 }
 
 // NewCrypter returns an object capable of encrypting and decrypting using the key provded by the reader
@@ -199,6 +331,9 @@ func NewSessionDecrypter(crypter Crypter, sessionKeys string) (Crypter, error) {
 func newKeyCzar(r KeyReader, purpose keyPurpose) (*keyCzar, error) {
 
 	kz := new(keyCzar)
+
+	kz.encoding = BASE64W
+	kz.compression = NO_COMPRESSION
 
 	s, err := r.GetMetadata()
 	if err != nil {

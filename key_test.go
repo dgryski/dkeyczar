@@ -318,6 +318,54 @@ func TestSessionEncryptDecrypt(t *testing.T) {
 	}
 }
 
+func TestEncryptDecryptCompressed(t *testing.T) {
+
+	f := NewFileReader(TESTDATA + "aes")
+
+	longinput := INPUT + INPUT + INPUT + INPUT + INPUT
+	longinput = longinput + INPUT + INPUT + INPUT + INPUT + INPUT
+	longinput = longinput + INPUT + INPUT + INPUT + INPUT + INPUT
+	longinput = longinput + INPUT + INPUT + INPUT + INPUT + INPUT
+	longinput = longinput + INPUT + INPUT + INPUT + INPUT + INPUT
+	longinput = longinput + INPUT + INPUT + INPUT + INPUT + INPUT
+
+	kz, _ := NewCrypter(f)
+	c, _ := kz.Encrypt([]byte(longinput))
+	uncompressed_len := len(c)
+	p, _ := kz.Decrypt(c)
+
+	if string(p) != longinput {
+		t.Error("aes decrypt(encrypt(p)) != p")
+	}
+
+	kz.SetCompression(GZIP)
+	c, _ = kz.Encrypt([]byte(longinput))
+	compressed_len := len(c)
+	p, _ = kz.Decrypt(c)
+
+	if string(p) != longinput {
+		t.Error("gzip raw decrypt(encrypt(p)) != p")
+	}
+
+	if compressed_len >= uncompressed_len {
+		t.Error("gzip failed to compress")
+	}
+
+	kz.SetCompression(ZLIB)
+	c, _ = kz.Encrypt([]byte(longinput))
+	compressed_len = len(c)
+	p, _ = kz.Decrypt(c)
+
+	if string(p) != longinput {
+		t.Error("zlib raw decrypt(encrypt(p)) != p")
+	}
+
+	if compressed_len >= uncompressed_len {
+		t.Error("zlib failed to compress")
+	}
+
+}
+
 var pkcs5padtests = []struct {
 	s   []byte
 	pad int
