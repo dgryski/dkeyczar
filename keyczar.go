@@ -304,11 +304,11 @@ func NewSessionEncrypter(encrypter Encrypter) (Crypter, string, error) {
 	aeskey := generateAesKey()
 	r := newImportedAesKeyReader(aeskey)
 
-        keys, err := encrypter.Encrypt(aeskey.packedKeys())
-        if err != nil {
-            return nil, "", err
-        }
-        sessionCrypter, err := NewCrypter(r)
+	keys, err := encrypter.Encrypt(aeskey.packedKeys())
+	if err != nil {
+		return nil, "", err
+	}
+	sessionCrypter, err := NewCrypter(r)
 
 	return sessionCrypter, keys, err
 }
@@ -317,9 +317,9 @@ func NewSessionEncrypter(encrypter Encrypter) (Crypter, string, error) {
 func NewSessionDecrypter(crypter Crypter, sessionKeys string) (Crypter, error) {
 
 	packedKeys, err := crypter.Decrypt(sessionKeys)
-        if err != nil {
-            return nil, err
-        }
+	if err != nil {
+		return nil, err
+	}
 
 	aeskey := newAesFromPackedKeys(packedKeys)
 	r := newImportedAesKeyReader(aeskey)
@@ -345,12 +345,12 @@ func newKeyCzar(r KeyReader, purpose keyPurpose) (*keyCzar, error) {
 		return nil, err
 	}
 
-        // check if the key we're loading can be used for what we're asking it to do
+	// check if the key we're loading can be used for what we're asking it to do
 	if !kz.keymeta.Purpose.isValidPurpose(purpose) {
 		return nil, ErrUnacceptablePurpose
 	}
 
-        // search for the primary key
+	// search for the primary key
 	kz.primary = -1
 	for _, v := range kz.keymeta.Versions {
 		if v.Status == ksPRIMARY {
@@ -362,7 +362,7 @@ func newKeyCzar(r KeyReader, purpose keyPurpose) (*keyCzar, error) {
 		}
 	}
 
-        // not found :(
+	// not found :(
 	if kz.primary == -1 {
 		return nil, ErrNoPrimaryKey
 	}
