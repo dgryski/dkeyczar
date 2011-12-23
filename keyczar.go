@@ -29,7 +29,7 @@ type keyCzar struct {
 
 // A type that can used for encrypting
 type Encrypter interface {
-	// Encrypt returns an encrypted representing the plaintext bytes passed.
+	// Encrypt returns an encrypted string representing the plaintext bytes passed.
 	Encrypt(plaintext []uint8) (string, error)
 }
 
