@@ -1,25 +1,24 @@
 
 High Priority:
 
-    - implemet keyczar tool so our library is standalone
+    - implement keyczar tool so our library is standalone
         => key generation
-            => we need size info for the key types
         => write out json keys
         => other export options
 
     - improve internal documentation
 
-    - certificate import
-
     - PKCS#8 private key import/export
+      -- asn1 is painful.
       (dsa not supported -- must implement)
       (rsa export not supported -- must implement)
 
-    - toggle compression
-
-    - toggle encoding
+    - signed session encryption
 
 Low Priority:
+
+    - decide on visibility of keyinfo enums
+        - some of the ImportFOOForBar would be easier if we exported the KeyPurpose enum
 
     - write functions to abstract byte-stream format
         - type header struct {
@@ -39,6 +38,7 @@ Low Priority:
     - refactor marshaljson quoted string creation ?
     - better error messages?  "bad version 0x4 in header" vs. "bad version in header"
     - string -> []byte changes for API?
+    - try not to modify slices
 
     - test cases for
         encodeWeb64String
@@ -57,6 +57,5 @@ Low Priority:
     - code reorg
         split keydata into aeskey, rsakey, ... ?
 
-    - decide on visibility of keyinfo enums
 
     - standardize on RSA/Rsa/...
