@@ -26,16 +26,16 @@ import (
 type KeyczarEncoding int
 
 const (
-	NO_ENCODING KeyczarEncoding = iota
-	BASE64W
+	NO_ENCODING KeyczarEncoding = iota // Do not encode the output
+	BASE64W                            // Encode the output with web-safe base64 [default]
 )
 
 type KeyczarCompression int
 
 const (
-	NO_COMPRESSION KeyczarCompression = iota
-	GZIP
-	ZLIB
+	NO_COMPRESSION KeyczarCompression = iota // Do not compress the plaintext before encrypting [default]
+	GZIP                                     //  Use gzip compression
+	ZLIB                                     // Use zlib compression
 )
 
 // Our main base type.  We only expose this through one of the interfaces.
@@ -48,27 +48,35 @@ type keyCzar struct {
 }
 
 type KeyczarCompressionController interface {
+	// Set the current compression level
 	SetCompression(compression KeyczarCompression)
+	// Return the current compression level
 	Compression() KeyczarCompression
 }
 
 type KeyczarEncodingController interface {
+	// Set the current output encoding
 	SetEncoding(encoding KeyczarEncoding)
+	// Return the current output encoding
 	Encoding() KeyczarEncoding
 }
 
+// Compression returns the current compression type for keyczar object
 func (kz *keyCzar) Compression() KeyczarCompression {
 	return kz.compression
 }
 
+// SetCompression sets the current compression type for the keyczar object
 func (kz *keyCzar) SetCompression(compression KeyczarCompression) {
 	kz.compression = compression
 }
 
+// Encoding returns the current output encoding for the keyczar object
 func (kz *keyCzar) Encoding() KeyczarEncoding {
 	return kz.encoding
 }
 
+// SetEncoding sets the current output encoding for the keyczar object
 func (kz *keyCzar) SetEncoding(encoding KeyczarEncoding) {
 	kz.encoding = encoding
 }
@@ -101,6 +109,7 @@ type Verifier interface {
 	Verify(message []byte, signature string) (bool, error)
 }
 
+// return 'data' encoded based on the value of the 'encoding' field
 func (kz *keyCzar) encode(data []byte) []byte {
 
 	switch kz.encoding {
@@ -113,6 +122,7 @@ func (kz *keyCzar) encode(data []byte) []byte {
 	panic("not reached")
 }
 
+// return 'data' decoded based on the value of the 'encoding' field
 func (kz *keyCzar) decode(data []byte) ([]byte, error) {
 
 	switch kz.encoding {
@@ -125,6 +135,7 @@ func (kz *keyCzar) decode(data []byte) ([]byte, error) {
 	panic("not reached")
 }
 
+// return 'data' compressed based on the value of the 'compression' field
 func (kz *keyCzar) compress(data []byte) []byte {
 
 	switch kz.compression {
@@ -147,6 +158,7 @@ func (kz *keyCzar) compress(data []byte) []byte {
 	panic("not reached")
 }
 
+// return 'data' decompressed based on the value of the 'compression' field
 func (kz *keyCzar) decompress(data []byte) ([]byte, error) {
 
 	switch kz.compression {
