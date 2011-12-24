@@ -137,9 +137,9 @@ func (r *pbeReader) GetKey(version int) (string, error) {
 
 	json.Unmarshal([]byte(s), &pbejson)
 
-        if pbejson.Cipher != "AES128" || pbejson.Hmac != "HMAC_SHA1" {
-            return "", ErrUnsupportedType
-        }
+	if pbejson.Cipher != "AES128" || pbejson.Hmac != "HMAC_SHA1" {
+		return "", ErrUnsupportedType
+	}
 
 	salt, _ := decodeWeb64String(pbejson.Salt)
 	iv_bytes, _ := decodeWeb64String(pbejson.Iv)
@@ -290,10 +290,10 @@ func getRsaPublicKeyFromPem(location string) (*rsa.PublicKey, error) {
 
 	rsapub, ok := pub.(*rsa.PublicKey)
 
-        if !ok {
-            // FIXME: lousy error message :(
-            return nil, ErrUnsupportedType
-        }
+	if !ok {
+		// FIXME: lousy error message :(
+		return nil, ErrUnsupportedType
+	}
 
 	return rsapub, nil
 }
@@ -340,10 +340,10 @@ func getRsaPublicKeyFromCertificate(location string) (*rsa.PublicKey, error) {
 
 	rsapub, ok := cert.PublicKey.(*rsa.PublicKey)
 
-        if !ok {
-            // FIXME: lousy error message :(
-            return nil, ErrUnsupportedType
-        }
+	if !ok {
+		// FIXME: lousy error message :(
+		return nil, ErrUnsupportedType
+	}
 
 	return rsapub, nil
 }
@@ -373,7 +373,6 @@ func ImportRSAPublicKeyFromCertificateForCrypt(location string) (KeyReader, erro
 
 	return r, nil
 }
-
 
 // fake reader for an AES key
 type importedAesKeyReader struct {
