@@ -156,7 +156,7 @@ func (ak *aesKey) Encrypt(data []byte) ([]byte, error) {
 
 	crypter.CryptBlocks(cipherBytes, data)
 
-	h := header(ak)
+	h := makeHeader(ak)
 
 	msgBytes := make([]byte, 0, len(h)+aes.BlockSize+len(cipherBytes)+hmacSigLength)
 
@@ -186,7 +186,7 @@ func (ak *aesKey) Decrypt(data []byte) ([]byte, error) {
 		return nil, err
 	}
 
-	iv_bytes := data[5 : 5+aes.BlockSize]
+	iv_bytes := data[kzHeaderLength : kzHeaderLength+aes.BlockSize]
 
 	aesCipher, err := aes.NewCipher(ak.key)
 	if err != nil {
@@ -547,7 +547,7 @@ func (rk *rsaPublicKey) Encrypt(msg []byte) ([]byte, error) {
 		return nil, err
 	}
 
-	h := append(header(rk), s...)
+	h := append(makeHeader(rk), s...)
 
 	return h, nil
 
@@ -559,7 +559,7 @@ func (rk *rsaKey) Encrypt(msg []byte) ([]byte, error) {
 
 func (rk *rsaKey) Decrypt(msg []byte) ([]byte, error) {
 
-	s, err := rsa.DecryptOAEP(sha1.New(), rand.Reader, &rk.key, msg[5:], nil)
+	s, err := rsa.DecryptOAEP(sha1.New(), rand.Reader, &rk.key, msg[kzHeaderLength:], nil)
 
 	if err != nil {
 		return nil, err

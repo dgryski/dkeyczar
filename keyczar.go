@@ -218,14 +218,14 @@ func (kz *keyCzar) Decrypt(ciphertext string) ([]uint8, error) {
 		return nil, ErrBase64Decoding
 	}
 
-	if b[0] != kzVersion {
+	h := getHeader([]byte(b))
+
+	if h.version != kzVersion {
 		return nil, ErrBadVersion
 	}
 
-	keyid := b[1:5]
-
 	for _, k := range kz.keys {
-		if bytes.Compare(k.KeyID(), keyid) == 0 {
+		if bytes.Compare(k.KeyID(), h.keyid[:]) == 0 {
 			decryptKey := k.(decryptEncryptKey)
 			compressed_plaintext, err := decryptKey.Decrypt(b)
 			if err != nil {
@@ -240,24 +240,26 @@ func (kz *keyCzar) Decrypt(ciphertext string) ([]uint8, error) {
 
 func (kz *keyCzar) Verify(msg []byte, signature string) (bool, error) {
 
-	sigB, err := kz.decode([]byte(signature))
+	b, err := kz.decode([]byte(signature))
 
 	if err != nil {
 		return false, ErrBase64Decoding
 	}
 
-	if sigB[0] != kzVersion {
+	h := getHeader(b)
+
+	if h.version != kzVersion {
 		return false, ErrBadVersion
 	}
 
-	keyid, sig := sigB[1:5], sigB[5:]
+	sig := b[kzHeaderLength:]
 
 	signedbytes := make([]byte, len(msg)+1)
 	copy(signedbytes, msg)
 	signedbytes[len(msg)] = kzVersion
 
 	for _, k := range kz.keys {
-		if bytes.Compare(k.KeyID(), keyid) == 0 {
+		if bytes.Compare(k.KeyID(), h.keyid[:]) == 0 {
 			verifyKey := k.(verifyKey)
 			return verifyKey.Verify(signedbytes, sig)
 		}
@@ -283,7 +285,7 @@ func (kz *keyCzar) Sign(msg []byte) (string, error) {
 		return "", err
 	}
 
-	h := header(key)
+	h := makeHeader(key)
 	signature = append(h, signature...)
 
 	s := kz.encode(signature)
@@ -403,11 +405,25 @@ func newKeyCzar(r KeyReader, purpose keyPurpose) (*keyCzar, error) {
 const kzVersion = uint8(0)
 const kzHeaderLength = 5
 
+type kHeader struct {
+	version uint8
+	keyid   [4]uint8
+}
+
 // make and return a header for the given key
-func header(key keyIDer) []byte {
+func makeHeader(key keyIDer) []byte {
 	b := make([]byte, kzHeaderLength)
 	b[0] = kzVersion
 	copy(b[1:], key.KeyID())
 
 	return b
+}
+
+// parse and return the header from a given bytestream
+func getHeader(b []byte) kHeader {
+
+	h := new(kHeader)
+	h.version = b[0]
+	copy(h.keyid[:], b[1:5])
+	return *h
 }
