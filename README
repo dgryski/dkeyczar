@@ -9,6 +9,6 @@ currently load AES, HMAC, RSA, and DSA keys and use them for signing and
 verification.  RSA public and private keys can be loaded from PEM files as well
 as keyczar key files.  The library also supports creating session keys.
 
-At the moment, the tests require the keyczar-py source tree, since that's where
-the test files are kept.  This path can be specified in the KEYCZAR_TESTDATA
-environment variable.
+At the moment, the tests require the keyczar-cpp source tree, since that's
+where the test files are kept.  The path to the 06b testfiles must be specified
+in the KEYCZAR_TESTDATA environment variable.
