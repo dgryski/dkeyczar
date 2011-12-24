@@ -45,7 +45,7 @@ const hmacSigLength = 20
 
 type hmacKeyJSON struct {
 	HmacKeyString string `json:"hmacKeyString"`
-	Size          int    `json:"size"`
+	Size          uint   `json:"size"`
 }
 
 type hmacKey struct {
@@ -63,7 +63,7 @@ func generateHmacKey() *hmacKey {
 
 type aesKeyJSON struct {
 	AesKeyString string      `json:"aesKeyString"`
-	Size         int         `json:"size"`
+	Size         uint        `json:"size"`
 	HmacKey      hmacKeyJSON `json:"hmacKey"`
 	Mode         cipherMode  `json:"mode"`
 }
@@ -88,12 +88,12 @@ func (ak *aesKey) packedKeys() []byte {
 	return lenPrefixPack(ak.key, ak.hmacKey.key)
 }
 
-func newAesFromPackedKeys(b []byte) *aesKey {
+func newAesFromPackedKeys(b []byte) (*aesKey, error) {
 
 	keys := lenPrefixUnpack(b)
 
 	if len(keys) != 2 || !ktAES.isAcceptableSize(uint(len(keys[1]))*8) || !ktHMAC_SHA1.isAcceptableSize(uint(len(keys[1]))*8) {
-		return nil
+		return nil, ErrInvalidKeySize
 	}
 
 	ak := new(aesKey)
@@ -102,7 +102,7 @@ func newAesFromPackedKeys(b []byte) *aesKey {
 	ak.key = keys[0]
 	ak.hmacKey.key = keys[1]
 
-	return ak
+	return ak, nil
 }
 
 func (ak *aesKey) KeyID() []byte {
@@ -119,7 +119,7 @@ func (ak *aesKey) KeyID() []byte {
 
 }
 
-func newAesKeys(r KeyReader, km keyMeta) map[int]keyIDer {
+func newAesKeys(r KeyReader, km keyMeta) (map[int]keyIDer, error) {
 
 	keys := make(map[int]keyIDer)
 
@@ -129,13 +129,22 @@ func newAesKeys(r KeyReader, km keyMeta) map[int]keyIDer {
 		aesjson := new(aesKeyJSON)
 		json.Unmarshal([]byte(s), &aesjson)
 
+		if !ktAES.isAcceptableSize(aesjson.Size) {
+			return nil, ErrInvalidKeySize
+		}
+
 		aeskey.key, _ = decodeWeb64String(aesjson.AesKeyString)
+
+		if !ktHMAC_SHA1.isAcceptableSize(aesjson.HmacKey.Size) {
+			return nil, ErrInvalidKeySize
+		}
+
 		aeskey.hmacKey.key, _ = decodeWeb64String(aesjson.HmacKey.HmacKeyString)
 
 		keys[kv.VersionNumber] = aeskey
 	}
 
-	return keys
+	return keys, nil
 }
 
 func (ak *aesKey) Encrypt(data []byte) ([]byte, error) {
@@ -204,7 +213,7 @@ func (ak *aesKey) Decrypt(data []byte) ([]byte, error) {
 	return plainBytes, nil
 }
 
-func newHmacKeys(r KeyReader, km keyMeta) map[int]keyIDer {
+func newHmacKeys(r KeyReader, km keyMeta) (map[int]keyIDer, error) {
 
 	keys := make(map[int]keyIDer)
 
@@ -214,12 +223,16 @@ func newHmacKeys(r KeyReader, km keyMeta) map[int]keyIDer {
 		hmacjson := new(hmacKeyJSON)
 		json.Unmarshal([]byte(s), &hmacjson)
 
+		if !ktHMAC_SHA1.isAcceptableSize(hmacjson.Size) {
+			return nil, ErrInvalidKeySize
+		}
+
 		hmackey.key, _ = decodeWeb64String(hmacjson.HmacKeyString)
 
 		keys[kv.VersionNumber] = hmackey
 	}
 
-	return keys
+	return keys, nil
 }
 
 func (hm *hmacKey) KeyID() []byte {
@@ -253,7 +266,7 @@ type dsaPublicKeyJSON struct {
 	P    string `json:"P"`
 	Y    string `json:"Y"`
 	G    string `json:"G"`
-	Size int    `json:"size"`
+	Size uint   `json:"size"`
 }
 
 type dsaPublicKey struct {
@@ -262,7 +275,7 @@ type dsaPublicKey struct {
 
 type dsaKeyJSON struct {
 	PublicKey dsaPublicKeyJSON `json:"publicKey"`
-	Size      int              `json:"size"`
+	Size      uint             `json:"size"`
 	X         string           `json:"x"`
 }
 
@@ -271,7 +284,7 @@ type dsaKey struct {
 	publicKey dsaPublicKey
 }
 
-func newDsaPublicKeys(r KeyReader, km keyMeta) map[int]keyIDer {
+func newDsaPublicKeys(r KeyReader, km keyMeta) (map[int]keyIDer, error) {
 
 	keys := make(map[int]keyIDer)
 
@@ -280,6 +293,10 @@ func newDsaPublicKeys(r KeyReader, km keyMeta) map[int]keyIDer {
 		dsakey := new(dsaPublicKey)
 		dsajson := new(dsaPublicKeyJSON)
 		json.Unmarshal([]byte(s), &dsajson)
+
+		if !ktDSA_PUB.isAcceptableSize(dsajson.Size) {
+			return nil, ErrInvalidKeySize
+		}
 
 		b, _ := decodeWeb64String(dsajson.Y)
 		dsakey.key.Y = big.NewInt(0).SetBytes(b)
@@ -296,10 +313,10 @@ func newDsaPublicKeys(r KeyReader, km keyMeta) map[int]keyIDer {
 		keys[kv.VersionNumber] = dsakey
 	}
 
-	return keys
+	return keys, nil
 }
 
-func newDsaKeys(r KeyReader, km keyMeta) map[int]keyIDer {
+func newDsaKeys(r KeyReader, km keyMeta) (map[int]keyIDer, error) {
 
 	keys := make(map[int]keyIDer)
 
@@ -308,6 +325,10 @@ func newDsaKeys(r KeyReader, km keyMeta) map[int]keyIDer {
 		dsakey := new(dsaKey)
 		dsajson := new(dsaKeyJSON)
 		json.Unmarshal([]byte(s), &dsajson)
+
+		if !ktDSA_PRIV.isAcceptableSize(dsajson.Size) || !ktDSA_PUB.isAcceptableSize(dsajson.PublicKey.Size) {
+			return nil, ErrInvalidKeySize
+		}
 
 		b, _ := decodeWeb64String(dsajson.X)
 		dsakey.key.X = big.NewInt(0).SetBytes(b)
@@ -331,7 +352,7 @@ func newDsaKeys(r KeyReader, km keyMeta) map[int]keyIDer {
 		keys[kv.VersionNumber] = dsakey
 	}
 
-	return keys
+	return keys, nil
 }
 
 func (dk *dsaPublicKey) KeyID() []byte {
@@ -399,7 +420,7 @@ func (dk *dsaPublicKey) Verify(msg []byte, signature []byte) (bool, error) {
 type rsaPublicKeyJSON struct {
 	Modulus        string `json:"modulus"`
 	PublicExponent string `json:"publicExponent"`
-	Size           int    `json:"size"`
+	Size           uint   `json:"size"`
 }
 
 type rsaPublicKey struct {
@@ -415,7 +436,7 @@ type rsaKeyJSON struct {
 	PrivateExponent string `json:"privateExponent"`
 
 	PublicKey rsaPublicKeyJSON `json:"publicKey"`
-	Size      int              `json:"size"`
+	Size      uint             `json:"size"`
 }
 
 type rsaKey struct {
@@ -446,7 +467,7 @@ func (rk *rsaKey) KeyID() []byte {
 	return rk.publicKey.KeyID()
 }
 
-func newRsaPublicKeys(r KeyReader, km keyMeta) map[int]keyIDer {
+func newRsaPublicKeys(r KeyReader, km keyMeta) (map[int]keyIDer, error) {
 
 	keys := make(map[int]keyIDer)
 
@@ -455,6 +476,10 @@ func newRsaPublicKeys(r KeyReader, km keyMeta) map[int]keyIDer {
 		rsakey := new(rsaPublicKey)
 		rsajson := new(rsaPublicKeyJSON)
 		json.Unmarshal([]byte(s), &rsajson)
+
+		if !ktRSA_PUB.isAcceptableSize(rsajson.Size) {
+			return nil, ErrInvalidKeySize
+		}
 
 		b, _ := decodeWeb64String(rsajson.Modulus)
 		rsakey.key.N = big.NewInt(0).SetBytes(b)
@@ -465,10 +490,10 @@ func newRsaPublicKeys(r KeyReader, km keyMeta) map[int]keyIDer {
 		keys[kv.VersionNumber] = rsakey
 	}
 
-	return keys
+	return keys, nil
 }
 
-func newRsaKeys(r KeyReader, km keyMeta) map[int]keyIDer {
+func newRsaKeys(r KeyReader, km keyMeta) (map[int]keyIDer, error) {
 
 	keys := make(map[int]keyIDer)
 
@@ -477,6 +502,10 @@ func newRsaKeys(r KeyReader, km keyMeta) map[int]keyIDer {
 		rsakey := new(rsaKey)
 		rsajson := new(rsaKeyJSON)
 		json.Unmarshal([]byte(s), &rsajson)
+
+		if !ktRSA_PRIV.isAcceptableSize(rsajson.Size) || !ktRSA_PUB.isAcceptableSize(rsajson.PublicKey.Size) {
+			return nil, ErrInvalidKeySize
+		}
 
 		var b []byte
 
@@ -511,7 +540,7 @@ func newRsaKeys(r KeyReader, km keyMeta) map[int]keyIDer {
 		keys[kv.VersionNumber] = rsakey
 	}
 
-	return keys
+	return keys, nil
 }
 
 func (rk *rsaKey) Sign(msg []byte) ([]byte, error) {

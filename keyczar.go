@@ -336,7 +336,10 @@ func NewSessionDecrypter(crypter Crypter, sessionKeys string) (Crypter, error) {
 		return nil, err
 	}
 
-	aeskey := newAesFromPackedKeys(packedKeys)
+	aeskey, err := newAesFromPackedKeys(packedKeys)
+	if err != nil {
+		return nil, err
+	}
 	r := newImportedAesKeyReader(aeskey)
 
 	return NewCrypter(r)
@@ -384,22 +387,22 @@ func newKeyCzar(r KeyReader, purpose keyPurpose) (*keyCzar, error) {
 
 	switch kz.keymeta.Type {
 	case ktAES:
-		kz.keys = newAesKeys(r, kz.keymeta)
+		kz.keys, err = newAesKeys(r, kz.keymeta)
 	case ktHMAC_SHA1:
-		kz.keys = newHmacKeys(r, kz.keymeta)
+		kz.keys, err = newHmacKeys(r, kz.keymeta)
 	case ktDSA_PRIV:
-		kz.keys = newDsaKeys(r, kz.keymeta)
+		kz.keys, err = newDsaKeys(r, kz.keymeta)
 	case ktDSA_PUB:
-		kz.keys = newDsaPublicKeys(r, kz.keymeta)
+		kz.keys, err = newDsaPublicKeys(r, kz.keymeta)
 	case ktRSA_PRIV:
-		kz.keys = newRsaKeys(r, kz.keymeta)
+		kz.keys, err = newRsaKeys(r, kz.keymeta)
 	case ktRSA_PUB:
-		kz.keys = newRsaPublicKeys(r, kz.keymeta)
+		kz.keys, err = newRsaPublicKeys(r, kz.keymeta)
 	default:
 		return nil, ErrUnsupportedType
 	}
 
-	return kz, nil
+	return kz, err
 }
 
 const kzVersion = uint8(0)
