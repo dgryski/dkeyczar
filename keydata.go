@@ -167,19 +167,19 @@ func (ak *aesKey) Encrypt(data []byte) ([]byte, error) {
 
 	h := makeHeader(ak)
 
-	msgBytes := make([]byte, 0, len(h)+aes.BlockSize+len(cipherBytes)+hmacSigLength)
+	msg := make([]byte, 0, len(h)+aes.BlockSize+len(cipherBytes)+hmacSigLength)
 
-	msgBytes = append(msgBytes, h...)
-	msgBytes = append(msgBytes, iv_bytes...)
-	msgBytes = append(msgBytes, cipherBytes...)
+	msg = append(msg, h...)
+	msg = append(msg, iv_bytes...)
+	msg = append(msg, cipherBytes...)
 
-	sigBytes, err := ak.hmacKey.Sign(msgBytes)
+	sig, err := ak.hmacKey.Sign(msg)
 	if err != nil {
 		return nil, err
 	}
-	msgBytes = append(msgBytes, sigBytes...)
+	msg = append(msg, sig...)
 
-	return msgBytes, nil
+	return msg, nil
 
 }
 
@@ -252,17 +252,17 @@ func (hm *hmacKey) Sign(msg []byte) ([]byte, error) {
 
 	sha1hmac := hmac.NewSHA1(hm.key)
 	sha1hmac.Write(msg)
-	sigBytes := sha1hmac.Sum(nil)
-	return sigBytes, nil
+	sig := sha1hmac.Sum(nil)
+	return sig, nil
 }
 
 func (hm *hmacKey) Verify(msg []byte, signature []byte) (bool, error) {
 
 	sha1hmac := hmac.NewSHA1(hm.key)
 	sha1hmac.Write(msg)
-	sigBytes := sha1hmac.Sum(nil)
+	sig := sha1hmac.Sum(nil)
 
-	return subtle.ConstantTimeCompare(sigBytes, signature) == 1, nil
+	return subtle.ConstantTimeCompare(sig, signature) == 1, nil
 }
 
 type dsaPublicKeyJSON struct {
