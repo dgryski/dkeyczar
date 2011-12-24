@@ -366,6 +366,29 @@ func TestEncryptDecryptCompressed(t *testing.T) {
 
 }
 
+func TestSignVerifyBase64(t *testing.T) {
+
+	f := NewFileReader(TESTDATA + "dsa")
+
+	kz, _ := NewSigner(f)
+	kz.SetEncoding(NO_ENCODING)
+
+	s, _ := kz.Sign([]byte(INPUT))
+
+	if s[0] != 0 {
+		t.Error("bad version byte for raw signature")
+	}
+
+	kv, _ := NewVerifier(f)
+	kv.SetEncoding(NO_ENCODING)
+
+	b, _ := kv.Verify([]byte(INPUT), s)
+
+	if !b {
+		t.Error("dsa raw encoding verify failed")
+	}
+}
+
 var pkcs5padtests = []struct {
 	s   []byte
 	pad int

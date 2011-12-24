@@ -105,6 +105,7 @@ type Signer interface {
 
 // A type that can be sued for verification
 type Verifier interface {
+	KeyczarEncodingController
 	// Verify checks the cryptographic signature for a message
 	Verify(message []byte, signature string) (bool, error)
 }
