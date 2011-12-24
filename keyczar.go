@@ -96,14 +96,14 @@ type Crypter interface {
 	Decrypt(ciphertext string) ([]uint8, error)
 }
 
-// A type that can be sued for signing and verification
+// A type that can be used for signing and verification
 type Signer interface {
 	Verifier
 	// Sign returns a cryptographic signature for the message
 	Sign(message []byte) (string, error)
 }
 
-// A type that can be sued for verification
+// A type that can be used for verification
 type Verifier interface {
 	KeyczarEncodingController
 	// Verify checks the cryptographic signature for a message
