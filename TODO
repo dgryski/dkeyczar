@@ -13,7 +13,6 @@ High Priority:
       (dsa not supported -- must implement)
       (rsa export not supported -- must implement)
 
-    - signed session encryption
 
 Low Priority:
 
@@ -34,11 +33,13 @@ Low Priority:
         => each type should have its own 'json<->key' function
         => currently logic is in newFOOKeys and readers:ImportFOOKey
 
+    - try not to modify slices
     - refactor duplicate code in newFOOkeys
     - refactor marshaljson quoted string creation ?
     - better error messages?  "bad version 0x4 in header" vs. "bad version in header"
     - string -> []byte changes for API?
-    - try not to modify slices
+    - signed session encryption
+        => not sure if this is actually useful.  either you have a shared secret, or you don't.
 
     - test cases for
         encodeWeb64String
@@ -46,16 +47,12 @@ Low Priority:
         lenPrefixPack
         lenPrefixUnpack
 
+    - clean up test suite -- lots of dup'd code
     - cache key id so it's only calculated once at key load time?
-
     - timed signatures
-
     - unversioned signatures
-
     - for pbereader, don't store password, only hmac? (and let it store the password?0
-
     - code reorg
         split keydata into aeskey, rsakey, ... ?
-
 
     - standardize on RSA/Rsa/...
