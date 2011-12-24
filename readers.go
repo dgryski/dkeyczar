@@ -137,8 +137,9 @@ func (r *pbeReader) GetKey(version int) (string, error) {
 
 	json.Unmarshal([]byte(s), &pbejson)
 
-	// FIXME: assert we know how to deal with this
-	// => cipher == AES128 , hmac == HMAC_SHA1
+        if pbejson.Cipher != "AES128" || pbejson.Hmac != "HMAC_SHA1" {
+            return "", ErrUnsupportedType
+        }
 
 	salt, _ := decodeWeb64String(pbejson.Salt)
 	iv_bytes, _ := decodeWeb64String(pbejson.Iv)
