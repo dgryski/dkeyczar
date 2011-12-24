@@ -55,7 +55,7 @@ type hmacKey struct {
 func generateHmacKey() *hmacKey {
 	hk := new(hmacKey)
 
-	hk.key = make([]byte, ktHMAC_SHA1.defaultSize() / 8)
+	hk.key = make([]byte, ktHMAC_SHA1.defaultSize()/8)
 	io.ReadFull(rand.Reader, hk.key)
 
 	return hk
@@ -76,7 +76,7 @@ type aesKey struct {
 func generateAesKey() *aesKey {
 	ak := new(aesKey)
 
-	ak.key = make([]byte, ktAES.defaultSize() / 8)
+	ak.key = make([]byte, ktAES.defaultSize()/8)
 	io.ReadFull(rand.Reader, ak.key)
 
 	ak.hmacKey = *generateHmacKey()
@@ -89,12 +89,16 @@ func (ak *aesKey) packedKeys() []byte {
 }
 
 func newAesFromPackedKeys(b []byte) *aesKey {
-	// FIXME: should validate 'keys' here
+
 	keys := lenPrefixUnpack(b)
+
+	if len(keys) != 2 || !ktAES.isAcceptableSize(uint(len(keys[1]))*8) || !ktHMAC_SHA1.isAcceptableSize(uint(len(keys[1]))*8) {
+		return nil
+	}
 
 	ak := new(aesKey)
 
-	// FIXME: should probably make+copy
+	// FIXME: make+copy? I think we're safe if lPU gives us 'fresh' data
 	ak.key = keys[0]
 	ak.hmacKey.key = keys[1]
 
@@ -138,8 +142,8 @@ func (ak *aesKey) Encrypt(data []byte) ([]byte, error) {
 
 	data = pkcs5pad(data, aes.BlockSize)
 
-        iv_bytes := make([]byte, aes.BlockSize)
-        io.ReadFull(rand.Reader, iv_bytes)
+	iv_bytes := make([]byte, aes.BlockSize)
+	io.ReadFull(rand.Reader, iv_bytes)
 
 	aesCipher, err := aes.NewCipher(ak.key)
 	if err != nil {
@@ -535,9 +539,9 @@ func (rk *rsaPublicKey) Verify(msg []byte, signature []byte) (bool, error) {
 
 func (rk *rsaPublicKey) Encrypt(msg []byte) ([]byte, error) {
 
-        // FIXME: If msg is too long for keysize, EncryptOAEP returns an error
-        // Do we want to return a Keyczar error here, either by checking
-        // ourselves for this case or by wrapping the returned error?
+	// FIXME: If msg is too long for keysize, EncryptOAEP returns an error
+	// Do we want to return a Keyczar error here, either by checking
+	// ourselves for this case or by wrapping the returned error?
 	s, err := rsa.EncryptOAEP(sha1.New(), rand.Reader, &rk.key, msg, nil)
 	if err != nil {
 		return nil, err
