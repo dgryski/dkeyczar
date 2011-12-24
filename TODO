@@ -20,11 +20,6 @@ Low Priority:
         - some of the ImportFOOForBar would be easier if we exported the KeyPurpose enum
 
     - write functions to abstract byte-stream format
-        - type header struct {
-              uint8 version
-              uint32 keyid
-          }
-        getHeader()
         getIv()
         getCipherText()
         getSignature()
