@@ -185,6 +185,10 @@ func (ak *aesKey) Encrypt(data []byte) ([]byte, error) {
 
 func (ak *aesKey) Decrypt(data []byte) ([]byte, error) {
 
+        if len(data) < kzHeaderLength+aes.BlockSize+hmacSigLength {
+            return nil, ErrShortCiphertext
+        }
+
 	msg := data[0 : len(data)-hmacSigLength]
 	sig := data[len(data)-hmacSigLength:]
 

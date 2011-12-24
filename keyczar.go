@@ -218,6 +218,10 @@ func (kz *keyCzar) Decrypt(ciphertext string) ([]uint8, error) {
 		return nil, ErrBase64Decoding
 	}
 
+        if len(b) < kzHeaderLength {
+            return nil, ErrShortCiphertext
+        }
+
 	h := getHeader([]byte(b))
 
 	if h.version != kzVersion {
@@ -245,6 +249,10 @@ func (kz *keyCzar) Verify(msg []byte, signature string) (bool, error) {
 	if err != nil {
 		return false, ErrBase64Decoding
 	}
+
+        if len(b) < kzHeaderLength {
+            return false, ErrShortSignature
+        }
 
 	h := getHeader(b)
 
