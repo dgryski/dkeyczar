@@ -92,7 +92,7 @@ func newAesFromPackedKeys(b []byte) (*aesKey, error) {
 
 	keys := lenPrefixUnpack(b)
 
-	if len(keys) != 2 || !ktAES.isAcceptableSize(uint(len(keys[1]))*8) || !ktHMAC_SHA1.isAcceptableSize(uint(len(keys[1]))*8) {
+	if len(keys) != 2 || !ktAES.isAcceptableSize(uint(len(keys[0]))*8) || !ktHMAC_SHA1.isAcceptableSize(uint(len(keys[1]))*8) {
 		return nil, ErrInvalidKeySize
 	}
 
