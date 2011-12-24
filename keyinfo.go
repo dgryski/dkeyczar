@@ -71,19 +71,19 @@ func (k keyType) defaultSize() uint {
 func (k keyType) outputSize(size uint) uint {
 	ktinfo, _ := keyTypeInfo[k]
 
-        if ktinfo.output != 0 {
-            return ktinfo.output
-        }
+	if ktinfo.output != 0 {
+		return ktinfo.output
+	}
 
-        for i, sz := range ktinfo.sizes {
-            if sz == size {
-                return ktinfo.outputs[i]
-            }
-        }
+	for i, sz := range ktinfo.sizes {
+		if sz == size {
+			return ktinfo.outputs[i]
+		}
+	}
 
-        // FIXME: 0? Is that the best you could do?
+	// FIXME: 0? Is that the best you could do?
 
-        return 0
+	return 0
 }
 
 // missing methods (not yet needed):
