@@ -86,9 +86,17 @@ func (k keyType) outputSize(size uint) uint {
 	return 0
 }
 
-// missing methods (not yet needed):
-//   isAcceptableSize
-//  ... ?
+func (k keyType) isAcceptableSize(size uint) bool {
+	ktinfo, _ := keyTypeInfo[k]
+
+	for _, sz := range ktinfo.sizes {
+		if sz == size {
+			return true
+		}
+	}
+
+	return false
+}
 
 type keyStatus int
 
