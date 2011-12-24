@@ -213,7 +213,7 @@ func getRsaKeyFromPem(location string) (*rsa.PrivateKey, error) {
 	return priv, nil
 }
 
-// ImportRSAKeyFromPEM returns a KeyReader for the RSA Private Key contained in the PEM file specified in the location.
+// ImportRSAKeyFromPEMForSigning returns a KeyReader for the RSA Private Key contained in the PEM file specified in the location.
 // The resulting key can be used for signing and verification only
 func ImportRSAKeyFromPEMForSigning(location string) (KeyReader, error) {
 
@@ -227,7 +227,7 @@ func ImportRSAKeyFromPEMForSigning(location string) (KeyReader, error) {
 	return r, nil
 }
 
-// ImportRSAKeyFromPEM returns a KeyReader for the RSA Private Key contained in the PEM file specified in the location.
+// ImportRSAKeyFromPEMForCrypt returns a KeyReader for the RSA Private Key contained in the PEM file specified in the location.
 // The resulting key can be used for encryption and decryption only
 func ImportRSAKeyFromPEMForCrypt(location string) (KeyReader, error) {
 
