@@ -4,9 +4,9 @@ is modeled after and compatible with Google's Keyczar library
 (http://keyczar.org)
 
 Sample usage is:
-   reader = NewFileReader("/path/to/keys")
-   crypter = NewCrypter(reader)
-   crypter.Encrypt(data)
+	reader := NewFileReader("/path/to/keys")
+	crypter := NewCrypter(reader)
+	ciphertext := crypter.Encrypt(plaintext)
 
 Decryption, Signing and Verification use the same minimal API.
 
