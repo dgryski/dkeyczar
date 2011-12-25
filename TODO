@@ -2,9 +2,12 @@
 High Priority:
 
     - implement keyczar tool so our library is standalone
-        => key generation
-        => write out json keys
-        => other export options
+        => key generation for all key types
+        => key -> json export
+          - newFOOJsonFromKey()
+              => each type should have its own 'json<->key' function
+              => currently logic is in newFOOKeys and readers:ImportFOOKey
+        => other export options (cert? pkcs8/pkcs5? ...?)
 
     - improve internal documentation
 
@@ -23,11 +26,6 @@ Low Priority:
         getIv()
         getCipherText()
         getSignature()
-
-    - newFOOJsonFromKey()
-        => each type should have its own 'json<->key' function
-        => currently logic is in newFOOKeys and readers:ImportFOOKey
-
     - try not to modify slices
     - refactor duplicate code in newFOOkeys
     - refactor marshaljson quoted string creation ?
@@ -42,7 +40,6 @@ Low Priority:
         lenPrefixPack
         lenPrefixUnpack
 
-    - clean up test suite -- lots of dup'd code
     - cache key id so it's only calculated once at key load time?
     - timed signatures
     - unversioned signatures
