@@ -84,7 +84,7 @@ func testVerify(t *testing.T, keytype string, f KeyReader) {
 		}
 
 		if !goodsig {
-			t.Error("failed signature for " + keytype + "/1.out")
+			t.Error("failed signature for " + keytype + "/" + out)
 		}
 	}
 }
