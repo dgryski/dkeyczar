@@ -247,6 +247,20 @@ func TestGeneratedAesEncryptDecrypt(t *testing.T) {
 	testEncryptDecrypt(t, "aes generated", r)
 }
 
+// too slow
+/*
+func TestGeneratedRsa(t *testing.T) {
+	t.Log("generating rsa key...")
+	k := generateRsaKey()
+	r := newImportedRsaPrivateKeyReader(&k.key, kpDECRYPT_AND_ENCRYPT)
+	testEncryptDecrypt(t, "rsa generated", r)
+
+	r = newImportedRsaPrivateKeyReader(&k.key, kpSIGN_AND_VERIFY)
+	testSignVerify(t, "rsa generated", r)
+}
+*/
+
+
 func TestEncryptedReader(t *testing.T) {
 	f := NewFileReader(TESTDATA + "aes")
 	cr, err := NewCrypter(f)
