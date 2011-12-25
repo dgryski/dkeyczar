@@ -14,26 +14,35 @@ func init() {
 	TESTDATA = os.Getenv("KEYCZAR_TESTDATA")
 }
 
-func testEncrypt(t *testing.T, keytype string) {
+func testEncrypt(t *testing.T, keytype string, f KeyReader) {
 
-	f := NewFileReader(TESTDATA + keytype)
+	kz, err := NewEncrypter(f)
 
-	kz, _ := NewEncrypter(f)
+	if err != nil {
+		t.Fatal("failed to load key for keytype " + keytype + ": " + err.Error())
+	}
 
-	c, _ := kz.Encrypt([]byte(INPUT))
+	c, err := kz.Encrypt([]byte(INPUT))
+	if err != nil {
+		t.Fatal("failed to encrypt key for keytype " + keytype + ": " + err.Error())
+	}
 
-	crypter, _ := NewCrypter(f)
+	crypter, err := NewCrypter(f)
+	if err != nil {
+		t.Fatal("failed to create crypter with keyreader for keytype " + keytype + ": " + err.Error())
+	}
 
-	p, _ := crypter.Decrypt(c)
+	p, err := crypter.Decrypt(c)
+	if err != nil {
+		t.Fatal("failed to decrypt keytype " + keytype + ": " + err.Error())
+	}
 
 	if string(p) != INPUT {
 		t.Error(keytype + " encryption failed")
 	}
 }
 
-func testEncryptDecrypt(t *testing.T, keytype string) {
-
-	f := NewFileReader(TESTDATA + keytype)
+func testEncryptDecrypt(t *testing.T, keytype string, f KeyReader) {
 
 	kz, _ := NewCrypter(f)
 
@@ -46,9 +55,7 @@ func testEncryptDecrypt(t *testing.T, keytype string) {
 	}
 }
 
-func testVerify(t *testing.T, keytype string) {
-
-	f := NewFileReader(TESTDATA + keytype)
+func testVerify(t *testing.T, keytype string, f KeyReader) {
 
 	kz, _ := NewVerifier(f)
 
@@ -69,32 +76,7 @@ func testVerify(t *testing.T, keytype string) {
 	}
 }
 
-func testVerifyPublic(t *testing.T, keytype string) {
-
-	f := NewFileReader(TESTDATA + keytype + ".public")
-
-	kz, _ := NewVerifier(f)
-
-	c, _ := slurp(TESTDATA + keytype + "/1.out")
-
-	goodsig, _ := kz.Verify([]byte(INPUT), c)
-
-	if !goodsig {
-		t.Error("failed signature for " + keytype + "/1.out")
-	}
-
-	c, _ = slurp(TESTDATA + keytype + "/2.out")
-
-	goodsig, _ = kz.Verify([]byte(INPUT), c)
-
-	if !goodsig {
-		t.Error("failed signature for " + keytype + "/2.out")
-	}
-}
-
-func testSignVerify(t *testing.T, keytype string) {
-
-	f := NewFileReader(TESTDATA + keytype)
+func testSignVerify(t *testing.T, keytype string, f KeyReader) {
 
 	kz, _ := NewSigner(f)
 
@@ -109,9 +91,7 @@ func testSignVerify(t *testing.T, keytype string) {
 	}
 }
 
-func testDecrypt(t *testing.T, keytype string) {
-
-	f := NewFileReader(TESTDATA + keytype)
+func testDecrypt(t *testing.T, keytype string, f KeyReader) {
 
 	kz, _ := NewCrypter(f)
 
@@ -133,93 +113,83 @@ func testDecrypt(t *testing.T, keytype string) {
 }
 
 func TestAesEncrypt(t *testing.T) {
-	testEncrypt(t, "aes")
+	keytype := "aes"
+	testEncrypt(t, keytype, NewFileReader(TESTDATA+keytype))
 }
 
 func TestAesEncryptDecrypt(t *testing.T) {
-	testEncryptDecrypt(t, "aes")
+	keytype := "aes"
+	testEncryptDecrypt(t, keytype, NewFileReader(TESTDATA+keytype))
 }
 
 func TestAesDecrypt(t *testing.T) {
-	testDecrypt(t, "aes")
+	keytype := "aes"
+	testDecrypt(t, keytype, NewFileReader(TESTDATA+keytype))
 }
 
 func TestHmacVerify(t *testing.T) {
-	testVerify(t, "hmac")
+	keytype := "hmac"
+	testVerify(t, keytype, NewFileReader(TESTDATA+keytype))
 }
 
 func TestHmacSign(t *testing.T) {
-	testSignVerify(t, "hmac")
+	keytype := "hmac"
+	testSignVerify(t, keytype, NewFileReader(TESTDATA+keytype))
 }
 
 func TestDsaSign(t *testing.T) {
-	testSignVerify(t, "dsa")
+	keytype := "dsa"
+	testSignVerify(t, keytype, NewFileReader(TESTDATA+keytype))
 }
 
 func TestDsaVerify(t *testing.T) {
-	testVerify(t, "dsa")
+	keytype := "dsa"
+	testVerify(t, keytype, NewFileReader(TESTDATA+keytype))
 }
 
 func TestDsaPublicVerifyPublic(t *testing.T) {
-	testVerifyPublic(t, "dsa")
+	keytype := "dsa"
+	testVerify(t, keytype, NewFileReader(TESTDATA+keytype+".public"))
 }
 
 func TestRsasignSign(t *testing.T) {
-	testSignVerify(t, "rsa-sign")
+	keytype := "rsa-sign"
+	testSignVerify(t, keytype, NewFileReader(TESTDATA+keytype))
 }
 
 func TestRsasignVerify(t *testing.T) {
-	testVerify(t, "rsa-sign")
+	keytype := "rsa-sign"
+	testVerify(t, keytype, NewFileReader(TESTDATA+keytype))
 }
 
 func TestRsasignPublicVerifyPublic(t *testing.T) {
-	testVerifyPublic(t, "rsa-sign")
+	keytype := "rsa-sign"
+	testVerify(t, keytype, NewFileReader(TESTDATA+keytype+".public"))
 }
 
 func TestRsaEncrypt(t *testing.T) {
-	testEncrypt(t, "rsa")
+	keytype := "rsa"
+	testEncrypt(t, keytype, NewFileReader(TESTDATA+keytype))
 }
 
 func TestRsaEncryptDecrypt(t *testing.T) {
-	testEncryptDecrypt(t, "rsa")
+	keytype := "rsa"
+	testEncryptDecrypt(t, keytype, NewFileReader(TESTDATA+keytype))
 }
 
 func TestRsaDecrypt(t *testing.T) {
-	testDecrypt(t, "rsa")
+	keytype := "rsa"
+	testDecrypt(t, keytype, NewFileReader(TESTDATA+keytype))
 }
 
 func TestRsaPemImportDecrypt(t *testing.T) {
-
-	// from keyczar cpp test data 06b
 	r, _ := ImportRSAKeyFromPEMForCrypt(TESTDATA + "rsa_pem/rsa_priv.pem")
-
-	kz, _ := NewCrypter(r)
-
-	c, _ := kz.Encrypt([]byte(INPUT))
-
-	p, _ := kz.Decrypt(c)
-
-	if string(p) != INPUT {
-		t.Error("rsa pem import decrypt(encrypt(p)) != p")
-	}
-
+	testEncryptDecrypt(t, "rsa pem import", r)
 }
 
 func TestRsaPemImportSign(t *testing.T) {
-
-	// from keyczar cpp test data 06b
 	r, _ := ImportRSAKeyFromPEMForSigning(TESTDATA + "rsa_pem/rsa_priv.pem")
-
-	kz, _ := NewSigner(r)
-
-	c, _ := kz.Sign([]byte(INPUT))
-
-	v, _ := kz.Verify([]byte(INPUT), c)
-
-	if !v {
-		t.Error("rsa pem import verify(sign(p)) == false")
-	}
-
+	testSignVerify(t, "rsa pem import", r)
 }
 
 // commented until I get around to pointing this at a cert that exists elsewhere than on my machine
@@ -238,65 +208,21 @@ func TestRsaCertImport(t *testing.T) {
 */
 
 func TestGeneratedAesEncryptDecrypt(t *testing.T) {
-
-	aeskey := generateAesKey()
-
-	r := newImportedAesKeyReader(aeskey)
-
-	kz, _ := NewCrypter(r)
-
-	c, _ := kz.Encrypt([]byte(INPUT))
-
-	p, _ := kz.Decrypt(c)
-
-	if string(p) != INPUT {
-		t.Error("aes generated decrypt(encrypt(p)) != p")
-	}
+	r := newImportedAesKeyReader(generateAesKey())
+	testEncryptDecrypt(t, "aes generated", r)
 }
 
 func TestEncryptedReader(t *testing.T) {
-
 	f := NewFileReader(TESTDATA + "aes")
-
 	cr, _ := NewCrypter(f)
-
 	er := NewEncryptedReader(NewFileReader(TESTDATA+"aes-crypted"), cr)
-
-	kz, _ := NewCrypter(er)
-
-	c, _ := slurp(TESTDATA + "aes-crypted" + "/1.out")
-
-	p, _ := kz.Decrypt(c)
-
-	if string(p) != INPUT {
-		t.Error("failed to decrypt 1.out with encrypted reader")
-	}
-
-	c, _ = slurp(TESTDATA + "aes-crypted" + "/2.out")
-
-	p, _ = kz.Decrypt(c)
-
-	if string(p) != INPUT {
-		t.Error("failed to decrypt 2.out with encrypted reader")
-	}
+	testDecrypt(t, "aes-crypted", er)
 }
 
 func TestPBEReader(t *testing.T) {
-
 	f := NewFileReader(TESTDATA + "pbe_json")
-
 	er := NewPBEReader(f, []byte("cartman"))
-
-	kz, _ := NewCrypter(er)
-
-	c, _ := kz.Encrypt([]byte(INPUT))
-
-	p, _ := kz.Decrypt(c)
-
-	if string(p) != INPUT {
-		t.Error("pbe key decrypt(encrypt(p)) != p")
-	}
-
+	testEncryptDecrypt(t, "pbe_json", er)
 }
 
 func TestSessionEncryptDecrypt(t *testing.T) {
@@ -371,9 +297,15 @@ func TestSignVerifyBase64(t *testing.T) {
 	f := NewFileReader(TESTDATA + "dsa")
 
 	kz, _ := NewSigner(f)
-	kz.SetEncoding(NO_ENCODING)
 
 	s, _ := kz.Sign([]byte(INPUT))
+
+	if s[0] != 'A' { // first byte will 0, so first byte of base64 will be 'A'
+		t.Error("bad version byte for base64 signature")
+	}
+
+	kz.SetEncoding(NO_ENCODING)
+	s, _ = kz.Sign([]byte(INPUT))
 
 	if s[0] != 0 {
 		t.Error("bad version byte for raw signature")
