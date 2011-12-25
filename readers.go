@@ -141,13 +141,27 @@ func (r *pbeReader) GetKey(version int) (string, error) {
 		return "", ErrUnsupportedType
 	}
 
-	salt, _ := decodeWeb64String(pbejson.Salt)
-	iv_bytes, _ := decodeWeb64String(pbejson.Iv)
-	ciphertext, _ := decodeWeb64String(pbejson.Key)
+	salt, err := decodeWeb64String(pbejson.Salt)
+	if err != nil {
+		return "", err
+	}
+
+	iv_bytes, err := decodeWeb64String(pbejson.Iv)
+	if err != nil {
+		return "", err
+	}
+
+	ciphertext, err := decodeWeb64String(pbejson.Key)
+	if err != nil {
+		return "", err
+	}
 
 	keybytes := pbkdf2(r.password, salt, pbejson.IterationCount, 128/8)
 
-	aesCipher, _ := aes.NewCipher(keybytes)
+	aesCipher, err := aes.NewCipher(keybytes)
+	if err != nil {
+		return "", err
+	}
 
 	crypter := cipher.NewCBCDecrypter(aesCipher, iv_bytes)
 
