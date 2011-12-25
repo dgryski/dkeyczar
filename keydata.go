@@ -497,6 +497,18 @@ type rsaKey struct {
 	publicKey rsaPublicKey
 }
 
+func generateRsaKey() *rsaKey  {
+
+    rsakey := new(rsaKey)
+
+    priv, _ := rsa.GenerateKey(rand.Reader, int(ktRSA_PRIV.defaultSize()))
+
+    rsakey.key = *priv
+    rsakey.publicKey.key = priv.PublicKey
+
+    return rsakey
+}
+
 func (rk *rsaPublicKey) KeyID() []byte {
 
 	h := sha1.New()
