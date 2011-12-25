@@ -529,7 +529,7 @@ func newRsaPublicKeys(r KeyReader, km keyMeta) (map[int]keyIDer, error) {
 		}
 		rsakey.key.N = big.NewInt(0).SetBytes(b)
 
-		b, _ = decodeWeb64String(rsajson.PublicExponent)
+		b, err = decodeWeb64String(rsajson.PublicExponent)
 		if err != nil {
 			return nil, ErrBase64Decoding
 		}
