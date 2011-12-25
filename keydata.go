@@ -501,7 +501,10 @@ func generateRsaKey() *rsaKey {
 
 	rsakey := new(rsaKey)
 
-	priv, _ := rsa.GenerateKey(rand.Reader, int(ktRSA_PRIV.defaultSize()))
+	priv, err := rsa.GenerateKey(rand.Reader, int(ktRSA_PRIV.defaultSize()))
+	if err != nil {
+		panic("error during rsa key generation")
+	}
 
 	rsakey.key = *priv
 	rsakey.publicKey.key = priv.PublicKey
