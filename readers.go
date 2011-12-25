@@ -3,6 +3,7 @@ package dkeyczar
 import (
 	"crypto/aes"
 	"crypto/cipher"
+	"crypto/dsa"
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/json"
@@ -422,5 +423,39 @@ func (r *importedAesKeyReader) GetMetadata() (string, error) {
 
 func (r *importedAesKeyReader) GetKey(version int) (string, error) {
 	b, err := json.Marshal(r.aesjson)
+	return string(b), err
+}
+
+// a fake reader for a DSA private key
+type importedDsaPrivateKeyReader struct {
+	km      keyMeta    // our fake meta info
+	dsajson dsaKeyJSON // the dsa key we're importing
+}
+
+// construct a fake keyreader for the provided dsa private key
+func newImportedDsaPrivateKeyReader(key *dsa.PrivateKey) KeyReader {
+	r := new(importedDsaPrivateKeyReader)
+	kv := keyVersion{1, ksPRIMARY, false}
+	r.km = keyMeta{"Imported DSA Private Key", ktDSA_PRIV, kpSIGN_AND_VERIFY, false, []keyVersion{kv}}
+
+	r.dsajson.PublicKey.P = encodeWeb64String(key.P.Bytes())
+	r.dsajson.PublicKey.Q = encodeWeb64String(key.Q.Bytes())
+	r.dsajson.PublicKey.Y = encodeWeb64String(key.Y.Bytes())
+	r.dsajson.PublicKey.G = encodeWeb64String(key.G.Bytes())
+	r.dsajson.X = encodeWeb64String(key.X.Bytes())
+
+	r.dsajson.Size = uint(len(key.P.Bytes())) * 8
+	r.dsajson.PublicKey.Size = uint(len(key.P.Bytes())) * 8
+
+	return r
+}
+
+func (r *importedDsaPrivateKeyReader) GetMetadata() (string, error) {
+	b, err := json.Marshal(r.km)
+	return string(b), err
+}
+
+func (r *importedDsaPrivateKeyReader) GetKey(version int) (string, error) {
+	b, err := json.Marshal(r.dsajson)
 	return string(b), err
 }

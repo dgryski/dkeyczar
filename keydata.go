@@ -304,6 +304,33 @@ type dsaKey struct {
 	publicKey dsaPublicKey
 }
 
+func generateDsaKey() *dsaKey {
+
+	dsakey := new(dsaKey)
+
+	var psz dsa.ParameterSizes
+	switch ktDSA_PRIV.defaultSize() {
+	case 1024:
+		psz = dsa.L1024N160
+	default:
+		panic("unknown dsa key size")
+	}
+
+	err := dsa.GenerateParameters(&dsakey.key.PublicKey.Parameters, rand.Reader, psz)
+	if err != nil {
+		panic("error during dsa parameter generation")
+	}
+
+	err = dsa.GenerateKey(&dsakey.key, rand.Reader)
+	if err != nil {
+		panic("error during dsa key generation")
+	}
+
+	dsakey.publicKey.key = dsakey.key.PublicKey
+
+	return dsakey
+}
+
 func newDsaPublicKeys(r KeyReader, km keyMeta) (map[int]keyIDer, error) {
 
 	keys := make(map[int]keyIDer)
