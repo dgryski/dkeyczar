@@ -2,11 +2,7 @@
 High Priority:
 
     - implement keyczar tool so our library is standalone
-        => key generation for all key types
         => key -> json export
-          - newFOOJsonFromKey()
-              => each type should have its own 'json<->key' function
-              => currently logic is in newFOOKeys and readers:ImportFOOKey
         => other export options (cert? pkcs8/pkcs5? ...?)
 
     - improve internal documentation

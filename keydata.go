@@ -146,6 +146,20 @@ func newAesKeyFromJSON(s []byte) (*aesKey, error) {
 	return aeskey, nil
 }
 
+func newAesJSONFromKey(key *aesKey) *aesKeyJSON {
+	// inverse of code with newAesKeys
+
+	aesjson := new(aesKeyJSON)
+
+	aesjson.AesKeyString = encodeWeb64String(key.key)
+	aesjson.Size = uint(len(key.key)) * 8
+	aesjson.HmacKey.HmacKeyString = encodeWeb64String(key.hmacKey.key)
+	aesjson.HmacKey.Size = uint(len(key.hmacKey.key)) * 8
+	aesjson.Mode = cmCBC
+
+	return aesjson
+}
+
 func newAesKeys(r KeyReader, km keyMeta) (map[int]keyIDer, error) {
 
 	keys := make(map[int]keyIDer)
@@ -388,7 +402,22 @@ func newDsaPublicKeyFromJSON(s []byte) (*dsaPublicKey, error) {
 	dsakey.key.Q = big.NewInt(0).SetBytes(b)
 
 	return dsakey, nil
+}
 
+func newDsaJSONFromKey(key *dsa.PrivateKey) *dsaKeyJSON {
+
+	dsajson := new(dsaKeyJSON)
+
+	dsajson.PublicKey.P = encodeWeb64String(key.P.Bytes())
+	dsajson.PublicKey.Q = encodeWeb64String(key.Q.Bytes())
+	dsajson.PublicKey.Y = encodeWeb64String(key.Y.Bytes())
+	dsajson.PublicKey.G = encodeWeb64String(key.G.Bytes())
+	dsajson.X = encodeWeb64String(key.X.Bytes())
+
+	dsajson.Size = uint(len(key.P.Bytes())) * 8
+	dsajson.PublicKey.Size = uint(len(key.P.Bytes())) * 8
+
+	return dsajson
 }
 
 func newDsaPublicKeys(r KeyReader, km keyMeta) (map[int]keyIDer, error) {
@@ -630,6 +659,21 @@ func newRsaPublicKeyFromJSON(s []byte) (*rsaPublicKey, error) {
 	return rsakey, nil
 }
 
+func newRsaPublicJSONFromKey(key *rsa.PublicKey) *rsaPublicKeyJSON {
+
+	rsajson := new(rsaPublicKeyJSON)
+
+	rsajson.Modulus = encodeWeb64String(key.N.Bytes())
+
+	e := big.NewInt(int64(key.E))
+	rsajson.PublicExponent = encodeWeb64String(e.Bytes())
+
+	rsajson.Size = uint(len(key.N.Bytes())) * 8
+
+	return rsajson
+
+}
+
 func newRsaPublicKeys(r KeyReader, km keyMeta) (map[int]keyIDer, error) {
 
 	keys := make(map[int]keyIDer)
@@ -714,6 +758,28 @@ func newRsaKeyFromJSON(s []byte) (*rsaKey, error) {
 	rsakey.publicKey.key.E = rsakey.key.PublicKey.E
 
 	return rsakey, nil
+}
+
+func newRsaJSONFromKey(key *rsa.PrivateKey) *rsaKeyJSON {
+
+	rsajson := new(rsaKeyJSON)
+
+	rsajson.PublicKey.Modulus = encodeWeb64String(key.PublicKey.N.Bytes())
+
+	e := big.NewInt(int64(key.PublicKey.E))
+	rsajson.PublicKey.PublicExponent = encodeWeb64String(e.Bytes())
+
+	rsajson.PrimeP = encodeWeb64String(key.Primes[0].Bytes())
+	rsajson.PrimeQ = encodeWeb64String(key.Primes[1].Bytes())
+	rsajson.PrivateExponent = encodeWeb64String(key.D.Bytes())
+	rsajson.PrimeExponentP = encodeWeb64String(key.Precomputed.Dp.Bytes())
+	rsajson.PrimeExponentQ = encodeWeb64String(key.Precomputed.Dq.Bytes())
+	rsajson.CrtCoefficient = encodeWeb64String(key.Precomputed.Qinv.Bytes())
+
+	rsajson.Size = uint(len(key.N.Bytes())) * 8
+	rsajson.PublicKey.Size = uint(len(key.N.Bytes())) * 8
+
+	return rsajson
 }
 
 func newRsaKeys(r KeyReader, km keyMeta) (map[int]keyIDer, error) {

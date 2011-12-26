@@ -9,7 +9,6 @@ import (
 	"encoding/json"
 	"encoding/pem"
 	"io/ioutil"
-	"math/big"
 	"os"
 	"strconv"
 )
@@ -185,21 +184,7 @@ func newImportedRsaPrivateKeyReader(key *rsa.PrivateKey, purpose keyPurpose) Key
 	kv := keyVersion{1, ksPRIMARY, false}
 	r.km = keyMeta{"Imported RSA Private Key", ktRSA_PRIV, purpose, false, []keyVersion{kv}}
 
-	// inverse of code with newRsaKeys
-	r.rsajson.PublicKey.Modulus = encodeWeb64String(key.PublicKey.N.Bytes())
-
-	e := big.NewInt(int64(key.PublicKey.E))
-	r.rsajson.PublicKey.PublicExponent = encodeWeb64String(e.Bytes())
-
-	r.rsajson.PrimeP = encodeWeb64String(key.Primes[0].Bytes())
-	r.rsajson.PrimeQ = encodeWeb64String(key.Primes[1].Bytes())
-	r.rsajson.PrivateExponent = encodeWeb64String(key.D.Bytes())
-	r.rsajson.PrimeExponentP = encodeWeb64String(key.Precomputed.Dp.Bytes())
-	r.rsajson.PrimeExponentQ = encodeWeb64String(key.Precomputed.Dq.Bytes())
-	r.rsajson.CrtCoefficient = encodeWeb64String(key.Precomputed.Qinv.Bytes())
-
-	r.rsajson.Size = uint(len(key.N.Bytes())) * 8
-	r.rsajson.PublicKey.Size = uint(len(key.N.Bytes())) * 8
+	r.rsajson = *newRsaJSONFromKey(key)
 
 	return r
 }
@@ -272,13 +257,7 @@ func newImportedRsaPublicKeyReader(key *rsa.PublicKey, purpose keyPurpose) KeyRe
 	kv := keyVersion{1, ksPRIMARY, false}
 	r.km = keyMeta{"Imported RSA Public Key", ktRSA_PUB, purpose, false, []keyVersion{kv}}
 
-	// inverse of code with newRsaKeys
-	r.rsajson.Modulus = encodeWeb64String(key.N.Bytes())
-
-	e := big.NewInt(int64(key.E))
-	r.rsajson.PublicExponent = encodeWeb64String(e.Bytes())
-
-	r.rsajson.Size = uint(len(key.N.Bytes())) * 8
+	r.rsajson = *newRsaPublicJSONFromKey(key)
 
 	return r
 }
@@ -406,12 +385,7 @@ func newImportedAesKeyReader(key *aesKey) KeyReader {
 	kv := keyVersion{1, ksPRIMARY, false}
 	r.km = keyMeta{"Imported AES Key", ktAES, kpDECRYPT_AND_ENCRYPT, false, []keyVersion{kv}}
 
-	// inverse of code with newAesKeys
-	r.aesjson.AesKeyString = encodeWeb64String(key.key)
-	r.aesjson.Size = uint(len(key.key)) * 8
-	r.aesjson.HmacKey.HmacKeyString = encodeWeb64String(key.hmacKey.key)
-	r.aesjson.HmacKey.Size = uint(len(key.hmacKey.key)) * 8
-	r.aesjson.Mode = cmCBC
+	r.aesjson = *newAesJSONFromKey(key)
 
 	return r
 }
@@ -438,14 +412,7 @@ func newImportedDsaPrivateKeyReader(key *dsa.PrivateKey) KeyReader {
 	kv := keyVersion{1, ksPRIMARY, false}
 	r.km = keyMeta{"Imported DSA Private Key", ktDSA_PRIV, kpSIGN_AND_VERIFY, false, []keyVersion{kv}}
 
-	r.dsajson.PublicKey.P = encodeWeb64String(key.P.Bytes())
-	r.dsajson.PublicKey.Q = encodeWeb64String(key.Q.Bytes())
-	r.dsajson.PublicKey.Y = encodeWeb64String(key.Y.Bytes())
-	r.dsajson.PublicKey.G = encodeWeb64String(key.G.Bytes())
-	r.dsajson.X = encodeWeb64String(key.X.Bytes())
-
-	r.dsajson.Size = uint(len(key.P.Bytes())) * 8
-	r.dsajson.PublicKey.Size = uint(len(key.P.Bytes())) * 8
+	r.dsajson = *newDsaJSONFromKey(key)
 
 	return r
 }
