@@ -34,7 +34,7 @@ type KeyczarCompression int
 
 const (
 	NO_COMPRESSION KeyczarCompression = iota // Do not compress the plaintext before encrypting [default]
-	GZIP                                     //  Use gzip compression
+	GZIP                                     // Use gzip compression
 	ZLIB                                     // Use zlib compression
 )
 
@@ -191,6 +191,8 @@ func (kz *keyCzar) decompress(data []byte) ([]byte, error) {
 	panic("not reached")
 }
 
+// Encrypt plaintext and return encoded encrypted text as a string
+// All the heavy lifting is done by the key
 func (kz *keyCzar) Encrypt(plaintext []uint8) (string, error) {
 
 	key := kz.keys[kz.primary]
@@ -210,6 +212,8 @@ func (kz *keyCzar) Encrypt(plaintext []uint8) (string, error) {
 
 }
 
+// Decode and decrypt ciphertext and return plaintext as []byte
+// All the heavy lifting is done by the key
 func (kz *keyCzar) Decrypt(ciphertext string) ([]uint8, error) {
 
 	b, err := kz.decode([]byte(ciphertext))
@@ -242,6 +246,8 @@ func (kz *keyCzar) Decrypt(ciphertext string) ([]uint8, error) {
 	return nil, ErrKeyNotFound
 }
 
+// Verify the signature on 'msg'
+// All the heavy lifting is done by the key
 func (kz *keyCzar) Verify(msg []byte, signature string) (bool, error) {
 
 	b, err := kz.decode([]byte(signature))
@@ -277,6 +283,8 @@ func (kz *keyCzar) Verify(msg []byte, signature string) (bool, error) {
 
 }
 
+// Return a signature for 'msg'
+// All the heavy lifting is done by the key
 func (kz *keyCzar) Sign(msg []byte) (string, error) {
 
 	key := kz.keys[kz.primary]
