@@ -12,9 +12,6 @@ High Priority:
       (dsa not supported -- must implement)
       (rsa export not supported -- must implement)
 
-    all 'GetKey' methods in readers.go should check that versionNumber is valid
-
-
 Low Priority:
 
     - decide on visibility of keyinfo enums

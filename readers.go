@@ -181,7 +181,7 @@ type importedRSAPrivateKeyReader struct {
 // construct a fake keyreader for the provided rsa private key and purpose
 func newImportedRSAPrivateKeyReader(key *rsa.PrivateKey, purpose keyPurpose) KeyReader {
 	r := new(importedRSAPrivateKeyReader)
-	kv := keyVersion{1, ksPRIMARY, false}
+	kv := keyVersion{0, ksPRIMARY, false}
 	r.km = keyMeta{"Imported RSA Private Key", ktRSA_PRIV, purpose, false, []keyVersion{kv}}
 
 	r.rsajson = *newRSAJSONFromKey(key)
@@ -195,6 +195,9 @@ func (r *importedRSAPrivateKeyReader) GetMetadata() (string, error) {
 }
 
 func (r *importedRSAPrivateKeyReader) GetKey(version int) (string, error) {
+	if version != 0 {
+		return "", ErrNoSuchKeyVersion
+	}
 	b, err := json.Marshal(r.rsajson)
 	return string(b), err
 }
@@ -254,7 +257,7 @@ type importedRSAPublicKeyReader struct {
 // construct a fake keyreader for the provided rsa public key and purpose
 func newImportedRSAPublicKeyReader(key *rsa.PublicKey, purpose keyPurpose) KeyReader {
 	r := new(importedRSAPublicKeyReader)
-	kv := keyVersion{1, ksPRIMARY, false}
+	kv := keyVersion{0, ksPRIMARY, false}
 	r.km = keyMeta{"Imported RSA Public Key", ktRSA_PUB, purpose, false, []keyVersion{kv}}
 
 	r.rsajson = *newRSAPublicJSONFromKey(key)
@@ -268,6 +271,9 @@ func (r *importedRSAPublicKeyReader) GetMetadata() (string, error) {
 }
 
 func (r *importedRSAPublicKeyReader) GetKey(version int) (string, error) {
+	if version != 0 {
+		return "", ErrNoSuchKeyVersion
+	}
 	b, err := json.Marshal(r.rsajson)
 	return string(b), err
 }
@@ -382,7 +388,7 @@ type importedAESKeyReader struct {
 // construct a fake keyreader for the provided aes key
 func newImportedAESKeyReader(key *aesKey) KeyReader {
 	r := new(importedAESKeyReader)
-	kv := keyVersion{1, ksPRIMARY, false}
+	kv := keyVersion{0, ksPRIMARY, false}
 	r.km = keyMeta{"Imported AES Key", ktAES, kpDECRYPT_AND_ENCRYPT, false, []keyVersion{kv}}
 
 	r.aesjson = *newAESJSONFromKey(key)
@@ -396,6 +402,9 @@ func (r *importedAESKeyReader) GetMetadata() (string, error) {
 }
 
 func (r *importedAESKeyReader) GetKey(version int) (string, error) {
+	if version != 0 {
+		return "", ErrNoSuchKeyVersion
+	}
 	b, err := json.Marshal(r.aesjson)
 	return string(b), err
 }
@@ -409,7 +418,7 @@ type importedDSAPrivateKeyReader struct {
 // construct a fake keyreader for the provided dsa private key
 func newImportedDSAPrivateKeyReader(key *dsa.PrivateKey) KeyReader {
 	r := new(importedDSAPrivateKeyReader)
-	kv := keyVersion{1, ksPRIMARY, false}
+	kv := keyVersion{0, ksPRIMARY, false}
 	r.km = keyMeta{"Imported DSA Private Key", ktDSA_PRIV, kpSIGN_AND_VERIFY, false, []keyVersion{kv}}
 
 	r.dsajson = *newDSAJSONFromKey(key)
@@ -423,6 +432,9 @@ func (r *importedDSAPrivateKeyReader) GetMetadata() (string, error) {
 }
 
 func (r *importedDSAPrivateKeyReader) GetKey(version int) (string, error) {
+	if version != 0 {
+		return "", ErrNoSuchKeyVersion
+	}
 	b, err := json.Marshal(r.dsajson)
 	return string(b), err
 }
