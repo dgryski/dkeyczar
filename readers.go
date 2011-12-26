@@ -200,7 +200,7 @@ func (r *importedRSAPrivateKeyReader) GetKey(version int) (string, error) {
 }
 
 // load and return an rsa private key from a PEM file specified in 'location'
-func getRSAKeyFromPem(location string) (*rsa.PrivateKey, error) {
+func getRSAKeyFromPEM(location string) (*rsa.PrivateKey, error) {
 
 	buf, err := slurp(location)
 	if err != nil {
@@ -221,7 +221,7 @@ func getRSAKeyFromPem(location string) (*rsa.PrivateKey, error) {
 // The resulting key can be used for signing and verification only
 func ImportRSAKeyFromPEMForSigning(location string) (KeyReader, error) {
 
-	priv, err := getRSAKeyFromPem(location)
+	priv, err := getRSAKeyFromPEM(location)
 	if err != nil {
 		return nil, err
 	}
@@ -235,7 +235,7 @@ func ImportRSAKeyFromPEMForSigning(location string) (KeyReader, error) {
 // The resulting key can be used for encryption and decryption only
 func ImportRSAKeyFromPEMForCrypt(location string) (KeyReader, error) {
 
-	priv, err := getRSAKeyFromPem(location)
+	priv, err := getRSAKeyFromPEM(location)
 	if err != nil {
 		return nil, err
 	}
@@ -273,7 +273,7 @@ func (r *importedRSAPublicKeyReader) GetKey(version int) (string, error) {
 }
 
 // load and return an rsa public key from a PEM file specified in 'location'
-func getRSAPublicKeyFromPem(location string) (*rsa.PublicKey, error) {
+func getRSAPublicKeyFromPEM(location string) (*rsa.PublicKey, error) {
 
 	buf, err := slurp(location)
 	if err != nil {
@@ -301,7 +301,7 @@ func getRSAPublicKeyFromPem(location string) (*rsa.PublicKey, error) {
 // The resulting key can be used for encryption only.
 func ImportRSAPublicKeyFromPEMForEncryption(location string) (KeyReader, error) {
 
-	rsapub, err := getRSAPublicKeyFromPem(location)
+	rsapub, err := getRSAPublicKeyFromPEM(location)
 	if err != nil {
 		return nil, err
 	}
@@ -314,7 +314,7 @@ func ImportRSAPublicKeyFromPEMForEncryption(location string) (KeyReader, error) 
 // The resulting key can be used for verification only.
 func ImportRSAPublicKeyFromPEMForVerify(location string) (KeyReader, error) {
 
-	rsapub, err := getRSAPublicKeyFromPem(location)
+	rsapub, err := getRSAPublicKeyFromPEM(location)
 	if err != nil {
 		return nil, err
 	}

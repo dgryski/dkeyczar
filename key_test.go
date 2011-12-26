@@ -211,7 +211,7 @@ func TestRSADecrypt(t *testing.T) {
 	testDecrypt(t, keytype, NewFileReader(TESTDATA+keytype))
 }
 
-func TestRSAPemImportDecrypt(t *testing.T) {
+func TestRSAPEMImportDecrypt(t *testing.T) {
 	r, err := ImportRSAKeyFromPEMForCrypt(TESTDATA + "rsa_pem/rsa_priv.pem")
 	if err != nil {
 		t.Fatal("failed to create import for rsa_pem")
@@ -219,7 +219,7 @@ func TestRSAPemImportDecrypt(t *testing.T) {
 	testEncryptDecrypt(t, "rsa pem import", r)
 }
 
-func TestRSAPemImportSign(t *testing.T) {
+func TestRSAPEMImportSign(t *testing.T) {
 	r, err := ImportRSAKeyFromPEMForSigning(TESTDATA + "rsa_pem/rsa_priv.pem")
 	if err != nil {
 		t.Fatal("failed to create import for rsa_pem")
