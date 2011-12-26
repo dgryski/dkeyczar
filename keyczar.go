@@ -403,9 +403,9 @@ func newKeyCzar(r KeyReader, purpose keyPurpose) (*keyCzar, error) {
 	case ktDSA_PUB:
 		kz.keys, err = newDsaPublicKeys(r, kz.keymeta)
 	case ktRSA_PRIV:
-		kz.keys, err = newRsaKeys(r, kz.keymeta)
+		kz.keys, err = newRSAKeys(r, kz.keymeta)
 	case ktRSA_PUB:
-		kz.keys, err = newRsaPublicKeys(r, kz.keymeta)
+		kz.keys, err = newRSAPublicKeys(r, kz.keymeta)
 	default:
 		return nil, ErrUnsupportedType
 	}

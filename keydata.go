@@ -597,7 +597,7 @@ type rsaKey struct {
 	publicKey rsaPublicKey
 }
 
-func generateRsaKey() *rsaKey {
+func generateRSAKey() *rsaKey {
 
 	rsakey := new(rsaKey)
 
@@ -635,7 +635,7 @@ func (rk *rsaKey) KeyID() []byte {
 	return rk.publicKey.KeyID()
 }
 
-func newRsaPublicKeyFromJSON(s []byte) (*rsaPublicKey, error) {
+func newRSAPublicKeyFromJSON(s []byte) (*rsaPublicKey, error) {
 	rsakey := new(rsaPublicKey)
 	rsajson := new(rsaPublicKeyJSON)
 	json.Unmarshal([]byte(s), &rsajson)
@@ -659,7 +659,7 @@ func newRsaPublicKeyFromJSON(s []byte) (*rsaPublicKey, error) {
 	return rsakey, nil
 }
 
-func newRsaPublicJSONFromKey(key *rsa.PublicKey) *rsaPublicKeyJSON {
+func newRSAPublicJSONFromKey(key *rsa.PublicKey) *rsaPublicKeyJSON {
 
 	rsajson := new(rsaPublicKeyJSON)
 
@@ -674,7 +674,7 @@ func newRsaPublicJSONFromKey(key *rsa.PublicKey) *rsaPublicKeyJSON {
 
 }
 
-func newRsaPublicKeys(r KeyReader, km keyMeta) (map[int]keyIDer, error) {
+func newRSAPublicKeys(r KeyReader, km keyMeta) (map[int]keyIDer, error) {
 
 	keys := make(map[int]keyIDer)
 
@@ -684,7 +684,7 @@ func newRsaPublicKeys(r KeyReader, km keyMeta) (map[int]keyIDer, error) {
 			return nil, err
 		}
 
-		k, err := newRsaPublicKeyFromJSON([]byte(s))
+		k, err := newRSAPublicKeyFromJSON([]byte(s))
 		if err != nil {
 			return nil, err
 		}
@@ -695,7 +695,7 @@ func newRsaPublicKeys(r KeyReader, km keyMeta) (map[int]keyIDer, error) {
 	return keys, nil
 }
 
-func newRsaKeyFromJSON(s []byte) (*rsaKey, error) {
+func newRSAKeyFromJSON(s []byte) (*rsaKey, error) {
 
 	rsakey := new(rsaKey)
 	rsajson := new(rsaKeyJSON)
@@ -760,7 +760,7 @@ func newRsaKeyFromJSON(s []byte) (*rsaKey, error) {
 	return rsakey, nil
 }
 
-func newRsaJSONFromKey(key *rsa.PrivateKey) *rsaKeyJSON {
+func newRSAJSONFromKey(key *rsa.PrivateKey) *rsaKeyJSON {
 
 	rsajson := new(rsaKeyJSON)
 
@@ -782,7 +782,7 @@ func newRsaJSONFromKey(key *rsa.PrivateKey) *rsaKeyJSON {
 	return rsajson
 }
 
-func newRsaKeys(r KeyReader, km keyMeta) (map[int]keyIDer, error) {
+func newRSAKeys(r KeyReader, km keyMeta) (map[int]keyIDer, error) {
 
 	keys := make(map[int]keyIDer)
 
@@ -792,7 +792,7 @@ func newRsaKeys(r KeyReader, km keyMeta) (map[int]keyIDer, error) {
 			return nil, err
 		}
 
-		k, err := newRsaKeyFromJSON([]byte(s))
+		k, err := newRSAKeyFromJSON([]byte(s))
 		if err != nil {
 			return nil, err
 		}

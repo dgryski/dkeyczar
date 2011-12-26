@@ -181,37 +181,37 @@ func TestDsaPublicVerifyPublic(t *testing.T) {
 	testVerify(t, keytype, NewFileReader(TESTDATA+keytype+".public"))
 }
 
-func TestRsasignSign(t *testing.T) {
+func TestRSAsignSign(t *testing.T) {
 	keytype := "rsa-sign"
 	testSignVerify(t, keytype, NewFileReader(TESTDATA+keytype))
 }
 
-func TestRsasignVerify(t *testing.T) {
+func TestRSAsignVerify(t *testing.T) {
 	keytype := "rsa-sign"
 	testVerify(t, keytype, NewFileReader(TESTDATA+keytype))
 }
 
-func TestRsasignPublicVerifyPublic(t *testing.T) {
+func TestRSAsignPublicVerifyPublic(t *testing.T) {
 	keytype := "rsa-sign"
 	testVerify(t, keytype, NewFileReader(TESTDATA+keytype+".public"))
 }
 
-func TestRsaEncrypt(t *testing.T) {
+func TestRSAEncrypt(t *testing.T) {
 	keytype := "rsa"
 	testEncrypt(t, keytype, NewFileReader(TESTDATA+keytype))
 }
 
-func TestRsaEncryptDecrypt(t *testing.T) {
+func TestRSAEncryptDecrypt(t *testing.T) {
 	keytype := "rsa"
 	testEncryptDecrypt(t, keytype, NewFileReader(TESTDATA+keytype))
 }
 
-func TestRsaDecrypt(t *testing.T) {
+func TestRSADecrypt(t *testing.T) {
 	keytype := "rsa"
 	testDecrypt(t, keytype, NewFileReader(TESTDATA+keytype))
 }
 
-func TestRsaPemImportDecrypt(t *testing.T) {
+func TestRSAPemImportDecrypt(t *testing.T) {
 	r, err := ImportRSAKeyFromPEMForCrypt(TESTDATA + "rsa_pem/rsa_priv.pem")
 	if err != nil {
 		t.Fatal("failed to create import for rsa_pem")
@@ -219,7 +219,7 @@ func TestRsaPemImportDecrypt(t *testing.T) {
 	testEncryptDecrypt(t, "rsa pem import", r)
 }
 
-func TestRsaPemImportSign(t *testing.T) {
+func TestRSAPemImportSign(t *testing.T) {
 	r, err := ImportRSAKeyFromPEMForSigning(TESTDATA + "rsa_pem/rsa_priv.pem")
 	if err != nil {
 		t.Fatal("failed to create import for rsa_pem")
@@ -229,7 +229,7 @@ func TestRsaPemImportSign(t *testing.T) {
 
 // commented until I get around to pointing this at a cert that exists elsewhere than on my machine
 /*
-func TestRsaCertImport(t *testing.T) {
+func TestRSACertImport(t *testing.T) {
 
 	r, err := ImportRSAPublicKeyFromCertificateForVerify("thawte.crt")
 
@@ -249,13 +249,13 @@ func TestGeneratedAesEncryptDecrypt(t *testing.T) {
 
 // too slow
 /*
-func TestGeneratedRsa(t *testing.T) {
+func TestGeneratedRSA(t *testing.T) {
 	t.Log("generating rsa key...")
-	k := generateRsaKey()
-	r := newImportedRsaPrivateKeyReader(&k.key, kpDECRYPT_AND_ENCRYPT)
+	k := generateRSAKey()
+	r := newImportedRSAPrivateKeyReader(&k.key, kpDECRYPT_AND_ENCRYPT)
 	testEncryptDecrypt(t, "rsa generated", r)
 
-	r = newImportedRsaPrivateKeyReader(&k.key, kpSIGN_AND_VERIFY)
+	r = newImportedRSAPrivateKeyReader(&k.key, kpSIGN_AND_VERIFY)
 	testSignVerify(t, "rsa generated", r)
 }
 */
