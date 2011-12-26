@@ -41,6 +41,28 @@ type signVerifyKey interface {
 	Sign(message []byte) ([]byte, error)
 }
 
+func newKeysFromJSON(r KeyReader, km keyMeta, keyFromJSON func([]byte) (keyIDer, error)) (map[int]keyIDer, error) {
+
+	keys := make(map[int]keyIDer)
+
+	for _, kv := range km.Versions {
+		s, err := r.GetKey(kv.VersionNumber)
+		if err != nil {
+			return nil, err
+		}
+
+		k, err := keyFromJSON([]byte(s))
+		if err != nil {
+			return nil, err
+		}
+
+		keys[kv.VersionNumber] = k
+	}
+
+	return keys, nil
+
+}
+
 const hmacSigLength = 20
 
 type hmacKeyJSON struct {
@@ -161,24 +183,7 @@ func newAesJSONFromKey(key *aesKey) *aesKeyJSON {
 }
 
 func newAesKeys(r KeyReader, km keyMeta) (map[int]keyIDer, error) {
-
-	keys := make(map[int]keyIDer)
-
-	for _, kv := range km.Versions {
-		s, err := r.GetKey(kv.VersionNumber)
-		if err != nil {
-			return nil, err
-		}
-
-		k, err := newAesKeyFromJSON([]byte(s))
-		if err != nil {
-			return nil, err
-		}
-
-		keys[kv.VersionNumber] = k
-	}
-
-	return keys, nil
+	return newKeysFromJSON(r, km, func(s []byte) (keyIDer, error) { return newAesKeyFromJSON(s) })
 }
 
 func (ak *aesKey) Encrypt(data []byte) ([]byte, error) {
@@ -421,24 +426,7 @@ func newDSAJSONFromKey(key *dsa.PrivateKey) *dsaKeyJSON {
 }
 
 func newDSAPublicKeys(r KeyReader, km keyMeta) (map[int]keyIDer, error) {
-
-	keys := make(map[int]keyIDer)
-
-	for _, kv := range km.Versions {
-		s, err := r.GetKey(kv.VersionNumber)
-		if err != nil {
-			return nil, err
-		}
-
-		k, err := newDSAPublicKeyFromJSON([]byte(s))
-		if err != nil {
-			return nil, err
-		}
-
-		keys[kv.VersionNumber] = k
-	}
-
-	return keys, nil
+	return newKeysFromJSON(r, km, func(s []byte) (keyIDer, error) { return newDSAPublicKeyFromJSON(s) })
 }
 
 func newDSAKeyFromJSON(s []byte) (*dsaKey, error) {
@@ -488,24 +476,7 @@ func newDSAKeyFromJSON(s []byte) (*dsaKey, error) {
 }
 
 func newDSAKeys(r KeyReader, km keyMeta) (map[int]keyIDer, error) {
-
-	keys := make(map[int]keyIDer)
-
-	for _, kv := range km.Versions {
-		s, err := r.GetKey(kv.VersionNumber)
-		if err != nil {
-			return nil, err
-		}
-
-		k, err := newDSAKeyFromJSON([]byte(s))
-		if err != nil {
-			return nil, err
-		}
-
-		keys[kv.VersionNumber] = k
-	}
-
-	return keys, nil
+	return newKeysFromJSON(r, km, func(s []byte) (keyIDer, error) { return newDSAKeyFromJSON(s) })
 }
 
 func (dk *dsaPublicKey) KeyID() []byte {
@@ -675,24 +646,7 @@ func newRSAPublicJSONFromKey(key *rsa.PublicKey) *rsaPublicKeyJSON {
 }
 
 func newRSAPublicKeys(r KeyReader, km keyMeta) (map[int]keyIDer, error) {
-
-	keys := make(map[int]keyIDer)
-
-	for _, kv := range km.Versions {
-		s, err := r.GetKey(kv.VersionNumber)
-		if err != nil {
-			return nil, err
-		}
-
-		k, err := newRSAPublicKeyFromJSON([]byte(s))
-		if err != nil {
-			return nil, err
-		}
-
-		keys[kv.VersionNumber] = k
-	}
-
-	return keys, nil
+	return newKeysFromJSON(r, km, func(s []byte) (keyIDer, error) { return newRSAPublicKeyFromJSON(s) })
 }
 
 func newRSAKeyFromJSON(s []byte) (*rsaKey, error) {
@@ -783,24 +737,7 @@ func newRSAJSONFromKey(key *rsa.PrivateKey) *rsaKeyJSON {
 }
 
 func newRSAKeys(r KeyReader, km keyMeta) (map[int]keyIDer, error) {
-
-	keys := make(map[int]keyIDer)
-
-	for _, kv := range km.Versions {
-		s, err := r.GetKey(kv.VersionNumber)
-		if err != nil {
-			return nil, err
-		}
-
-		k, err := newRSAKeyFromJSON([]byte(s))
-		if err != nil {
-			return nil, err
-		}
-
-		keys[kv.VersionNumber] = k
-	}
-
-	return keys, nil
+	return newKeysFromJSON(r, km, func(s []byte) (keyIDer, error) { return newRSAKeyFromJSON(s) })
 }
 
 func (rk *rsaKey) Sign(msg []byte) ([]byte, error) {
