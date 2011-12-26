@@ -397,7 +397,7 @@ func newKeyCzar(r KeyReader, purpose keyPurpose) (*keyCzar, error) {
 	case ktAES:
 		kz.keys, err = newAESKeys(r, kz.keymeta)
 	case ktHMAC_SHA1:
-		kz.keys, err = newHmacKeys(r, kz.keymeta)
+		kz.keys, err = newHMACKeys(r, kz.keymeta)
 	case ktDSA_PRIV:
 		kz.keys, err = newDSAKeys(r, kz.keymeta)
 	case ktDSA_PUB:

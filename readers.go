@@ -117,7 +117,7 @@ func (r *pbeReader) GetMetadata() (string, error) {
 
 type pbeKeyJSON struct {
 	Cipher         string `json:"cipher"`
-	Hmac           string `json:"hmac"`
+	HMAC           string `json:"hmac"`
 	IterationCount int    `json:"iterationCount"`
 	Iv             string `json:"iv"`
 	Key            string `json:"key"`
@@ -137,7 +137,7 @@ func (r *pbeReader) GetKey(version int) (string, error) {
 
 	json.Unmarshal([]byte(s), &pbejson)
 
-	if pbejson.Cipher != "AES128" || pbejson.Hmac != "HMAC_SHA1" {
+	if pbejson.Cipher != "AES128" || pbejson.HMAC != "HMAC_SHA1" {
 		return "", ErrUnsupportedType
 	}
 

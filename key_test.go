@@ -156,12 +156,12 @@ func TestAESDecrypt(t *testing.T) {
 	testDecrypt(t, keytype, NewFileReader(TESTDATA+keytype))
 }
 
-func TestHmacVerify(t *testing.T) {
+func TestHMACVerify(t *testing.T) {
 	keytype := "hmac"
 	testVerify(t, keytype, NewFileReader(TESTDATA+keytype))
 }
 
-func TestHmacSign(t *testing.T) {
+func TestHMACSign(t *testing.T) {
 	keytype := "hmac"
 	testSignVerify(t, keytype, NewFileReader(TESTDATA+keytype))
 }

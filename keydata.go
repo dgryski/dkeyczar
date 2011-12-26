@@ -66,7 +66,7 @@ func newKeysFromJSON(r KeyReader, km keyMeta, keyFromJSON func([]byte) (keyIDer,
 const hmacSigLength = 20
 
 type hmacKeyJSON struct {
-	HmacKeyString string `json:"hmacKeyString"`
+	HMACKeyString string `json:"hmacKeyString"`
 	Size          uint   `json:"size"`
 }
 
@@ -74,7 +74,7 @@ type hmacKey struct {
 	key []byte
 }
 
-func generateHmacKey() *hmacKey {
+func generateHMACKey() *hmacKey {
 	hk := new(hmacKey)
 
 	hk.key = make([]byte, ktHMAC_SHA1.defaultSize()/8)
@@ -86,7 +86,7 @@ func generateHmacKey() *hmacKey {
 type aesKeyJSON struct {
 	AESKeyString string      `json:"aesKeyString"`
 	Size         uint        `json:"size"`
-	HmacKey      hmacKeyJSON `json:"hmacKey"`
+	HMACKey      hmacKeyJSON `json:"hmacKey"`
 	Mode         cipherMode  `json:"mode"`
 }
 
@@ -101,7 +101,7 @@ func generateAESKey() *aesKey {
 	ak.key = make([]byte, ktAES.defaultSize()/8)
 	io.ReadFull(rand.Reader, ak.key)
 
-	ak.hmacKey = *generateHmacKey()
+	ak.hmacKey = *generateHMACKey()
 
 	return ak
 }
@@ -156,11 +156,11 @@ func newAESKeyFromJSON(s []byte) (*aesKey, error) {
 		return nil, ErrBase64Decoding
 	}
 
-	if !ktHMAC_SHA1.isAcceptableSize(aesjson.HmacKey.Size) {
+	if !ktHMAC_SHA1.isAcceptableSize(aesjson.HMACKey.Size) {
 		return nil, ErrInvalidKeySize
 	}
 
-	aeskey.hmacKey.key, err = decodeWeb64String(aesjson.HmacKey.HmacKeyString)
+	aeskey.hmacKey.key, err = decodeWeb64String(aesjson.HMACKey.HMACKeyString)
 	if err != nil {
 		return nil, ErrBase64Decoding
 	}
@@ -175,8 +175,8 @@ func newAESJSONFromKey(key *aesKey) *aesKeyJSON {
 
 	aesjson.AESKeyString = encodeWeb64String(key.key)
 	aesjson.Size = uint(len(key.key)) * 8
-	aesjson.HmacKey.HmacKeyString = encodeWeb64String(key.hmacKey.key)
-	aesjson.HmacKey.Size = uint(len(key.hmacKey.key)) * 8
+	aesjson.HMACKey.HMACKeyString = encodeWeb64String(key.hmacKey.key)
+	aesjson.HMACKey.Size = uint(len(key.hmacKey.key)) * 8
 	aesjson.Mode = cmCBC
 
 	return aesjson
@@ -256,7 +256,7 @@ func (ak *aesKey) Decrypt(data []byte) ([]byte, error) {
 	return plainBytes, nil
 }
 
-func newHmacKeyFromJSON(s []byte) (*hmacKey, error) {
+func newHMACKeyFromJSON(s []byte) (*hmacKey, error) {
 
 	hmackey := new(hmacKey)
 	hmacjson := new(hmacKeyJSON)
@@ -267,7 +267,7 @@ func newHmacKeyFromJSON(s []byte) (*hmacKey, error) {
 	}
 
 	var err error
-	hmackey.key, err = decodeWeb64String(hmacjson.HmacKeyString)
+	hmackey.key, err = decodeWeb64String(hmacjson.HMACKeyString)
 	if err != nil {
 		return nil, ErrBase64Decoding
 	}
@@ -276,7 +276,7 @@ func newHmacKeyFromJSON(s []byte) (*hmacKey, error) {
 
 }
 
-func newHmacKeys(r KeyReader, km keyMeta) (map[int]keyIDer, error) {
+func newHMACKeys(r KeyReader, km keyMeta) (map[int]keyIDer, error) {
 
 	keys := make(map[int]keyIDer)
 
@@ -286,7 +286,7 @@ func newHmacKeys(r KeyReader, km keyMeta) (map[int]keyIDer, error) {
 			return nil, err
 		}
 
-		k, err := newHmacKeyFromJSON([]byte(s))
+		k, err := newHMACKeyFromJSON([]byte(s))
 		if err != nil {
 			return nil, err
 		}
