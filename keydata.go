@@ -341,7 +341,7 @@ type dsaKey struct {
 	publicKey dsaPublicKey
 }
 
-func generateDsaKey() *dsaKey {
+func generateDSAKey() *dsaKey {
 
 	dsakey := new(dsaKey)
 
@@ -368,7 +368,7 @@ func generateDsaKey() *dsaKey {
 	return dsakey
 }
 
-func newDsaPublicKeyFromJSON(s []byte) (*dsaPublicKey, error) {
+func newDSAPublicKeyFromJSON(s []byte) (*dsaPublicKey, error) {
 	dsakey := new(dsaPublicKey)
 	dsajson := new(dsaPublicKeyJSON)
 	json.Unmarshal([]byte(s), &dsajson)
@@ -404,7 +404,7 @@ func newDsaPublicKeyFromJSON(s []byte) (*dsaPublicKey, error) {
 	return dsakey, nil
 }
 
-func newDsaJSONFromKey(key *dsa.PrivateKey) *dsaKeyJSON {
+func newDSAJSONFromKey(key *dsa.PrivateKey) *dsaKeyJSON {
 
 	dsajson := new(dsaKeyJSON)
 
@@ -420,7 +420,7 @@ func newDsaJSONFromKey(key *dsa.PrivateKey) *dsaKeyJSON {
 	return dsajson
 }
 
-func newDsaPublicKeys(r KeyReader, km keyMeta) (map[int]keyIDer, error) {
+func newDSAPublicKeys(r KeyReader, km keyMeta) (map[int]keyIDer, error) {
 
 	keys := make(map[int]keyIDer)
 
@@ -430,7 +430,7 @@ func newDsaPublicKeys(r KeyReader, km keyMeta) (map[int]keyIDer, error) {
 			return nil, err
 		}
 
-		k, err := newDsaPublicKeyFromJSON([]byte(s))
+		k, err := newDSAPublicKeyFromJSON([]byte(s))
 		if err != nil {
 			return nil, err
 		}
@@ -441,7 +441,7 @@ func newDsaPublicKeys(r KeyReader, km keyMeta) (map[int]keyIDer, error) {
 	return keys, nil
 }
 
-func newDsaKeyFromJSON(s []byte) (*dsaKey, error) {
+func newDSAKeyFromJSON(s []byte) (*dsaKey, error) {
 	dsakey := new(dsaKey)
 	dsajson := new(dsaKeyJSON)
 	json.Unmarshal([]byte(s), &dsajson)
@@ -487,7 +487,7 @@ func newDsaKeyFromJSON(s []byte) (*dsaKey, error) {
 	return dsakey, nil
 }
 
-func newDsaKeys(r KeyReader, km keyMeta) (map[int]keyIDer, error) {
+func newDSAKeys(r KeyReader, km keyMeta) (map[int]keyIDer, error) {
 
 	keys := make(map[int]keyIDer)
 
@@ -497,7 +497,7 @@ func newDsaKeys(r KeyReader, km keyMeta) (map[int]keyIDer, error) {
 			return nil, err
 		}
 
-		k, err := newDsaKeyFromJSON([]byte(s))
+		k, err := newDSAKeyFromJSON([]byte(s))
 		if err != nil {
 			return nil, err
 		}

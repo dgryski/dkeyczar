@@ -166,17 +166,17 @@ func TestHmacSign(t *testing.T) {
 	testSignVerify(t, keytype, NewFileReader(TESTDATA+keytype))
 }
 
-func TestDsaSign(t *testing.T) {
+func TestDSASign(t *testing.T) {
 	keytype := "dsa"
 	testSignVerify(t, keytype, NewFileReader(TESTDATA+keytype))
 }
 
-func TestDsaVerify(t *testing.T) {
+func TestDSAVerify(t *testing.T) {
 	keytype := "dsa"
 	testVerify(t, keytype, NewFileReader(TESTDATA+keytype))
 }
 
-func TestDsaPublicVerifyPublic(t *testing.T) {
+func TestDSAPublicVerifyPublic(t *testing.T) {
 	keytype := "dsa"
 	testVerify(t, keytype, NewFileReader(TESTDATA+keytype+".public"))
 }
@@ -260,9 +260,9 @@ func TestGeneratedRSA(t *testing.T) {
 }
 */
 
-func TestGeneratedDsa(t *testing.T) {
-	k := generateDsaKey()
-        r := newImportedDsaPrivateKeyReader(&k.key)
+func TestGeneratedDSA(t *testing.T) {
+	k := generateDSAKey()
+        r := newImportedDSAPrivateKeyReader(&k.key)
 	testSignVerify(t, "dsa generated", r)
 }
 

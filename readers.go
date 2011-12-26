@@ -401,28 +401,28 @@ func (r *importedAesKeyReader) GetKey(version int) (string, error) {
 }
 
 // a fake reader for a DSA private key
-type importedDsaPrivateKeyReader struct {
+type importedDSAPrivateKeyReader struct {
 	km      keyMeta    // our fake meta info
 	dsajson dsaKeyJSON // the dsa key we're importing
 }
 
 // construct a fake keyreader for the provided dsa private key
-func newImportedDsaPrivateKeyReader(key *dsa.PrivateKey) KeyReader {
-	r := new(importedDsaPrivateKeyReader)
+func newImportedDSAPrivateKeyReader(key *dsa.PrivateKey) KeyReader {
+	r := new(importedDSAPrivateKeyReader)
 	kv := keyVersion{1, ksPRIMARY, false}
 	r.km = keyMeta{"Imported DSA Private Key", ktDSA_PRIV, kpSIGN_AND_VERIFY, false, []keyVersion{kv}}
 
-	r.dsajson = *newDsaJSONFromKey(key)
+	r.dsajson = *newDSAJSONFromKey(key)
 
 	return r
 }
 
-func (r *importedDsaPrivateKeyReader) GetMetadata() (string, error) {
+func (r *importedDSAPrivateKeyReader) GetMetadata() (string, error) {
 	b, err := json.Marshal(r.km)
 	return string(b), err
 }
 
-func (r *importedDsaPrivateKeyReader) GetKey(version int) (string, error) {
+func (r *importedDSAPrivateKeyReader) GetKey(version int) (string, error) {
 	b, err := json.Marshal(r.dsajson)
 	return string(b), err
 }
