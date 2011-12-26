@@ -261,7 +261,6 @@ func TestGeneratedRsa(t *testing.T) {
 */
 
 func TestGeneratedDsa(t *testing.T) {
-	t.Log("generating dsa key...")
 	k := generateDsaKey()
         r := newImportedDsaPrivateKeyReader(&k.key)
 	testSignVerify(t, "dsa generated", r)
