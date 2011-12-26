@@ -53,6 +53,7 @@ func pkcs5pad(data []byte, blocksize int) []byte {
 
 func pkcs5unpad(data []byte) []byte {
 	pad := int(data[len(data)-1])
+        // FIXME: check that the padding bytes are all what we expect
 	return data[0 : len(data)-pad]
 }
 
