@@ -119,6 +119,33 @@ func (ak *aesKey) KeyID() []byte {
 
 }
 
+func newAesKeyFromJSON(s []byte) (*aesKey, error) {
+	aeskey := new(aesKey)
+	aesjson := new(aesKeyJSON)
+	json.Unmarshal([]byte(s), &aesjson)
+
+	if !ktAES.isAcceptableSize(aesjson.Size) {
+		return nil, ErrInvalidKeySize
+	}
+
+	var err error
+	aeskey.key, err = decodeWeb64String(aesjson.AesKeyString)
+	if err != nil {
+		return nil, ErrBase64Decoding
+	}
+
+	if !ktHMAC_SHA1.isAcceptableSize(aesjson.HmacKey.Size) {
+		return nil, ErrInvalidKeySize
+	}
+
+	aeskey.hmacKey.key, err = decodeWeb64String(aesjson.HmacKey.HmacKeyString)
+	if err != nil {
+		return nil, ErrBase64Decoding
+	}
+
+	return aeskey, nil
+}
+
 func newAesKeys(r KeyReader, km keyMeta) (map[int]keyIDer, error) {
 
 	keys := make(map[int]keyIDer)
@@ -126,32 +153,15 @@ func newAesKeys(r KeyReader, km keyMeta) (map[int]keyIDer, error) {
 	for _, kv := range km.Versions {
 		s, err := r.GetKey(kv.VersionNumber)
 		if err != nil {
-			return nil, ErrBase64Decoding
+			return nil, err
 		}
 
-		aeskey := new(aesKey)
-		aesjson := new(aesKeyJSON)
-		json.Unmarshal([]byte(s), &aesjson)
-
-		if !ktAES.isAcceptableSize(aesjson.Size) {
-			return nil, ErrInvalidKeySize
-		}
-
-		aeskey.key, err = decodeWeb64String(aesjson.AesKeyString)
+		k, err := newAesKeyFromJSON([]byte(s))
 		if err != nil {
-			return nil, ErrBase64Decoding
+			return nil, err
 		}
 
-		if !ktHMAC_SHA1.isAcceptableSize(aesjson.HmacKey.Size) {
-			return nil, ErrInvalidKeySize
-		}
-
-		aeskey.hmacKey.key, err = decodeWeb64String(aesjson.HmacKey.HmacKeyString)
-		if err != nil {
-			return nil, ErrBase64Decoding
-		}
-
-		keys[kv.VersionNumber] = aeskey
+		keys[kv.VersionNumber] = k
 	}
 
 	return keys, nil
@@ -227,6 +237,26 @@ func (ak *aesKey) Decrypt(data []byte) ([]byte, error) {
 	return plainBytes, nil
 }
 
+func newHmacKeyFromJSON(s []byte) (*hmacKey, error) {
+
+	hmackey := new(hmacKey)
+	hmacjson := new(hmacKeyJSON)
+	json.Unmarshal(s, &hmacjson)
+
+	if !ktHMAC_SHA1.isAcceptableSize(hmacjson.Size) {
+		return nil, ErrInvalidKeySize
+	}
+
+	var err error
+	hmackey.key, err = decodeWeb64String(hmacjson.HmacKeyString)
+	if err != nil {
+		return nil, ErrBase64Decoding
+	}
+
+	return hmackey, nil
+
+}
+
 func newHmacKeys(r KeyReader, km keyMeta) (map[int]keyIDer, error) {
 
 	keys := make(map[int]keyIDer)
@@ -236,20 +266,13 @@ func newHmacKeys(r KeyReader, km keyMeta) (map[int]keyIDer, error) {
 		if err != nil {
 			return nil, err
 		}
-		hmackey := new(hmacKey)
-		hmacjson := new(hmacKeyJSON)
-		json.Unmarshal([]byte(s), &hmacjson)
 
-		if !ktHMAC_SHA1.isAcceptableSize(hmacjson.Size) {
-			return nil, ErrInvalidKeySize
-		}
-
-		hmackey.key, err = decodeWeb64String(hmacjson.HmacKeyString)
+		k, err := newHmacKeyFromJSON([]byte(s))
 		if err != nil {
-			return nil, ErrBase64Decoding
+			return nil, err
 		}
 
-		keys[kv.VersionNumber] = hmackey
+		keys[kv.VersionNumber] = k
 	}
 
 	return keys, nil
@@ -331,6 +354,43 @@ func generateDsaKey() *dsaKey {
 	return dsakey
 }
 
+func newDsaPublicKeyFromJSON(s []byte) (*dsaPublicKey, error) {
+	dsakey := new(dsaPublicKey)
+	dsajson := new(dsaPublicKeyJSON)
+	json.Unmarshal([]byte(s), &dsajson)
+
+	if !ktDSA_PUB.isAcceptableSize(dsajson.Size) {
+		return nil, ErrInvalidKeySize
+	}
+
+	b, err := decodeWeb64String(dsajson.Y)
+	if err != nil {
+		return nil, ErrBase64Decoding
+	}
+	dsakey.key.Y = big.NewInt(0).SetBytes(b)
+
+	b, err = decodeWeb64String(dsajson.G)
+	if err != nil {
+		return nil, ErrBase64Decoding
+	}
+	dsakey.key.G = big.NewInt(0).SetBytes(b)
+
+	b, err = decodeWeb64String(dsajson.P)
+	if err != nil {
+		return nil, ErrBase64Decoding
+	}
+	dsakey.key.P = big.NewInt(0).SetBytes(b)
+
+	b, err = decodeWeb64String(dsajson.Q)
+	if err != nil {
+		return nil, ErrBase64Decoding
+	}
+	dsakey.key.Q = big.NewInt(0).SetBytes(b)
+
+	return dsakey, nil
+
+}
+
 func newDsaPublicKeys(r KeyReader, km keyMeta) (map[int]keyIDer, error) {
 
 	keys := make(map[int]keyIDer)
@@ -340,42 +400,62 @@ func newDsaPublicKeys(r KeyReader, km keyMeta) (map[int]keyIDer, error) {
 		if err != nil {
 			return nil, err
 		}
-		dsakey := new(dsaPublicKey)
-		dsajson := new(dsaPublicKeyJSON)
-		json.Unmarshal([]byte(s), &dsajson)
 
-		if !ktDSA_PUB.isAcceptableSize(dsajson.Size) {
-			return nil, ErrInvalidKeySize
-		}
-
-		b, err := decodeWeb64String(dsajson.Y)
+		k, err := newDsaPublicKeyFromJSON([]byte(s))
 		if err != nil {
-			return nil, ErrBase64Decoding
+			return nil, err
 		}
-		dsakey.key.Y = big.NewInt(0).SetBytes(b)
 
-		b, err = decodeWeb64String(dsajson.G)
-		if err != nil {
-			return nil, ErrBase64Decoding
-		}
-		dsakey.key.G = big.NewInt(0).SetBytes(b)
-
-		b, err = decodeWeb64String(dsajson.P)
-		if err != nil {
-			return nil, ErrBase64Decoding
-		}
-		dsakey.key.P = big.NewInt(0).SetBytes(b)
-
-		b, err = decodeWeb64String(dsajson.Q)
-		if err != nil {
-			return nil, ErrBase64Decoding
-		}
-		dsakey.key.Q = big.NewInt(0).SetBytes(b)
-
-		keys[kv.VersionNumber] = dsakey
+		keys[kv.VersionNumber] = k
 	}
 
 	return keys, nil
+}
+
+func newDsaKeyFromJSON(s []byte) (*dsaKey, error) {
+	dsakey := new(dsaKey)
+	dsajson := new(dsaKeyJSON)
+	json.Unmarshal([]byte(s), &dsajson)
+
+	if !ktDSA_PRIV.isAcceptableSize(dsajson.Size) || !ktDSA_PUB.isAcceptableSize(dsajson.PublicKey.Size) {
+		return nil, ErrInvalidKeySize
+	}
+
+	b, err := decodeWeb64String(dsajson.X)
+	if err != nil {
+		return nil, ErrBase64Decoding
+	}
+	dsakey.key.X = big.NewInt(0).SetBytes(b)
+
+	b, err = decodeWeb64String(dsajson.PublicKey.Y)
+	if err != nil {
+		return nil, ErrBase64Decoding
+	}
+	dsakey.key.Y = big.NewInt(0).SetBytes(b)
+	dsakey.publicKey.key.Y = dsakey.key.Y
+
+	b, err = decodeWeb64String(dsajson.PublicKey.G)
+	if err != nil {
+		return nil, ErrBase64Decoding
+	}
+	dsakey.key.G = big.NewInt(0).SetBytes(b)
+	dsakey.publicKey.key.G = dsakey.key.G
+
+	b, err = decodeWeb64String(dsajson.PublicKey.P)
+	if err != nil {
+		return nil, ErrBase64Decoding
+	}
+	dsakey.key.P = big.NewInt(0).SetBytes(b)
+	dsakey.publicKey.key.P = dsakey.key.P
+
+	b, err = decodeWeb64String(dsajson.PublicKey.Q)
+	if err != nil {
+		return nil, ErrBase64Decoding
+	}
+	dsakey.key.Q = big.NewInt(0).SetBytes(b)
+	dsakey.publicKey.key.Q = dsakey.key.Q
+
+	return dsakey, nil
 }
 
 func newDsaKeys(r KeyReader, km keyMeta) (map[int]keyIDer, error) {
@@ -387,49 +467,13 @@ func newDsaKeys(r KeyReader, km keyMeta) (map[int]keyIDer, error) {
 		if err != nil {
 			return nil, err
 		}
-		dsakey := new(dsaKey)
-		dsajson := new(dsaKeyJSON)
-		json.Unmarshal([]byte(s), &dsajson)
 
-		if !ktDSA_PRIV.isAcceptableSize(dsajson.Size) || !ktDSA_PUB.isAcceptableSize(dsajson.PublicKey.Size) {
-			return nil, ErrInvalidKeySize
-		}
-
-		b, err := decodeWeb64String(dsajson.X)
+		k, err := newDsaKeyFromJSON([]byte(s))
 		if err != nil {
-			return nil, ErrBase64Decoding
+			return nil, err
 		}
-		dsakey.key.X = big.NewInt(0).SetBytes(b)
 
-		b, err = decodeWeb64String(dsajson.PublicKey.Y)
-		if err != nil {
-			return nil, ErrBase64Decoding
-		}
-		dsakey.key.Y = big.NewInt(0).SetBytes(b)
-		dsakey.publicKey.key.Y = dsakey.key.Y
-
-		b, err = decodeWeb64String(dsajson.PublicKey.G)
-		if err != nil {
-			return nil, ErrBase64Decoding
-		}
-		dsakey.key.G = big.NewInt(0).SetBytes(b)
-		dsakey.publicKey.key.G = dsakey.key.G
-
-		b, err = decodeWeb64String(dsajson.PublicKey.P)
-		if err != nil {
-			return nil, ErrBase64Decoding
-		}
-		dsakey.key.P = big.NewInt(0).SetBytes(b)
-		dsakey.publicKey.key.P = dsakey.key.P
-
-		b, err = decodeWeb64String(dsajson.PublicKey.Q)
-		if err != nil {
-			return nil, ErrBase64Decoding
-		}
-		dsakey.key.Q = big.NewInt(0).SetBytes(b)
-		dsakey.publicKey.key.Q = dsakey.key.Q
-
-		keys[kv.VersionNumber] = dsakey
+		keys[kv.VersionNumber] = k
 	}
 
 	return keys, nil
@@ -562,6 +606,30 @@ func (rk *rsaKey) KeyID() []byte {
 	return rk.publicKey.KeyID()
 }
 
+func newRsaPublicKeyFromJSON(s []byte) (*rsaPublicKey, error) {
+	rsakey := new(rsaPublicKey)
+	rsajson := new(rsaPublicKeyJSON)
+	json.Unmarshal([]byte(s), &rsajson)
+
+	if !ktRSA_PUB.isAcceptableSize(rsajson.Size) {
+		return nil, ErrInvalidKeySize
+	}
+
+	b, err := decodeWeb64String(rsajson.Modulus)
+	if err != nil {
+		return nil, ErrBase64Decoding
+	}
+	rsakey.key.N = big.NewInt(0).SetBytes(b)
+
+	b, err = decodeWeb64String(rsajson.PublicExponent)
+	if err != nil {
+		return nil, ErrBase64Decoding
+	}
+	rsakey.key.E = int(big.NewInt(0).SetBytes(b).Int64())
+
+	return rsakey, nil
+}
+
 func newRsaPublicKeys(r KeyReader, km keyMeta) (map[int]keyIDer, error) {
 
 	keys := make(map[int]keyIDer)
@@ -571,30 +639,81 @@ func newRsaPublicKeys(r KeyReader, km keyMeta) (map[int]keyIDer, error) {
 		if err != nil {
 			return nil, err
 		}
-		rsakey := new(rsaPublicKey)
-		rsajson := new(rsaPublicKeyJSON)
-		json.Unmarshal([]byte(s), &rsajson)
 
-		if !ktRSA_PUB.isAcceptableSize(rsajson.Size) {
-			return nil, ErrInvalidKeySize
-		}
-
-		b, err := decodeWeb64String(rsajson.Modulus)
+		k, err := newRsaPublicKeyFromJSON([]byte(s))
 		if err != nil {
-			return nil, ErrBase64Decoding
+			return nil, err
 		}
-		rsakey.key.N = big.NewInt(0).SetBytes(b)
 
-		b, err = decodeWeb64String(rsajson.PublicExponent)
-		if err != nil {
-			return nil, ErrBase64Decoding
-		}
-		rsakey.key.E = int(big.NewInt(0).SetBytes(b).Int64())
-
-		keys[kv.VersionNumber] = rsakey
+		keys[kv.VersionNumber] = k
 	}
 
 	return keys, nil
+}
+
+func newRsaKeyFromJSON(s []byte) (*rsaKey, error) {
+
+	rsakey := new(rsaKey)
+	rsajson := new(rsaKeyJSON)
+	json.Unmarshal([]byte(s), &rsajson)
+
+	if !ktRSA_PRIV.isAcceptableSize(rsajson.Size) || !ktRSA_PUB.isAcceptableSize(rsajson.PublicKey.Size) {
+		return nil, ErrInvalidKeySize
+	}
+
+	b, err := decodeWeb64String(rsajson.CrtCoefficient)
+	if err != nil {
+		return nil, ErrBase64Decoding
+	}
+	rsakey.key.Precomputed.Qinv = big.NewInt(0).SetBytes(b)
+
+	b, err = decodeWeb64String(rsajson.PrimeExponentP)
+	if err != nil {
+		return nil, ErrBase64Decoding
+	}
+	rsakey.key.Precomputed.Dp = big.NewInt(0).SetBytes(b)
+
+	b, err = decodeWeb64String(rsajson.PrimeExponentQ)
+	if err != nil {
+		return nil, ErrBase64Decoding
+	}
+	rsakey.key.Precomputed.Dq = big.NewInt(0).SetBytes(b)
+
+	b, err = decodeWeb64String(rsajson.PrimeP)
+	if err != nil {
+		return nil, ErrBase64Decoding
+	}
+	p := big.NewInt(0).SetBytes(b)
+
+	b, err = decodeWeb64String(rsajson.PrimeQ)
+	if err != nil {
+		return nil, ErrBase64Decoding
+	}
+	q := big.NewInt(0).SetBytes(b)
+
+	rsakey.key.Primes = []*big.Int{p, q}
+
+	b, err = decodeWeb64String(rsajson.PrivateExponent)
+	if err != nil {
+		return nil, ErrBase64Decoding
+	}
+	rsakey.key.D = big.NewInt(0).SetBytes(b)
+
+	b, err = decodeWeb64String(rsajson.PublicKey.Modulus)
+	if err != nil {
+		return nil, ErrBase64Decoding
+	}
+	rsakey.key.PublicKey.N = big.NewInt(0).SetBytes(b)
+	rsakey.publicKey.key.N = rsakey.key.PublicKey.N
+
+	b, err = decodeWeb64String(rsajson.PublicKey.PublicExponent)
+	if err != nil {
+		return nil, ErrBase64Decoding
+	}
+	rsakey.key.PublicKey.E = int(big.NewInt(0).SetBytes(b).Int64())
+	rsakey.publicKey.key.E = rsakey.key.PublicKey.E
+
+	return rsakey, nil
 }
 
 func newRsaKeys(r KeyReader, km keyMeta) (map[int]keyIDer, error) {
@@ -607,67 +726,12 @@ func newRsaKeys(r KeyReader, km keyMeta) (map[int]keyIDer, error) {
 			return nil, err
 		}
 
-		rsakey := new(rsaKey)
-		rsajson := new(rsaKeyJSON)
-		json.Unmarshal([]byte(s), &rsajson)
-
-		if !ktRSA_PRIV.isAcceptableSize(rsajson.Size) || !ktRSA_PUB.isAcceptableSize(rsajson.PublicKey.Size) {
-			return nil, ErrInvalidKeySize
-		}
-
-		b, err := decodeWeb64String(rsajson.CrtCoefficient)
+		k, err := newRsaKeyFromJSON([]byte(s))
 		if err != nil {
-			return nil, ErrBase64Decoding
+			return nil, err
 		}
-		rsakey.key.Precomputed.Qinv = big.NewInt(0).SetBytes(b)
 
-		b, err = decodeWeb64String(rsajson.PrimeExponentP)
-		if err != nil {
-			return nil, ErrBase64Decoding
-		}
-		rsakey.key.Precomputed.Dp = big.NewInt(0).SetBytes(b)
-
-		b, err = decodeWeb64String(rsajson.PrimeExponentQ)
-		if err != nil {
-			return nil, ErrBase64Decoding
-		}
-		rsakey.key.Precomputed.Dq = big.NewInt(0).SetBytes(b)
-
-		b, err = decodeWeb64String(rsajson.PrimeP)
-		if err != nil {
-			return nil, ErrBase64Decoding
-		}
-		p := big.NewInt(0).SetBytes(b)
-
-		b, err = decodeWeb64String(rsajson.PrimeQ)
-		if err != nil {
-			return nil, ErrBase64Decoding
-		}
-		q := big.NewInt(0).SetBytes(b)
-
-		rsakey.key.Primes = []*big.Int{p, q}
-
-		b, err = decodeWeb64String(rsajson.PrivateExponent)
-		if err != nil {
-			return nil, ErrBase64Decoding
-		}
-		rsakey.key.D = big.NewInt(0).SetBytes(b)
-
-		b, err = decodeWeb64String(rsajson.PublicKey.Modulus)
-		if err != nil {
-			return nil, ErrBase64Decoding
-		}
-		rsakey.key.PublicKey.N = big.NewInt(0).SetBytes(b)
-		rsakey.publicKey.key.N = rsakey.key.PublicKey.N
-
-		b, err = decodeWeb64String(rsajson.PublicKey.PublicExponent)
-		if err != nil {
-			return nil, ErrBase64Decoding
-		}
-		rsakey.key.PublicKey.E = int(big.NewInt(0).SetBytes(b).Int64())
-		rsakey.publicKey.key.E = rsakey.key.PublicKey.E
-
-		keys[kv.VersionNumber] = rsakey
+		keys[kv.VersionNumber] = k
 	}
 
 	return keys, nil
