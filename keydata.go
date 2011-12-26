@@ -84,7 +84,7 @@ func generateHmacKey() *hmacKey {
 }
 
 type aesKeyJSON struct {
-	AesKeyString string      `json:"aesKeyString"`
+	AESKeyString string      `json:"aesKeyString"`
 	Size         uint        `json:"size"`
 	HmacKey      hmacKeyJSON `json:"hmacKey"`
 	Mode         cipherMode  `json:"mode"`
@@ -95,7 +95,7 @@ type aesKey struct {
 	hmacKey hmacKey
 }
 
-func generateAesKey() *aesKey {
+func generateAESKey() *aesKey {
 	ak := new(aesKey)
 
 	ak.key = make([]byte, ktAES.defaultSize()/8)
@@ -110,7 +110,7 @@ func (ak *aesKey) packedKeys() []byte {
 	return lenPrefixPack(ak.key, ak.hmacKey.key)
 }
 
-func newAesFromPackedKeys(b []byte) (*aesKey, error) {
+func newAESFromPackedKeys(b []byte) (*aesKey, error) {
 
 	keys := lenPrefixUnpack(b)
 
@@ -141,7 +141,7 @@ func (ak *aesKey) KeyID() []byte {
 
 }
 
-func newAesKeyFromJSON(s []byte) (*aesKey, error) {
+func newAESKeyFromJSON(s []byte) (*aesKey, error) {
 	aeskey := new(aesKey)
 	aesjson := new(aesKeyJSON)
 	json.Unmarshal([]byte(s), &aesjson)
@@ -151,7 +151,7 @@ func newAesKeyFromJSON(s []byte) (*aesKey, error) {
 	}
 
 	var err error
-	aeskey.key, err = decodeWeb64String(aesjson.AesKeyString)
+	aeskey.key, err = decodeWeb64String(aesjson.AESKeyString)
 	if err != nil {
 		return nil, ErrBase64Decoding
 	}
@@ -168,12 +168,12 @@ func newAesKeyFromJSON(s []byte) (*aesKey, error) {
 	return aeskey, nil
 }
 
-func newAesJSONFromKey(key *aesKey) *aesKeyJSON {
-	// inverse of code with newAesKeys
+func newAESJSONFromKey(key *aesKey) *aesKeyJSON {
+	// inverse of code with newAESKeys
 
 	aesjson := new(aesKeyJSON)
 
-	aesjson.AesKeyString = encodeWeb64String(key.key)
+	aesjson.AESKeyString = encodeWeb64String(key.key)
 	aesjson.Size = uint(len(key.key)) * 8
 	aesjson.HmacKey.HmacKeyString = encodeWeb64String(key.hmacKey.key)
 	aesjson.HmacKey.Size = uint(len(key.hmacKey.key)) * 8
@@ -182,8 +182,8 @@ func newAesJSONFromKey(key *aesKey) *aesKeyJSON {
 	return aesjson
 }
 
-func newAesKeys(r KeyReader, km keyMeta) (map[int]keyIDer, error) {
-	return newKeysFromJSON(r, km, func(s []byte) (keyIDer, error) { return newAesKeyFromJSON(s) })
+func newAESKeys(r KeyReader, km keyMeta) (map[int]keyIDer, error) {
+	return newKeysFromJSON(r, km, func(s []byte) (keyIDer, error) { return newAESKeyFromJSON(s) })
 }
 
 func (ak *aesKey) Encrypt(data []byte) ([]byte, error) {

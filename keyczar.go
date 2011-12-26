@@ -324,8 +324,8 @@ func NewSigner(r KeyReader) (Signer, error) {
 // NewSessionEncrypter returns an Encrypter that has been initailized with a random session key.  This key material is encrypted with crypter and returned.
 func NewSessionEncrypter(encrypter Encrypter) (Crypter, string, error) {
 
-	aeskey := generateAesKey()
-	r := newImportedAesKeyReader(aeskey)
+	aeskey := generateAESKey()
+	r := newImportedAESKeyReader(aeskey)
 
 	keys, err := encrypter.Encrypt(aeskey.packedKeys())
 	if err != nil {
@@ -344,11 +344,11 @@ func NewSessionDecrypter(crypter Crypter, sessionKeys string) (Crypter, error) {
 		return nil, err
 	}
 
-	aeskey, err := newAesFromPackedKeys(packedKeys)
+	aeskey, err := newAESFromPackedKeys(packedKeys)
 	if err != nil {
 		return nil, err
 	}
-	r := newImportedAesKeyReader(aeskey)
+	r := newImportedAESKeyReader(aeskey)
 
 	return NewCrypter(r)
 }
@@ -395,7 +395,7 @@ func newKeyCzar(r KeyReader, purpose keyPurpose) (*keyCzar, error) {
 
 	switch kz.keymeta.Type {
 	case ktAES:
-		kz.keys, err = newAesKeys(r, kz.keymeta)
+		kz.keys, err = newAESKeys(r, kz.keymeta)
 	case ktHMAC_SHA1:
 		kz.keys, err = newHmacKeys(r, kz.keymeta)
 	case ktDSA_PRIV:

@@ -374,28 +374,28 @@ func ImportRSAPublicKeyFromCertificateForCrypt(location string) (KeyReader, erro
 }
 
 // fake reader for an AES key
-type importedAesKeyReader struct {
+type importedAESKeyReader struct {
 	km      keyMeta    // our fake meta info
 	aesjson aesKeyJSON // the aes key we're importing
 }
 
 // construct a fake keyreader for the provided aes key
-func newImportedAesKeyReader(key *aesKey) KeyReader {
-	r := new(importedAesKeyReader)
+func newImportedAESKeyReader(key *aesKey) KeyReader {
+	r := new(importedAESKeyReader)
 	kv := keyVersion{1, ksPRIMARY, false}
 	r.km = keyMeta{"Imported AES Key", ktAES, kpDECRYPT_AND_ENCRYPT, false, []keyVersion{kv}}
 
-	r.aesjson = *newAesJSONFromKey(key)
+	r.aesjson = *newAESJSONFromKey(key)
 
 	return r
 }
 
-func (r *importedAesKeyReader) GetMetadata() (string, error) {
+func (r *importedAESKeyReader) GetMetadata() (string, error) {
 	b, err := json.Marshal(r.km)
 	return string(b), err
 }
 
-func (r *importedAesKeyReader) GetKey(version int) (string, error) {
+func (r *importedAESKeyReader) GetKey(version int) (string, error) {
 	b, err := json.Marshal(r.aesjson)
 	return string(b), err
 }

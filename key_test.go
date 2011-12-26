@@ -141,17 +141,17 @@ func testDecrypt(t *testing.T, keytype string, f KeyReader) {
 	}
 }
 
-func TestAesEncrypt(t *testing.T) {
+func TestAESEncrypt(t *testing.T) {
 	keytype := "aes"
 	testEncrypt(t, keytype, NewFileReader(TESTDATA+keytype))
 }
 
-func TestAesEncryptDecrypt(t *testing.T) {
+func TestAESEncryptDecrypt(t *testing.T) {
 	keytype := "aes"
 	testEncryptDecrypt(t, keytype, NewFileReader(TESTDATA+keytype))
 }
 
-func TestAesDecrypt(t *testing.T) {
+func TestAESDecrypt(t *testing.T) {
 	keytype := "aes"
 	testDecrypt(t, keytype, NewFileReader(TESTDATA+keytype))
 }
@@ -242,8 +242,8 @@ func TestRSACertImport(t *testing.T) {
 }
 */
 
-func TestGeneratedAesEncryptDecrypt(t *testing.T) {
-	r := newImportedAesKeyReader(generateAesKey())
+func TestGeneratedAESEncryptDecrypt(t *testing.T) {
+	r := newImportedAESKeyReader(generateAESKey())
 	testEncryptDecrypt(t, "aes generated", r)
 }
 
