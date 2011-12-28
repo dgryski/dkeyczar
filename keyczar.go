@@ -40,11 +40,9 @@ const (
 
 // Our main base type.  We only expose this through one of the interfaces.
 type keyCzar struct {
-	keymeta     keyMeta         // metadata for this key
-	keys        map[int]keyIDer // maps versions to keys
-	primary     int             // integer version of the primary key
-	encoding    KeyczarEncoding
-	compression KeyczarCompression
+	keymeta keyMeta         // metadata for this key
+	keys    map[int]keyIDer // maps versions to keys
+	primary int             // integer version of the primary key
 }
 
 type KeyczarCompressionController interface {
@@ -59,26 +57,6 @@ type KeyczarEncodingController interface {
 	SetEncoding(encoding KeyczarEncoding)
 	// Return the current output encoding
 	Encoding() KeyczarEncoding
-}
-
-// Compression returns the current compression type for keyczar object
-func (kz *keyCzar) Compression() KeyczarCompression {
-	return kz.compression
-}
-
-// SetCompression sets the current compression type for the keyczar object
-func (kz *keyCzar) SetCompression(compression KeyczarCompression) {
-	kz.compression = compression
-}
-
-// Encoding returns the current output encoding for the keyczar object
-func (kz *keyCzar) Encoding() KeyczarEncoding {
-	return kz.encoding
-}
-
-// SetEncoding sets the current output encoding for the keyczar object
-func (kz *keyCzar) SetEncoding(encoding KeyczarEncoding) {
-	kz.encoding = encoding
 }
 
 // A type that can used for encrypting
@@ -110,10 +88,24 @@ type Verifier interface {
 	Verify(message []byte, signature string) (bool, error)
 }
 
-// return 'data' encoded based on the value of the 'encoding' field
-func (kz *keyCzar) encode(data []byte) []byte {
+type encodingController struct {
+	encoding KeyczarEncoding
+}
 
-	switch kz.encoding {
+// Encoding returns the current output encoding for the keyczar object
+func (ec *encodingController) Encoding() KeyczarEncoding {
+	return ec.encoding
+}
+
+// SetEncoding sets the current output encoding for the keyczar object
+func (ec *encodingController) SetEncoding(encoding KeyczarEncoding) {
+	ec.encoding = encoding
+}
+
+// return 'data' encoded based on the value of the 'encoding' field
+func (ec *encodingController) encode(data []byte) []byte {
+
+	switch ec.encoding {
 	case NO_ENCODING:
 		return data
 	case BASE64W:
@@ -124,9 +116,9 @@ func (kz *keyCzar) encode(data []byte) []byte {
 }
 
 // return 'data' decoded based on the value of the 'encoding' field
-func (kz *keyCzar) decode(data []byte) ([]byte, error) {
+func (ec *encodingController) decode(data []byte) ([]byte, error) {
 
-	switch kz.encoding {
+	switch ec.encoding {
 	case NO_ENCODING:
 		return data, nil
 	case BASE64W:
@@ -136,10 +128,24 @@ func (kz *keyCzar) decode(data []byte) ([]byte, error) {
 	panic("not reached")
 }
 
-// return 'data' compressed based on the value of the 'compression' field
-func (kz *keyCzar) compress(data []byte) []byte {
+type compressionController struct {
+	compression KeyczarCompression
+}
 
-	switch kz.compression {
+// Compression returns the current compression type for keyczar object
+func (cc *compressionController) Compression() KeyczarCompression {
+	return cc.compression
+}
+
+// SetCompression sets the current compression type for the keyczar object
+func (cc *compressionController) SetCompression(compression KeyczarCompression) {
+	cc.compression = compression
+}
+
+// return 'data' compressed based on the value of the 'compression' field
+func (cc *compressionController) compress(data []byte) []byte {
+
+	switch cc.compression {
 	case NO_COMPRESSION:
 		return data
 	case GZIP:
@@ -160,9 +166,9 @@ func (kz *keyCzar) compress(data []byte) []byte {
 }
 
 // return 'data' decompressed based on the value of the 'compression' field
-func (kz *keyCzar) decompress(data []byte) ([]byte, error) {
+func (cc *compressionController) decompress(data []byte) ([]byte, error) {
 
-	switch kz.compression {
+	switch cc.compression {
 	case NO_COMPRESSION:
 		return data, nil
 
@@ -191,9 +197,15 @@ func (kz *keyCzar) decompress(data []byte) ([]byte, error) {
 	panic("not reached")
 }
 
+type keyCrypter struct {
+	*keyCzar
+	encodingController
+	compressionController
+}
+
 // Encrypt plaintext and return encoded encrypted text as a string
 // All the heavy lifting is done by the key
-func (kz *keyCzar) Encrypt(plaintext []uint8) (string, error) {
+func (kz *keyCrypter) Encrypt(plaintext []uint8) (string, error) {
 
 	key := kz.keys[kz.primary]
 
@@ -214,7 +226,7 @@ func (kz *keyCzar) Encrypt(plaintext []uint8) (string, error) {
 
 // Decode and decrypt ciphertext and return plaintext as []byte
 // All the heavy lifting is done by the key
-func (kz *keyCzar) Decrypt(ciphertext string) ([]uint8, error) {
+func (kz *keyCrypter) Decrypt(ciphertext string) ([]uint8, error) {
 
 	b, err := kz.decode([]byte(ciphertext))
 
@@ -246,9 +258,14 @@ func (kz *keyCzar) Decrypt(ciphertext string) ([]uint8, error) {
 	return nil, ErrKeyNotFound
 }
 
+type keySigner struct {
+	*keyCzar
+	encodingController
+}
+
 // Verify the signature on 'msg'
 // All the heavy lifting is done by the key
-func (kz *keyCzar) Verify(msg []byte, signature string) (bool, error) {
+func (kz *keySigner) Verify(msg []byte, signature string) (bool, error) {
 
 	b, err := kz.decode([]byte(signature))
 
@@ -285,7 +302,7 @@ func (kz *keyCzar) Verify(msg []byte, signature string) (bool, error) {
 
 // Return a signature for 'msg'
 // All the heavy lifting is done by the key
-func (kz *keyCzar) Sign(msg []byte) (string, error) {
+func (kz *keySigner) Sign(msg []byte) (string, error) {
 
 	key := kz.keys[kz.primary]
 
@@ -311,22 +328,48 @@ func (kz *keyCzar) Sign(msg []byte) (string, error) {
 
 // NewCrypter returns an object capable of encrypting and decrypting using the key provded by the reader
 func NewCrypter(r KeyReader) (Crypter, error) {
-	return newKeyCzar(r, kpDECRYPT_AND_ENCRYPT)
+	k := new(keyCrypter)
+	var err error
+	k.keyCzar, err = newKeyCzar(r, kpDECRYPT_AND_ENCRYPT)
+
+	k.encoding = BASE64W
+	k.compression = NO_COMPRESSION
+
+	return k, err
 }
 
 // NewEncypter returns an object capable of encrypting using the key provded by the reader
 func NewEncrypter(r KeyReader) (Encrypter, error) {
-	return newKeyCzar(r, kpENCRYPT)
+	k := new(keyCrypter)
+	var err error
+	k.keyCzar, err = newKeyCzar(r, kpENCRYPT)
+
+	k.encoding = BASE64W
+	k.compression = NO_COMPRESSION
+
+	return k, err
 }
 
 // NewVerifier returns an object capable of verifying signatures using the key provded by the reader
 func NewVerifier(r KeyReader) (Verifier, error) {
-	return newKeyCzar(r, kpVERIFY)
+	k := new(keySigner)
+	var err error
+	k.keyCzar, err = newKeyCzar(r, kpVERIFY)
+
+	k.encoding = BASE64W
+
+	return k, err
 }
 
 // NewSigner returns an object capable of creating and verifying signatures using the key provded by the reader
 func NewSigner(r KeyReader) (Signer, error) {
-	return newKeyCzar(r, kpSIGN_AND_VERIFY)
+	k := new(keySigner)
+	var err error
+	k.keyCzar, err = newKeyCzar(r, kpSIGN_AND_VERIFY)
+
+	k.encoding = BASE64W
+
+	return k, err
 }
 
 // NewSessionEncrypter returns an Encrypter that has been initailized with a random session key.  This key material is encrypted with crypter and returned.
@@ -365,9 +408,6 @@ func NewSessionDecrypter(crypter Crypter, sessionKeys string) (Crypter, error) {
 func newKeyCzar(r KeyReader, purpose keyPurpose) (*keyCzar, error) {
 
 	kz := new(keyCzar)
-
-	kz.encoding = BASE64W
-	kz.compression = NO_COMPRESSION
 
 	s, err := r.GetMetadata()
 	if err != nil {
