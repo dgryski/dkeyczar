@@ -330,7 +330,7 @@ func (kz *keySigner) Sign(msg []byte) (string, error) {
 func NewCrypter(r KeyReader) (Crypter, error) {
 	k := new(keyCrypter)
 	var err error
-	k.keyCzar, err = newKeyCzar(r, kpDECRYPT_AND_ENCRYPT)
+	k.keyCzar, err = newKeyCzar(r, P_DECRYPT_AND_ENCRYPT)
 
 	k.encoding = BASE64W
 	k.compression = NO_COMPRESSION
@@ -342,7 +342,7 @@ func NewCrypter(r KeyReader) (Crypter, error) {
 func NewEncrypter(r KeyReader) (Encrypter, error) {
 	k := new(keyCrypter)
 	var err error
-	k.keyCzar, err = newKeyCzar(r, kpENCRYPT)
+	k.keyCzar, err = newKeyCzar(r, P_ENCRYPT)
 
 	k.encoding = BASE64W
 	k.compression = NO_COMPRESSION
@@ -354,7 +354,7 @@ func NewEncrypter(r KeyReader) (Encrypter, error) {
 func NewVerifier(r KeyReader) (Verifier, error) {
 	k := new(keySigner)
 	var err error
-	k.keyCzar, err = newKeyCzar(r, kpVERIFY)
+	k.keyCzar, err = newKeyCzar(r, P_VERIFY)
 
 	k.encoding = BASE64W
 
@@ -365,7 +365,7 @@ func NewVerifier(r KeyReader) (Verifier, error) {
 func NewSigner(r KeyReader) (Signer, error) {
 	k := new(keySigner)
 	var err error
-	k.keyCzar, err = newKeyCzar(r, kpSIGN_AND_VERIFY)
+	k.keyCzar, err = newKeyCzar(r, P_SIGN_AND_VERIFY)
 
 	k.encoding = BASE64W
 
@@ -427,7 +427,7 @@ func newKeyCzar(r KeyReader, purpose keyPurpose) (*keyCzar, error) {
 	// search for the primary key
 	kz.primary = -1
 	for _, v := range kz.keymeta.Versions {
-		if v.Status == ksPRIMARY {
+		if v.Status == S_PRIMARY {
 			if kz.primary == -1 {
 				kz.primary = v.VersionNumber
 			} else {
@@ -442,17 +442,17 @@ func newKeyCzar(r KeyReader, purpose keyPurpose) (*keyCzar, error) {
 	}
 
 	switch kz.keymeta.Type {
-	case ktAES:
+	case T_AES:
 		kz.keys, err = newAESKeys(r, kz.keymeta)
-	case ktHMAC_SHA1:
+	case T_HMAC_SHA1:
 		kz.keys, err = newHMACKeys(r, kz.keymeta)
-	case ktDSA_PRIV:
+	case T_DSA_PRIV:
 		kz.keys, err = newDSAKeys(r, kz.keymeta)
-	case ktDSA_PUB:
+	case T_DSA_PUB:
 		kz.keys, err = newDSAPublicKeys(r, kz.keymeta)
-	case ktRSA_PRIV:
+	case T_RSA_PRIV:
 		kz.keys, err = newRSAKeys(r, kz.keymeta)
-	case ktRSA_PUB:
+	case T_RSA_PUB:
 		kz.keys, err = newRSAPublicKeys(r, kz.keymeta)
 	default:
 		return nil, ErrUnsupportedType

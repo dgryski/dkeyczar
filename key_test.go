@@ -252,10 +252,10 @@ func TestGeneratedAESEncryptDecrypt(t *testing.T) {
 func TestGeneratedRSA(t *testing.T) {
 	t.Log("generating rsa key...")
 	k := generateRSAKey()
-	r := newImportedRSAPrivateKeyReader(&k.key, kpDECRYPT_AND_ENCRYPT)
+	r := newImportedRSAPrivateKeyReader(&k.key, P_DECRYPT_AND_ENCRYPT)
 	testEncryptDecrypt(t, "rsa generated", r)
 
-	r = newImportedRSAPrivateKeyReader(&k.key, kpSIGN_AND_VERIFY)
+	r = newImportedRSAPrivateKeyReader(&k.key, P_SIGN_AND_VERIFY)
 	testSignVerify(t, "rsa generated", r)
 }
 */

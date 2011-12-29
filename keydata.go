@@ -77,7 +77,7 @@ type hmacKey struct {
 func generateHMACKey() *hmacKey {
 	hk := new(hmacKey)
 
-	hk.key = make([]byte, ktHMAC_SHA1.defaultSize()/8)
+	hk.key = make([]byte, T_HMAC_SHA1.defaultSize()/8)
 	io.ReadFull(rand.Reader, hk.key)
 
 	return hk
@@ -98,7 +98,7 @@ type aesKey struct {
 func generateAESKey() *aesKey {
 	ak := new(aesKey)
 
-	ak.key = make([]byte, ktAES.defaultSize()/8)
+	ak.key = make([]byte, T_AES.defaultSize()/8)
 	io.ReadFull(rand.Reader, ak.key)
 
 	ak.hmacKey = *generateHMACKey()
@@ -114,7 +114,7 @@ func newAESFromPackedKeys(b []byte) (*aesKey, error) {
 
 	keys := lenPrefixUnpack(b)
 
-	if len(keys) != 2 || !ktAES.isAcceptableSize(uint(len(keys[0]))*8) || !ktHMAC_SHA1.isAcceptableSize(uint(len(keys[1]))*8) {
+	if len(keys) != 2 || !T_AES.isAcceptableSize(uint(len(keys[0]))*8) || !T_HMAC_SHA1.isAcceptableSize(uint(len(keys[1]))*8) {
 		return nil, ErrInvalidKeySize
 	}
 
@@ -146,7 +146,7 @@ func newAESKeyFromJSON(s []byte) (*aesKey, error) {
 	aesjson := new(aesKeyJSON)
 	json.Unmarshal([]byte(s), &aesjson)
 
-	if !ktAES.isAcceptableSize(aesjson.Size) {
+	if !T_AES.isAcceptableSize(aesjson.Size) {
 		return nil, ErrInvalidKeySize
 	}
 
@@ -156,7 +156,7 @@ func newAESKeyFromJSON(s []byte) (*aesKey, error) {
 		return nil, ErrBase64Decoding
 	}
 
-	if !ktHMAC_SHA1.isAcceptableSize(aesjson.HMACKey.Size) {
+	if !T_HMAC_SHA1.isAcceptableSize(aesjson.HMACKey.Size) {
 		return nil, ErrInvalidKeySize
 	}
 
@@ -262,7 +262,7 @@ func newHMACKeyFromJSON(s []byte) (*hmacKey, error) {
 	hmacjson := new(hmacKeyJSON)
 	json.Unmarshal(s, &hmacjson)
 
-	if !ktHMAC_SHA1.isAcceptableSize(hmacjson.Size) {
+	if !T_HMAC_SHA1.isAcceptableSize(hmacjson.Size) {
 		return nil, ErrInvalidKeySize
 	}
 
@@ -351,7 +351,7 @@ func generateDSAKey() *dsaKey {
 	dsakey := new(dsaKey)
 
 	var psz dsa.ParameterSizes
-	switch ktDSA_PRIV.defaultSize() {
+	switch T_DSA_PRIV.defaultSize() {
 	case 1024:
 		psz = dsa.L1024N160
 	default:
@@ -378,7 +378,7 @@ func newDSAPublicKeyFromJSON(s []byte) (*dsaPublicKey, error) {
 	dsajson := new(dsaPublicKeyJSON)
 	json.Unmarshal([]byte(s), &dsajson)
 
-	if !ktDSA_PUB.isAcceptableSize(dsajson.Size) {
+	if !T_DSA_PUB.isAcceptableSize(dsajson.Size) {
 		return nil, ErrInvalidKeySize
 	}
 
@@ -434,7 +434,7 @@ func newDSAKeyFromJSON(s []byte) (*dsaKey, error) {
 	dsajson := new(dsaKeyJSON)
 	json.Unmarshal([]byte(s), &dsajson)
 
-	if !ktDSA_PRIV.isAcceptableSize(dsajson.Size) || !ktDSA_PUB.isAcceptableSize(dsajson.PublicKey.Size) {
+	if !T_DSA_PRIV.isAcceptableSize(dsajson.Size) || !T_DSA_PUB.isAcceptableSize(dsajson.PublicKey.Size) {
 		return nil, ErrInvalidKeySize
 	}
 
@@ -572,7 +572,7 @@ func generateRSAKey() *rsaKey {
 
 	rsakey := new(rsaKey)
 
-	priv, err := rsa.GenerateKey(rand.Reader, int(ktRSA_PRIV.defaultSize()))
+	priv, err := rsa.GenerateKey(rand.Reader, int(T_RSA_PRIV.defaultSize()))
 	if err != nil {
 		panic("error during rsa key generation")
 	}
@@ -611,7 +611,7 @@ func newRSAPublicKeyFromJSON(s []byte) (*rsaPublicKey, error) {
 	rsajson := new(rsaPublicKeyJSON)
 	json.Unmarshal([]byte(s), &rsajson)
 
-	if !ktRSA_PUB.isAcceptableSize(rsajson.Size) {
+	if !T_RSA_PUB.isAcceptableSize(rsajson.Size) {
 		return nil, ErrInvalidKeySize
 	}
 
@@ -655,7 +655,7 @@ func newRSAKeyFromJSON(s []byte) (*rsaKey, error) {
 	rsajson := new(rsaKeyJSON)
 	json.Unmarshal([]byte(s), &rsajson)
 
-	if !ktRSA_PRIV.isAcceptableSize(rsajson.Size) || !ktRSA_PUB.isAcceptableSize(rsajson.PublicKey.Size) {
+	if !T_RSA_PRIV.isAcceptableSize(rsajson.Size) || !T_RSA_PUB.isAcceptableSize(rsajson.PublicKey.Size) {
 		return nil, ErrInvalidKeySize
 	}
 

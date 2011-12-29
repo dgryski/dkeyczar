@@ -181,8 +181,8 @@ type importedRSAPrivateKeyReader struct {
 // construct a fake keyreader for the provided rsa private key and purpose
 func newImportedRSAPrivateKeyReader(key *rsa.PrivateKey, purpose keyPurpose) KeyReader {
 	r := new(importedRSAPrivateKeyReader)
-	kv := keyVersion{0, ksPRIMARY, false}
-	r.km = keyMeta{"Imported RSA Private Key", ktRSA_PRIV, purpose, false, []keyVersion{kv}}
+	kv := keyVersion{0, S_PRIMARY, false}
+	r.km = keyMeta{"Imported RSA Private Key", T_RSA_PRIV, purpose, false, []keyVersion{kv}}
 
 	r.rsajson = *newRSAJSONFromKey(key)
 
@@ -229,7 +229,7 @@ func ImportRSAKeyFromPEMForSigning(location string) (KeyReader, error) {
 		return nil, err
 	}
 
-	r := newImportedRSAPrivateKeyReader(priv, kpSIGN_AND_VERIFY)
+	r := newImportedRSAPrivateKeyReader(priv, P_SIGN_AND_VERIFY)
 
 	return r, nil
 }
@@ -243,7 +243,7 @@ func ImportRSAKeyFromPEMForCrypt(location string) (KeyReader, error) {
 		return nil, err
 	}
 
-	r := newImportedRSAPrivateKeyReader(priv, kpDECRYPT_AND_ENCRYPT)
+	r := newImportedRSAPrivateKeyReader(priv, P_DECRYPT_AND_ENCRYPT)
 
 	return r, nil
 }
@@ -257,8 +257,8 @@ type importedRSAPublicKeyReader struct {
 // construct a fake keyreader for the provided rsa public key and purpose
 func newImportedRSAPublicKeyReader(key *rsa.PublicKey, purpose keyPurpose) KeyReader {
 	r := new(importedRSAPublicKeyReader)
-	kv := keyVersion{0, ksPRIMARY, false}
-	r.km = keyMeta{"Imported RSA Public Key", ktRSA_PUB, purpose, false, []keyVersion{kv}}
+	kv := keyVersion{0, S_PRIMARY, false}
+	r.km = keyMeta{"Imported RSA Public Key", T_RSA_PUB, purpose, false, []keyVersion{kv}}
 
 	r.rsajson = *newRSAPublicJSONFromKey(key)
 
@@ -311,7 +311,7 @@ func ImportRSAPublicKeyFromPEMForEncryption(location string) (KeyReader, error) 
 	if err != nil {
 		return nil, err
 	}
-	r := newImportedRSAPublicKeyReader(rsapub, kpENCRYPT)
+	r := newImportedRSAPublicKeyReader(rsapub, P_ENCRYPT)
 
 	return r, nil
 }
@@ -324,7 +324,7 @@ func ImportRSAPublicKeyFromPEMForVerify(location string) (KeyReader, error) {
 	if err != nil {
 		return nil, err
 	}
-	r := newImportedRSAPublicKeyReader(rsapub, kpVERIFY)
+	r := newImportedRSAPublicKeyReader(rsapub, P_VERIFY)
 
 	return r, nil
 }
@@ -361,7 +361,7 @@ func ImportRSAPublicKeyFromCertificateForVerify(location string) (KeyReader, err
 	if err != nil {
 		return nil, err
 	}
-	r := newImportedRSAPublicKeyReader(rsapub, kpVERIFY)
+	r := newImportedRSAPublicKeyReader(rsapub, P_VERIFY)
 
 	return r, nil
 }
@@ -374,7 +374,7 @@ func ImportRSAPublicKeyFromCertificateForCrypt(location string) (KeyReader, erro
 	if err != nil {
 		return nil, err
 	}
-	r := newImportedRSAPublicKeyReader(rsapub, kpENCRYPT)
+	r := newImportedRSAPublicKeyReader(rsapub, P_ENCRYPT)
 
 	return r, nil
 }
@@ -388,8 +388,8 @@ type importedAESKeyReader struct {
 // construct a fake keyreader for the provided aes key
 func newImportedAESKeyReader(key *aesKey) KeyReader {
 	r := new(importedAESKeyReader)
-	kv := keyVersion{0, ksPRIMARY, false}
-	r.km = keyMeta{"Imported AES Key", ktAES, kpDECRYPT_AND_ENCRYPT, false, []keyVersion{kv}}
+	kv := keyVersion{0, S_PRIMARY, false}
+	r.km = keyMeta{"Imported AES Key", T_AES, P_DECRYPT_AND_ENCRYPT, false, []keyVersion{kv}}
 
 	r.aesjson = *newAESJSONFromKey(key)
 
@@ -418,8 +418,8 @@ type importedDSAPrivateKeyReader struct {
 // construct a fake keyreader for the provided dsa private key
 func newImportedDSAPrivateKeyReader(key *dsa.PrivateKey) KeyReader {
 	r := new(importedDSAPrivateKeyReader)
-	kv := keyVersion{0, ksPRIMARY, false}
-	r.km = keyMeta{"Imported DSA Private Key", ktDSA_PRIV, kpSIGN_AND_VERIFY, false, []keyVersion{kv}}
+	kv := keyVersion{0, S_PRIMARY, false}
+	r.km = keyMeta{"Imported DSA Private Key", T_DSA_PRIV, P_SIGN_AND_VERIFY, false, []keyVersion{kv}}
 
 	r.dsajson = *newDSAJSONFromKey(key)
 

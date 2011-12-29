@@ -3,12 +3,12 @@ package dkeyczar
 type keyType int
 
 const (
-	ktAES keyType = iota
-	ktHMAC_SHA1
-	ktDSA_PRIV
-	ktDSA_PUB
-	ktRSA_PRIV
-	ktRSA_PUB
+	T_AES keyType = iota
+	T_HMAC_SHA1
+	T_DSA_PRIV
+	T_DSA_PUB
+	T_RSA_PRIV
+	T_RSA_PUB
 )
 
 // This struct copies the Java layout, but suffers from YAGNI
@@ -20,12 +20,12 @@ var keyTypeInfo = map[keyType]struct {
 	output  uint
 	outputs []uint
 }{
-	ktAES:       {"AES", []byte("\"AES\""), []uint{128, 192, 256}, 128, nil},
-	ktHMAC_SHA1: {"HMAC_SHA1", []byte("\"HMAC_SHA1\""), []uint{256}, 160, nil},
-	ktDSA_PRIV:  {"DSA_PRIV", []byte("\"DSA_PRIV\""), []uint{1024}, 384, nil},
-	ktDSA_PUB:   {"DSA_PUB", []byte("\"DSA_PUB\""), []uint{1024}, 384, nil},
-	ktRSA_PRIV:  {"RSA_PRIV", []byte("\"RSA_PRIV\""), []uint{4096, 2048, 1024}, 0, []uint{512, 256, 128}},
-	ktRSA_PUB:   {"RSA_PUB", []byte("\"RSA_PUB\""), []uint{4096, 2048, 1024}, 0, []uint{512, 256, 128}},
+	T_AES:       {"AES", []byte("\"AES\""), []uint{128, 192, 256}, 128, nil},
+	T_HMAC_SHA1: {"HMAC_SHA1", []byte("\"HMAC_SHA1\""), []uint{256}, 160, nil},
+	T_DSA_PRIV:  {"DSA_PRIV", []byte("\"DSA_PRIV\""), []uint{1024}, 384, nil},
+	T_DSA_PUB:   {"DSA_PUB", []byte("\"DSA_PUB\""), []uint{1024}, 384, nil},
+	T_RSA_PRIV:  {"RSA_PRIV", []byte("\"RSA_PRIV\""), []uint{4096, 2048, 1024}, 0, []uint{512, 256, 128}},
+	T_RSA_PUB:   {"RSA_PUB", []byte("\"RSA_PUB\""), []uint{4096, 2048, 1024}, 0, []uint{512, 256, 128}},
 }
 
 func (k keyType) String() string {
@@ -39,12 +39,12 @@ func (k keyType) String() string {
 }
 
 var keyTypeLookup = map[string]keyType{
-	"AES":       ktAES,
-	"HMAC_SHA1": ktHMAC_SHA1,
-	"DSA_PRIV":  ktDSA_PRIV,
-	"DSA_PUB":   ktDSA_PUB,
-	"RSA_PRIV":  ktRSA_PRIV,
-	"RSA_PUB":   ktRSA_PUB,
+	"AES":       T_AES,
+	"HMAC_SHA1": T_HMAC_SHA1,
+	"DSA_PRIV":  T_DSA_PRIV,
+	"DSA_PUB":   T_DSA_PUB,
+	"RSA_PRIV":  T_RSA_PRIV,
+	"RSA_PUB":   T_RSA_PUB,
 }
 
 func (k *keyType) UnmarshalJSON(b []byte) error {
@@ -101,18 +101,18 @@ func (k keyType) isAcceptableSize(size uint) bool {
 type keyStatus int
 
 const (
-	ksPRIMARY keyStatus = iota
-	ksACTIVE
-	ksINVALID
+	S_PRIMARY keyStatus = iota
+	S_ACTIVE
+	S_INVALID
 )
 
 func (k keyStatus) String() string {
 	switch k {
-	case ksPRIMARY:
+	case S_PRIMARY:
 		return "PRIMARY"
-	case ksACTIVE:
+	case S_ACTIVE:
 		return "ACTIVE"
-	case ksINVALID:
+	case S_INVALID:
 		return "INVALID"
 	}
 
@@ -120,9 +120,9 @@ func (k keyStatus) String() string {
 }
 
 var keyStatusLookup = map[string]keyStatus{
-	"PRIMARY": ksPRIMARY,
-	"ACTIVE":  ksACTIVE,
-	"INVALID": ksINVALID,
+	"PRIMARY": S_PRIMARY,
+	"ACTIVE":  S_ACTIVE,
+	"INVALID": S_INVALID,
 }
 
 func (k *keyStatus) UnmarshalJSON(b []byte) error {
@@ -136,11 +136,11 @@ func (k *keyStatus) UnmarshalJSON(b []byte) error {
 
 func (k keyStatus) MarshalJSON() ([]byte, error) {
 	switch k {
-	case ksPRIMARY:
+	case S_PRIMARY:
 		return []byte("\"PRIMARY\""), nil
-	case ksACTIVE:
+	case S_ACTIVE:
 		return []byte("\"ACTIVE\""), nil
-	case ksINVALID:
+	case S_INVALID:
 		return []byte("\"INVALID\""), nil
 	}
 
@@ -150,24 +150,24 @@ func (k keyStatus) MarshalJSON() ([]byte, error) {
 type keyPurpose int
 
 const (
-	kpDECRYPT_AND_ENCRYPT keyPurpose = iota
-	kpENCRYPT
-	kpSIGN_AND_VERIFY
-	kpVERIFY
-	kpTEST
+	P_DECRYPT_AND_ENCRYPT keyPurpose = iota
+	P_ENCRYPT
+	P_SIGN_AND_VERIFY
+	P_VERIFY
+	P_TEST
 )
 
 func (k keyPurpose) String() string {
 	switch k {
-	case kpDECRYPT_AND_ENCRYPT:
+	case P_DECRYPT_AND_ENCRYPT:
 		return "DECRYPT_AND_ENCRYPT"
-	case kpENCRYPT:
+	case P_ENCRYPT:
 		return "ENCRYPT"
-	case kpSIGN_AND_VERIFY:
+	case P_SIGN_AND_VERIFY:
 		return "SIGN_AND_VERIFY"
-	case kpVERIFY:
+	case P_VERIFY:
 		return "VERIFY"
-	case kpTEST:
+	case P_TEST:
 		return "TEST"
 	}
 
@@ -175,24 +175,24 @@ func (k keyPurpose) String() string {
 }
 
 var keyPurposeLookup = map[string]keyPurpose{
-	"DECRYPT_AND_ENCRYPT": kpDECRYPT_AND_ENCRYPT,
-	"ENCRYPT":             kpENCRYPT,
-	"SIGN_AND_VERIFY":     kpSIGN_AND_VERIFY,
-	"VERIFY":              kpVERIFY,
-	"TEST":                kpTEST,
+	"DECRYPT_AND_ENCRYPT": P_DECRYPT_AND_ENCRYPT,
+	"ENCRYPT":             P_ENCRYPT,
+	"SIGN_AND_VERIFY":     P_SIGN_AND_VERIFY,
+	"VERIFY":              P_VERIFY,
+	"TEST":                P_TEST,
 }
 
 func (have keyPurpose) isValidPurpose(want keyPurpose) bool {
 
 	switch want {
-	case kpENCRYPT:
-		return have == kpDECRYPT_AND_ENCRYPT || have == kpENCRYPT
-	case kpDECRYPT_AND_ENCRYPT:
-		return have == kpDECRYPT_AND_ENCRYPT
-	case kpVERIFY:
-		return have == kpSIGN_AND_VERIFY || have == kpVERIFY
-	case kpSIGN_AND_VERIFY:
-		return have == kpSIGN_AND_VERIFY
+	case P_ENCRYPT:
+		return have == P_DECRYPT_AND_ENCRYPT || have == P_ENCRYPT
+	case P_DECRYPT_AND_ENCRYPT:
+		return have == P_DECRYPT_AND_ENCRYPT
+	case P_VERIFY:
+		return have == P_SIGN_AND_VERIFY || have == P_VERIFY
+	case P_SIGN_AND_VERIFY:
+		return have == P_SIGN_AND_VERIFY
 	}
 
 	panic("unknown purpose: " + string(want))
@@ -208,15 +208,15 @@ func (k *keyPurpose) UnmarshalJSON(b []byte) error {
 
 func (k keyPurpose) MarshalJSON() ([]byte, error) {
 	switch k {
-	case kpDECRYPT_AND_ENCRYPT:
+	case P_DECRYPT_AND_ENCRYPT:
 		return []byte("\"DECRYPT_AND_ENCRYPT\""), nil
-	case kpENCRYPT:
+	case P_ENCRYPT:
 		return []byte("\"ENCRYPT\""), nil
-	case kpSIGN_AND_VERIFY:
+	case P_SIGN_AND_VERIFY:
 		return []byte("\"SIGN_AND_VERIFY\""), nil
-	case kpVERIFY:
+	case P_VERIFY:
 		return []byte("\"VERIFY\""), nil
-	case kpTEST:
+	case P_TEST:
 		return []byte("\"TEST\""), nil
 	}
 
