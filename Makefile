@@ -8,6 +8,7 @@ GOFILES=\
 	readers.go\
 	errors.go\
 	pkcs5.go\
+	keyman.go\
 	util.go
 
 include $(GOROOT)/src/Make.pkg
