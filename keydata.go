@@ -373,10 +373,10 @@ func (hm *hmacKey) Verify(msg []byte, signature []byte) (bool, error) {
 }
 
 type dsaPublicKeyJSON struct {
-	Q    string `json:"Q"`
-	P    string `json:"P"`
-	Y    string `json:"Y"`
-	G    string `json:"G"`
+	Q    string `json:"q"`
+	P    string `json:"p"`
+	Y    string `json:"y"`
+	G    string `json:"g"`
 	Size uint   `json:"size"`
 }
 
