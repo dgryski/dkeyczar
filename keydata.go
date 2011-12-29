@@ -19,6 +19,7 @@ import (
 
 type keyIDer interface {
 	KeyID() []byte
+	ToKeyJSON() []byte
 }
 
 type encryptKey interface {
@@ -60,7 +61,6 @@ func newKeysFromJSON(r KeyReader, km keyMeta, keyFromJSON func([]byte) (keyIDer,
 	}
 
 	return keys, nil
-
 }
 
 func generateKey(ktype keyType, size uint) keyIDer {
@@ -209,6 +209,12 @@ func newAESJSONFromKey(key *aesKey) *aesKeyJSON {
 	return aesjson
 }
 
+func (ak *aesKey) ToKeyJSON() []byte {
+	j := newAESJSONFromKey(ak)
+	s, _ := json.Marshal(j)
+	return s
+}
+
 func newAESKeys(r KeyReader, km keyMeta) (map[int]keyIDer, error) {
 	return newKeysFromJSON(r, km, func(s []byte) (keyIDer, error) { return newAESKeyFromJSON(s) })
 }
@@ -301,6 +307,22 @@ func newHMACKeyFromJSON(s []byte) (*hmacKey, error) {
 
 	return hmackey, nil
 
+}
+
+func newHMACJSONFromKey(hm *hmacKey) *hmacKeyJSON {
+	hmacjson := new(hmacKeyJSON)
+
+	hmacjson.HMACKeyString = encodeWeb64String(hm.key)
+	hmacjson.Size = uint(len(hm.key)) * 8
+
+	return hmacjson
+
+}
+
+func (hm *hmacKey) ToKeyJSON() []byte {
+	j := newHMACJSONFromKey(hm)
+	s, _ := json.Marshal(j)
+	return s
 }
 
 func newHMACKeys(r KeyReader, km keyMeta) (map[int]keyIDer, error) {
@@ -458,6 +480,32 @@ func newDSAJSONFromKey(key *dsa.PrivateKey) *dsaKeyJSON {
 	dsajson.PublicKey.Size = uint(len(key.P.Bytes())) * 8
 
 	return dsajson
+}
+
+func (dk *dsaKey) ToKeyJSON() []byte {
+	j := newDSAJSONFromKey(&dk.key)
+	s, _ := json.Marshal(j)
+	return s
+}
+
+func newDSAPublicJSONFromKey(key *dsa.PublicKey) *dsaPublicKeyJSON {
+
+	dsajson := new(dsaPublicKeyJSON)
+
+	dsajson.P = encodeWeb64String(key.P.Bytes())
+	dsajson.Q = encodeWeb64String(key.Q.Bytes())
+	dsajson.Y = encodeWeb64String(key.Y.Bytes())
+	dsajson.G = encodeWeb64String(key.G.Bytes())
+
+	dsajson.Size = uint(len(key.P.Bytes())) * 8
+
+	return dsajson
+}
+
+func (dk *dsaPublicKey) ToKeyJSON() []byte {
+	j := newDSAPublicJSONFromKey(&dk.key)
+	s, _ := json.Marshal(j)
+	return s
 }
 
 func newDSAPublicKeys(r KeyReader, km keyMeta) (map[int]keyIDer, error) {
@@ -689,6 +737,12 @@ func newRSAPublicJSONFromKey(key *rsa.PublicKey) *rsaPublicKeyJSON {
 
 }
 
+func (rk *rsaPublicKey) ToKeyJSON() []byte {
+	j := newRSAPublicJSONFromKey(&rk.key)
+	s, _ := json.Marshal(j)
+	return s
+}
+
 func newRSAPublicKeys(r KeyReader, km keyMeta) (map[int]keyIDer, error) {
 	return newKeysFromJSON(r, km, func(s []byte) (keyIDer, error) { return newRSAPublicKeyFromJSON(s) })
 }
@@ -756,6 +810,12 @@ func newRSAKeyFromJSON(s []byte) (*rsaKey, error) {
 	rsakey.publicKey.key.E = rsakey.key.PublicKey.E
 
 	return rsakey, nil
+}
+
+func (rk *rsaKey) ToKeyJSON() []byte {
+	j := newRSAJSONFromKey(&rk.key)
+	s, _ := json.Marshal(j)
+	return s
 }
 
 func newRSAJSONFromKey(key *rsa.PrivateKey) *rsaKeyJSON {
