@@ -125,7 +125,7 @@ func (m *keyManager) Promote(version int) {
 		m.kz.primary = version
 	case S_PRIMARY:
 		// can't promote primary key
-	case S_INVALID:
+	case S_INACTIVE:
 		m.kz.keymeta.Versions[version-1].Status = S_ACTIVE
 	}
 }
@@ -140,11 +140,11 @@ func (m *keyManager) Demote(version int) {
 
 	switch m.kz.keymeta.Versions[version-1].Status {
 	case S_ACTIVE:
-		m.kz.keymeta.Versions[version-1].Status = S_INVALID
+		m.kz.keymeta.Versions[version-1].Status = S_INACTIVE
 	case S_PRIMARY:
 		m.kz.keymeta.Versions[version-1].Status = S_ACTIVE
 		m.kz.primary = -1
-	case S_INVALID:
+	case S_INACTIVE:
 		// can't demote invalid key, only revoke
 		return
 	}

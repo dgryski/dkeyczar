@@ -103,7 +103,7 @@ type keyStatus int
 const (
 	S_PRIMARY keyStatus = iota
 	S_ACTIVE
-	S_INVALID
+	S_INACTIVE
 )
 
 func (k keyStatus) String() string {
@@ -112,17 +112,17 @@ func (k keyStatus) String() string {
 		return "PRIMARY"
 	case S_ACTIVE:
 		return "ACTIVE"
-	case S_INVALID:
-		return "INVALID"
+	case S_INACTIVE:
+		return "INACTIVE"
 	}
 
 	return "(unknown KeyStatus)"
 }
 
 var keyStatusLookup = map[string]keyStatus{
-	"PRIMARY": S_PRIMARY,
-	"ACTIVE":  S_ACTIVE,
-	"INVALID": S_INVALID,
+	"PRIMARY":  S_PRIMARY,
+	"ACTIVE":   S_ACTIVE,
+	"INACTIVE": S_INACTIVE,
 }
 
 func (k *keyStatus) UnmarshalJSON(b []byte) error {
@@ -140,8 +140,8 @@ func (k keyStatus) MarshalJSON() ([]byte, error) {
 		return []byte("\"PRIMARY\""), nil
 	case S_ACTIVE:
 		return []byte("\"ACTIVE\""), nil
-	case S_INVALID:
-		return []byte("\"INVALID\""), nil
+	case S_INACTIVE:
+		return []byte("\"INACTIVE\""), nil
 	}
 
 	return []byte("\"(unknown KeyStatus)\""), nil
