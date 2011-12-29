@@ -128,10 +128,6 @@ func (m *keyManager) Promote(version int) {
 	case S_INVALID:
 		m.kz.keymeta.Versions[version-1].Status = S_ACTIVE
 	}
-
-	if m.kz.primary != -1 {
-		m.kz.keymeta.Versions[m.kz.primary-1].Status = S_ACTIVE
-	}
 }
 
 func (m *keyManager) Demote(version int) {
