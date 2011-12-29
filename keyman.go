@@ -6,7 +6,7 @@ import (
 
 type KeyManager interface {
 	Create(name string, purpose keyPurpose, ktype keyType) error
-	Load(location string)
+	Load(reader KeyReader)
 	AddKey(size uint, status keyStatus)
 	Promote(version int)
 	Demote(version int)
@@ -24,9 +24,8 @@ func NewKeyManager() KeyManager {
 	return new(keyManager)
 }
 
-func (m *keyManager) Load(location string) {
-	r := NewFileReader(location)
-	m.kz, _ = newKeyCzar(r)
+func (m *keyManager) Load(reader KeyReader) {
+	m.kz, _ = newKeyCzar(reader)
 }
 
 func (m *keyManager) Create(name string, purpose keyPurpose, ktype keyType) error {
