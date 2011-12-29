@@ -330,7 +330,11 @@ func (kz *keySigner) Sign(msg []byte) (string, error) {
 func NewCrypter(r KeyReader) (Crypter, error) {
 	k := new(keyCrypter)
 	var err error
-	k.keyCzar, err = newKeyCzar(r, P_DECRYPT_AND_ENCRYPT)
+	k.keyCzar, err = newKeyCzar(r)
+
+	if !k.keyCzar.keymeta.Purpose.isValidPurpose(P_DECRYPT_AND_ENCRYPT) {
+		return nil, ErrUnacceptablePurpose
+	}
 
 	k.encoding = BASE64W
 	k.compression = NO_COMPRESSION
@@ -342,7 +346,11 @@ func NewCrypter(r KeyReader) (Crypter, error) {
 func NewEncrypter(r KeyReader) (Encrypter, error) {
 	k := new(keyCrypter)
 	var err error
-	k.keyCzar, err = newKeyCzar(r, P_ENCRYPT)
+	k.keyCzar, err = newKeyCzar(r)
+
+	if !k.keyCzar.keymeta.Purpose.isValidPurpose(P_ENCRYPT) {
+		return nil, ErrUnacceptablePurpose
+	}
 
 	k.encoding = BASE64W
 	k.compression = NO_COMPRESSION
@@ -354,7 +362,11 @@ func NewEncrypter(r KeyReader) (Encrypter, error) {
 func NewVerifier(r KeyReader) (Verifier, error) {
 	k := new(keySigner)
 	var err error
-	k.keyCzar, err = newKeyCzar(r, P_VERIFY)
+	k.keyCzar, err = newKeyCzar(r)
+
+	if !k.keyCzar.keymeta.Purpose.isValidPurpose(P_VERIFY) {
+		return nil, ErrUnacceptablePurpose
+	}
 
 	k.encoding = BASE64W
 
@@ -365,7 +377,11 @@ func NewVerifier(r KeyReader) (Verifier, error) {
 func NewSigner(r KeyReader) (Signer, error) {
 	k := new(keySigner)
 	var err error
-	k.keyCzar, err = newKeyCzar(r, P_SIGN_AND_VERIFY)
+	k.keyCzar, err = newKeyCzar(r)
+
+	if !k.keyCzar.keymeta.Purpose.isValidPurpose(P_SIGN_AND_VERIFY) {
+		return nil, ErrUnacceptablePurpose
+	}
 
 	k.encoding = BASE64W
 
@@ -405,7 +421,7 @@ func NewSessionDecrypter(crypter Crypter, sessionKeys string) (Crypter, error) {
 }
 
 // construct a keyczar object from a reader for a given purpose
-func newKeyCzar(r KeyReader, purpose keyPurpose) (*keyCzar, error) {
+func newKeyCzar(r KeyReader) (*keyCzar, error) {
 
 	kz := new(keyCzar)
 
@@ -417,11 +433,6 @@ func newKeyCzar(r KeyReader, purpose keyPurpose) (*keyCzar, error) {
 	err = json.Unmarshal([]byte(s), &kz.keymeta)
 	if err != nil {
 		return nil, err
-	}
-
-	// check if the key we're loading can be used for what we're asking it to do
-	if !kz.keymeta.Purpose.isValidPurpose(purpose) {
-		return nil, ErrUnacceptablePurpose
 	}
 
 	// search for the primary key
