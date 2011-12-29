@@ -243,7 +243,7 @@ func TestRSACertImport(t *testing.T) {
 */
 
 func TestGeneratedAESEncryptDecrypt(t *testing.T) {
-	r := newImportedAESKeyReader(generateAESKey())
+	r := newImportedAESKeyReader(generateAESKey(0))
 	testEncryptDecrypt(t, "aes generated", r)
 }
 
@@ -261,7 +261,7 @@ func TestGeneratedRSA(t *testing.T) {
 */
 
 func TestGeneratedDSA(t *testing.T) {
-	k := generateDSAKey()
+	k := generateDSAKey(0)
         r := newImportedDSAPrivateKeyReader(&k.key)
 	testSignVerify(t, "dsa generated", r)
 }

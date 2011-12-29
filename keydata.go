@@ -63,6 +63,22 @@ func newKeysFromJSON(r KeyReader, km keyMeta, keyFromJSON func([]byte) (keyIDer,
 
 }
 
+func generateKey(ktype keyType, size uint) keyIDer {
+
+	switch ktype {
+	case T_AES:
+		return generateAESKey(size)
+	case T_HMAC_SHA1:
+		return generateHMACKey()
+	case T_DSA_PRIV:
+		return generateDSAKey(size)
+	case T_RSA_PRIV:
+		return generateRSAKey(size)
+	}
+
+	panic("not reached")
+}
+
 const hmacSigLength = 20
 
 type hmacKeyJSON struct {
@@ -95,10 +111,21 @@ type aesKey struct {
 	hmacKey hmacKey
 }
 
-func generateAESKey() *aesKey {
+func generateAESKey(size uint) *aesKey {
 	ak := new(aesKey)
 
 	ak.key = make([]byte, T_AES.defaultSize()/8)
+
+	if size == 0 {
+		size = T_AES.defaultSize()
+	}
+
+	if !T_AES.isAcceptableSize(size) {
+		return nil
+	}
+
+	ak.key = make([]byte, size/8)
+
 	io.ReadFull(rand.Reader, ak.key)
 
 	ak.hmacKey = *generateHMACKey()
@@ -346,12 +373,20 @@ type dsaKey struct {
 	publicKey dsaPublicKey
 }
 
-func generateDSAKey() *dsaKey {
+func generateDSAKey(size uint) *dsaKey {
 
 	dsakey := new(dsaKey)
 
+	if size == 0 {
+		size = T_DSA_PRIV.defaultSize()
+	}
+
+	if !T_DSA_PRIV.isAcceptableSize(size) {
+		return nil
+	}
+
 	var psz dsa.ParameterSizes
-	switch T_DSA_PRIV.defaultSize() {
+	switch size {
 	case 1024:
 		psz = dsa.L1024N160
 	default:
@@ -568,11 +603,20 @@ type rsaKey struct {
 	publicKey rsaPublicKey
 }
 
-func generateRSAKey() *rsaKey {
+func generateRSAKey(size uint) *rsaKey {
 
 	rsakey := new(rsaKey)
 
-	priv, err := rsa.GenerateKey(rand.Reader, int(T_RSA_PRIV.defaultSize()))
+	if size == 0 {
+		size = T_RSA_PRIV.defaultSize()
+	}
+
+	if !T_RSA_PRIV.isAcceptableSize(size) {
+		return nil
+	}
+
+	priv, err := rsa.GenerateKey(rand.Reader, int(size))
+
 	if err != nil {
 		panic("error during rsa key generation")
 	}
