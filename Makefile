@@ -11,4 +11,7 @@ GOFILES=\
 	keyman.go\
 	util.go
 
+mkcompat:	mkcompat.go _obj/dkeyczar.a
+	$(GC) mkcompat.go && $(LD) -o mkcompat mkcompat.6
+
 include $(GOROOT)/src/Make.pkg
