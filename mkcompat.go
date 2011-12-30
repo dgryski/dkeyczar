@@ -18,7 +18,7 @@ func WriteHeader() {
 	fmt.Println(`
 from keyczar import keyczar
 from keyczar import readers
-
+from keyczar import errors
 
 class JSONReader(readers.Reader):
     def __init__(self, meta, keys):
@@ -39,8 +39,8 @@ def check_verify(reader, what, plaintext, signature):
             print "ok verify: ", what
         else:
             print "FAIL VERIFY: ", what
-    except:
-        print "FAIL VERIFY (exception): ", what
+    except errors.KeyczarError as e:
+        print "FAIL VERIFY (exception): ", what, ": ", e
 
 def check_decrypt(reader, what, plaintext, ciphertext):
     try:
@@ -50,8 +50,8 @@ def check_decrypt(reader, what, plaintext, ciphertext):
             print "ok decrypt: ", what
         else:
             print "FAIL DECRYPT: ", what
-    except:
-        print "FAIL DECRYPT (exception): ", what
+    except errors.KeyczarError as e:
+        print "FAIL DECRYPT (exception): ", what, ": ", e
 
 `)
 }
@@ -113,32 +113,29 @@ keys={`)
     for i := 1; i < len(json); i++ {
         fmt.Println("    " + strconv.Itoa(i) + `: """` +  json[i] + `""",`)
     }
-    fmt.Println(`    }
-r = JSONReader(meta, keys)
-`)
+    fmt.Println(`}
+r = JSONReader(meta, keys)`)
     signer, _ := dkeyczar.NewSigner(r)
     if signer != nil {
 
 	signature, _ := signer.Sign([]byte(PLAINTEXT))
 
-	fmt.Println(`
-check_verify(r,
+	fmt.Println(
+`check_verify(r,
         "json ` + dir + `",
         "` + PLAINTEXT + `",
         "` + signature + `",
-)
-`)
+)`)
     } else {
 	crypter, _ := dkeyczar.NewCrypter(r)
 
 	ciphertext, _ := crypter.Encrypt([]byte(PLAINTEXT))
-	fmt.Println(`
-check_decrypt(r,
+	fmt.Println(
+`check_decrypt(r,
     "json ` + dir + `",
     "` + PLAINTEXT + `",
     "` + ciphertext + `",
-)
-`)
+)`)
     }
 
 }
