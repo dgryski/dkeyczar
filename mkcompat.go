@@ -9,70 +9,69 @@ import (
 var TESTDATA = ""
 
 func init() {
-        TESTDATA = os.Getenv("KEYCZAR_TESTDATA")
+	TESTDATA = os.Getenv("KEYCZAR_TESTDATA")
 }
 
 func WriteHeader() {
-	header := []string{
-		"from keyczar import keyczar",
-		"from keyczar import readers",
-                "",
-	}
+	fmt.Println(`
+from keyczar import keyczar
+from keyczar import readers
 
-	for _, h := range header {
-		fmt.Println(h)
-	}
+        `)
 }
 
 func WriteDecryptTest(dir string) {
 
-        plaintext := "This is test data"
+	plaintext := "This is test data"
 
-        fulldir := TESTDATA + dir
+	fulldir := TESTDATA + dir
 
-        r := dkeyczar.NewFileReader(fulldir)
-        crypter, _ := dkeyczar.NewCrypter(r)
+	r := dkeyczar.NewFileReader(fulldir)
+	crypter, _ := dkeyczar.NewCrypter(r)
 
-        ciphertext, _ := crypter.Encrypt([]byte(plaintext))
+	ciphertext, _ := crypter.Encrypt([]byte(plaintext))
+	fmt.Println(`
+try:
+    reader = readers.FileReader("` + fulldir + `")
+    crypter = keyczar.Crypter(reader)
+    plaintext = crypter.Decrypt("` + ciphertext + `")
+    if plaintext == "` + plaintext + `":
+        print "ok crypt: ` + dir + `"
+    else:
+        print "FAIL DECRYPT: ` + dir + `"
+except:
+    print "FAIL DECRYPT (exception): ` + dir + `"
 
-        fmt.Printf("try:\n")
-        fmt.Printf("\treader = readers.FileReader(\"%s\")\n", fulldir)
-        fmt.Printf("\tcrypter = keyczar.Crypter(reader)\n")
-        fmt.Printf("\tplaintext = crypter.Decrypt(\"%s\")\n", ciphertext)
-        fmt.Printf("\tif plaintext == \"%s\":\n", plaintext)
-        fmt.Printf("\t\tprint \"ok crypt: %s\"\n", dir)
-        fmt.Printf("\telse:\n")
-        fmt.Printf("\t\tprint \"FAIL DECRYPT: %s\"\n", dir)
-        fmt.Printf("except:\n")
-        fmt.Printf("\tprint \"FAIL DECRYPT: %s (exception)\"\n", dir)
-        fmt.Printf("\n\n")
+`)
+
 }
-
 
 func WriteVerifyTest(dir string) {
 
-        plaintext := "This is test data"
+	plaintext := "This is test data"
 
-        fulldir := TESTDATA + dir
+	fulldir := TESTDATA + dir
 
-        r := dkeyczar.NewFileReader(fulldir)
-        signer, _ := dkeyczar.NewSigner(r)
+	r := dkeyczar.NewFileReader(fulldir)
+	signer, _ := dkeyczar.NewSigner(r)
 
-        signature, _ := signer.Sign([]byte(plaintext))
+	signature, _ := signer.Sign([]byte(plaintext))
 
-        fmt.Printf("try:\n")
-        fmt.Printf("\treader = readers.FileReader(\"%s\")\n", fulldir)
-        fmt.Printf("\tverifier = keyczar.Verifier(reader)\n")
-        fmt.Printf("\tvalid = verifier.Verify(\"%s\", \"%s\")\n", plaintext, signature)
-        fmt.Printf("\tif valid:\n")
-        fmt.Printf("\t\tprint \"ok verify: %s\"\n", dir)
-        fmt.Printf("\telse:\n")
-        fmt.Printf("\t\tprint \"FAIL VERIFY: %s\"\n", dir)
-        fmt.Printf("except:\n")
-        fmt.Printf("\tprint \"FAIL VERIFY: %s (exception)\"\n", dir)
-        fmt.Printf("\n\n")
+	fmt.Println(`
+try:
+    reader = readers.FileReader("` + fulldir + `")
+    verifier = keyczar.Verifier(reader)
+    valid = verifier.Verify("` + plaintext + `", "` + signature + `")
+    if valid:
+        print "ok verify: ` + dir + `"
+    else:
+        print "FAIL VERIFY: ` + dir + `"
+except:
+    print "FAIL VERIFY (exception): ` + dir + `"
+
+`)
+
 }
-
 
 func WriteFooter() {
 	// empty
