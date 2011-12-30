@@ -132,10 +132,6 @@ func (m *keyManager) Promote(version int) {
 func (m *keyManager) Demote(version int) {
 
 	// check if version exists
-	// check if version is active
-
-	// primary -> active
-	// active -> invalid
 
 	switch m.kz.keymeta.Versions[version-1].Status {
 	case S_ACTIVE:
