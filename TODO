@@ -2,10 +2,13 @@
 High Priority:
 
     - implement keyczar tool so our library is standalone
-        => key -> json export
         => other export options (cert? pkcs8/pkcs5? ...?)
 
-    - improve internal documentation
+    - key.ID()
+    - key.IsAcceptablePurpose(purpose) / key.Purpose() { return KpPURPOSE } ?
+    - key.Type() => ktFOO constant
+
+    - improve internal documentation (keydata)
 
     - PKCS#8 private key import/export
       -- asn1 is painful.
@@ -14,8 +17,11 @@ High Priority:
 
 Low Priority:
 
-    - decide on visibility of keyinfo enums
-        - some of the ImportFOOForBar would be easier if we exported the KeyPurpose enum
+    - write code to generate python(/c++?) test case for compatibility
+    - keyIDer is a bad name
+    - some of the ImportFOOForBar would be easier if we exported the KeyPurpose enum
+    - newKeysFromJSON is actually newKeysFromReader and probably belongs in keyczar.go
+    - change order of init for compression and encoding constants so '0' is default (and correct)
 
     - write functions to abstract byte-stream format
         getIv()
