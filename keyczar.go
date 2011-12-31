@@ -339,6 +339,11 @@ func NewCrypter(r KeyReader) (Crypter, error) {
 	k.encoding = BASE64W
 	k.compression = NO_COMPRESSION
 
+	err = k.loadPrimaryKey()
+	if err != nil {
+		return nil, err
+	}
+
 	return k, err
 }
 
@@ -354,6 +359,11 @@ func NewEncrypter(r KeyReader) (Encrypter, error) {
 
 	k.encoding = BASE64W
 	k.compression = NO_COMPRESSION
+
+	err = k.loadPrimaryKey()
+	if err != nil {
+		return nil, err
+	}
 
 	return k, err
 }
@@ -384,6 +394,11 @@ func NewSigner(r KeyReader) (Signer, error) {
 	}
 
 	k.encoding = BASE64W
+
+	err = k.loadPrimaryKey()
+	if err != nil {
+		return nil, err
+	}
 
 	return k, err
 }
@@ -420,6 +435,29 @@ func NewSessionDecrypter(crypter Crypter, sessionKeys string) (Crypter, error) {
 	return NewCrypter(r)
 }
 
+func (kz *keyCzar) loadPrimaryKey() error {
+
+	// search for the primary key
+	kz.primary = -1
+	for _, v := range kz.keymeta.Versions {
+		if v.Status == S_PRIMARY {
+			if kz.primary == -1 {
+				kz.primary = v.VersionNumber
+			} else {
+				return ErrNoPrimaryKey // technically, ErrMultiplePrimaryKey
+			}
+		}
+	}
+
+	// not found :(
+	if kz.primary == -1 {
+		return ErrNoPrimaryKey
+	}
+
+	return nil
+
+}
+
 // construct a keyczar object from a reader for a given purpose
 func newKeyCzar(r KeyReader) (*keyCzar, error) {
 
@@ -433,23 +471,6 @@ func newKeyCzar(r KeyReader) (*keyCzar, error) {
 	err = json.Unmarshal([]byte(s), &kz.keymeta)
 	if err != nil {
 		return nil, err
-	}
-
-	// search for the primary key
-	kz.primary = -1
-	for _, v := range kz.keymeta.Versions {
-		if v.Status == S_PRIMARY {
-			if kz.primary == -1 {
-				kz.primary = v.VersionNumber
-			} else {
-				return nil, ErrNoPrimaryKey // technically, ErrMultiplePrimaryKey
-			}
-		}
-	}
-
-	// not found :(
-	if kz.primary == -1 {
-		return nil, ErrNoPrimaryKey
 	}
 
 	switch kz.keymeta.Type {
