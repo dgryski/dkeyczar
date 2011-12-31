@@ -43,6 +43,11 @@ func (m *keyManager) ToJSONs(crypter Crypter) []string {
 
 	s := make([]string, 1)
 
+	if m.kz == nil {
+		s[0] = ""
+		return s
+	}
+
 	if crypter != nil {
 		m.kz.keymeta.Encrypted = true
 	}
@@ -50,17 +55,20 @@ func (m *keyManager) ToJSONs(crypter Crypter) []string {
 	b, _ := json.Marshal(m.kz.keymeta)
 	s[0] = string(b)
 
-	for i := 1; ; i++ {
-		k, ok := m.kz.keys[i]
-		if !ok {
-			break
-		}
-		if crypter != nil {
-			ks, _ := crypter.Encrypt(k.ToKeyJSON())
-			s = append(s, ks)
-		} else {
-			b = k.ToKeyJSON()
-			s = append(s, string(b))
+	if m.kz.keys != nil {
+
+		for i := 1; ; i++ {
+			k, ok := m.kz.keys[i]
+			if !ok {
+				break
+			}
+			if crypter != nil {
+				ks, _ := crypter.Encrypt(k.ToKeyJSON())
+				s = append(s, ks)
+			} else {
+				b = k.ToKeyJSON()
+				s = append(s, string(b))
+			}
 		}
 	}
 
