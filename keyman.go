@@ -11,7 +11,7 @@ type KeyManager interface {
 	Promote(version int)
 	Demote(version int)
 	// Revoke
-	// Export(version int)
+	PubKeys() KeyManager
 	// Write
 	ToJSONs(crypter Crypter) []string
 }
@@ -78,12 +78,6 @@ func (m *keyManager) ToJSONs(crypter Crypter) []string {
 
 func (m *keyManager) AddKey(size uint, status keyStatus) {
 
-	/*
-	   var exportable bool
-	   if m.kz.keymeta.Type  == KtDSA_PRIV || m.kz.keymeta.Type == KtRSA_PRIV {
-	       exportable = true
-	   }
-	*/
 	exportable := false
 
 	// if we're adding a primary key, and we already have a primary key, then move the existing key to 'active'
@@ -151,4 +145,47 @@ func (m *keyManager) Demote(version int) {
 		// can't demote invalid key, only revoke
 		return
 	}
+}
+
+func (m *keyManager) PubKeys() KeyManager {
+
+	km := new(keyManager)
+
+	var kt keyType
+	var kp keyPurpose
+
+	switch {
+	case m.kz.keymeta.Type == T_DSA_PRIV && m.kz.keymeta.Purpose == P_SIGN_AND_VERIFY:
+		kt, kp = T_DSA_PUB, P_VERIFY
+	case m.kz.keymeta.Type == T_RSA_PRIV && m.kz.keymeta.Purpose == P_SIGN_AND_VERIFY:
+		kt, kp = T_RSA_PUB, P_VERIFY
+	case m.kz.keymeta.Type == T_RSA_PRIV && m.kz.keymeta.Purpose == P_DECRYPT_AND_ENCRYPT:
+		kt, kp = T_RSA_PUB, P_ENCRYPT
+	default:
+		return nil // unknown types
+	}
+
+	km.kz = &keyCzar{keyMeta{m.kz.keymeta.Name, kt, kp, false, nil}, nil, -1}
+
+	km.kz.keymeta.Versions = make([]keyVersion, len(m.kz.keymeta.Versions))
+
+	for i, v := range m.kz.keymeta.Versions {
+		km.kz.keymeta.Versions[i] = v
+	}
+
+	km.kz.keymeta.Versions = m.kz.keymeta.Versions
+
+	km.kz.keys = make(map[int]keyIDer)
+
+	for version, privkey := range m.kz.keys {
+		switch k := privkey.(type) {
+		case *dsaKey:
+			km.kz.keys[version] = &k.publicKey
+		case *rsaKey:
+			km.kz.keys[version] = &k.publicKey
+
+		}
+	}
+
+	return km
 }

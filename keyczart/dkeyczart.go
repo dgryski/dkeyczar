@@ -43,6 +43,7 @@ func main() {
 	optAsymmetric := flag.String("asymmetric", "", "the assymeteric algorithm to use (dsa/rsa)")
 	optStatus := flag.String("status", "", "the status (active/primary)")
 	optVersion := flag.Int("version", 0, "the version of the key to use")
+	optDestination := flag.String("destination", "", "the location to store the exported keys")
 
 	flag.Parse()
 
@@ -151,9 +152,9 @@ func main() {
 
 		km.AddKey(uint(*optSize), status)
 		Update(*optLocation, km, crypter)
-	} else if command == "export" {
-		kpub := dkeyczar.KeyManager(nil)
-		Update(*optLocation, kpub, nil)
+	} else if command == "pubkey" {
+		kpub := km.PubKeys()
+		Save(*optDestination, kpub, nil) // doesn't make sense to encrypt a public key
 	}
 
 }
