@@ -114,8 +114,6 @@ type aesKey struct {
 func generateAESKey(size uint) *aesKey {
 	ak := new(aesKey)
 
-	ak.key = make([]byte, T_AES.defaultSize()/8)
-
 	if size == 0 {
 		size = T_AES.defaultSize()
 	}
