@@ -330,24 +330,7 @@ func (hm *hmacKey) ToKeyJSON() []byte {
 }
 
 func newHMACKeys(r KeyReader, km keyMeta) (map[int]keyIDer, error) {
-
-	keys := make(map[int]keyIDer)
-
-	for _, kv := range km.Versions {
-		s, err := r.GetKey(kv.VersionNumber)
-		if err != nil {
-			return nil, err
-		}
-
-		k, err := newHMACKeyFromJSON([]byte(s))
-		if err != nil {
-			return nil, err
-		}
-
-		keys[kv.VersionNumber] = k
-	}
-
-	return keys, nil
+	return newKeysFromJSON(r, km, func(s []byte) (keyIDer, error) { return newHMACKeyFromJSON(s) })
 }
 
 func (hm *hmacKey) KeyID() []byte {
