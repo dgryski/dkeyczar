@@ -88,6 +88,7 @@ type hmacKeyJSON struct {
 
 type hmacKey struct {
 	key []byte
+	id  []byte
 }
 
 func generateHMACKey() *hmacKey {
@@ -109,6 +110,7 @@ type aesKeyJSON struct {
 type aesKey struct {
 	key     []byte
 	hmacKey hmacKey
+	id      []byte
 }
 
 func generateAESKey(size uint) *aesKey {
@@ -154,15 +156,19 @@ func newAESFromPackedKeys(b []byte) (*aesKey, error) {
 
 func (ak *aesKey) KeyID() []byte {
 
+	if len(ak.id) != 0 {
+		return ak.id
+	}
+
 	h := sha1.New()
 
 	binary.Write(h, binary.BigEndian, uint32(len(ak.key)))
 	h.Write(ak.key)
 	h.Write(ak.hmacKey.key)
 
-	id := h.Sum(nil)
+	ak.id = h.Sum(nil)[:4]
 
-	return id[0:4]
+	return ak.id
 
 }
 
@@ -346,11 +352,16 @@ func newHMACKeys(r KeyReader, km keyMeta) (map[int]keyIDer, error) {
 
 func (hm *hmacKey) KeyID() []byte {
 
+	if len(hm.id) != 0 {
+		return hm.id
+	}
+
 	h := sha1.New()
 	h.Write(hm.key)
-	id := h.Sum(nil)
 
-	return id[0:4]
+	hm.id = h.Sum(nil)[:4]
+
+	return hm.id
 }
 
 func (hm *hmacKey) Sign(msg []byte) ([]byte, error) {
@@ -380,6 +391,7 @@ type dsaPublicKeyJSON struct {
 
 type dsaPublicKey struct {
 	key dsa.PublicKey
+	id  []byte
 }
 
 type dsaKeyJSON struct {
@@ -562,6 +574,10 @@ func newDSAKeys(r KeyReader, km keyMeta) (map[int]keyIDer, error) {
 
 func (dk *dsaPublicKey) KeyID() []byte {
 
+	if len(dk.id) != 0 {
+		return dk.id
+	}
+
 	h := sha1.New()
 
 	for _, n := range []*big.Int{dk.key.P, dk.key.Q, dk.key.G, dk.key.Y} {
@@ -570,9 +586,9 @@ func (dk *dsaPublicKey) KeyID() []byte {
 		h.Write(b)
 	}
 
-	id := h.Sum(nil)
+	dk.id = h.Sum(nil)[:4]
 
-	return id[0:4]
+	return dk.id
 }
 
 func (dk *dsaKey) KeyID() []byte {
@@ -630,6 +646,7 @@ type rsaPublicKeyJSON struct {
 
 type rsaPublicKey struct {
 	key rsa.PublicKey
+	id  []byte
 }
 
 type rsaKeyJSON struct {
@@ -675,6 +692,10 @@ func generateRSAKey(size uint) *rsaKey {
 
 func (rk *rsaPublicKey) KeyID() []byte {
 
+	if len(rk.id) != 0 {
+		return rk.id
+	}
+
 	h := sha1.New()
 
 	b := rk.key.N.Bytes()
@@ -687,9 +708,9 @@ func (rk *rsaPublicKey) KeyID() []byte {
 	binary.Write(h, binary.BigEndian, uint32(len(b)))
 	h.Write(b)
 
-	id := h.Sum(nil)
+	rk.id = h.Sum(nil)[:4]
 
-	return id[0:4]
+	return rk.id
 }
 
 func (rk *rsaKey) KeyID() []byte {

@@ -40,7 +40,6 @@ Low Priority:
         lenPrefixPack
         lenPrefixUnpack
 
-    - cache key id so it's only calculated once at key load time?
     - timed signatures
     - unversioned signatures
     - for pbereader, don't store password, only hmac? (and let it store the password?0
