@@ -26,8 +26,8 @@ import (
 type KeyczarEncoding int
 
 const (
-	NO_ENCODING KeyczarEncoding = iota // Do not encode the output
-	BASE64W                            // Encode the output with web-safe base64 [default]
+	BASE64W     KeyczarEncoding = iota // Encode the output with web-safe base64 [default]
+	NO_ENCODING                        // Do not encode the output
 )
 
 type KeyczarCompression int
@@ -336,9 +336,6 @@ func NewCrypter(r KeyReader) (Crypter, error) {
 		return nil, ErrUnacceptablePurpose
 	}
 
-	k.encoding = BASE64W
-	k.compression = NO_COMPRESSION
-
 	err = k.loadPrimaryKey()
 	if err != nil {
 		return nil, err
@@ -356,9 +353,6 @@ func NewEncrypter(r KeyReader) (Encrypter, error) {
 	if !k.keyCzar.keymeta.Purpose.isValidPurpose(P_ENCRYPT) {
 		return nil, ErrUnacceptablePurpose
 	}
-
-	k.encoding = BASE64W
-	k.compression = NO_COMPRESSION
 
 	err = k.loadPrimaryKey()
 	if err != nil {
@@ -378,8 +372,6 @@ func NewVerifier(r KeyReader) (Verifier, error) {
 		return nil, ErrUnacceptablePurpose
 	}
 
-	k.encoding = BASE64W
-
 	return k, err
 }
 
@@ -392,8 +384,6 @@ func NewSigner(r KeyReader) (Signer, error) {
 	if !k.keyCzar.keymeta.Purpose.isValidPurpose(P_SIGN_AND_VERIFY) {
 		return nil, ErrUnacceptablePurpose
 	}
-
-	k.encoding = BASE64W
 
 	err = k.loadPrimaryKey()
 	if err != nil {
