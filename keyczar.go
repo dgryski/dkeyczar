@@ -198,27 +198,27 @@ func (cc *compressionController) decompress(data []byte) ([]byte, error) {
 }
 
 type keyCrypter struct {
-	*keyCzar
+	kz *keyCzar
 	encodingController
 	compressionController
 }
 
 // Encrypt plaintext and return encoded encrypted text as a string
 // All the heavy lifting is done by the key
-func (kz *keyCrypter) Encrypt(plaintext []uint8) (string, error) {
+func (kc *keyCrypter) Encrypt(plaintext []uint8) (string, error) {
 
-	key := kz.keys[kz.primary]
+	key := kc.kz.getPrimaryKey()
 
 	encryptKey := key.(encryptKey)
 
-	compressed_plaintext := kz.compress(plaintext)
+	compressed_plaintext := kc.compress(plaintext)
 
 	ciphertext, err := encryptKey.Encrypt(compressed_plaintext)
 	if err != nil {
 		return "", err
 	}
 
-	s := kz.encode(ciphertext)
+	s := kc.encode(ciphertext)
 
 	return string(s), nil
 
@@ -226,9 +226,9 @@ func (kz *keyCrypter) Encrypt(plaintext []uint8) (string, error) {
 
 // Decode and decrypt ciphertext and return plaintext as []byte
 // All the heavy lifting is done by the key
-func (kz *keyCrypter) Decrypt(ciphertext string) ([]uint8, error) {
+func (kc *keyCrypter) Decrypt(ciphertext string) ([]uint8, error) {
 
-	b, err := kz.decode([]byte(ciphertext))
+	b, err := kc.decode([]byte(ciphertext))
 
 	if err != nil {
 		return nil, ErrBase64Decoding
@@ -244,30 +244,26 @@ func (kz *keyCrypter) Decrypt(ciphertext string) ([]uint8, error) {
 		return nil, ErrBadVersion
 	}
 
-	for _, k := range kz.keys {
-		if bytes.Compare(k.KeyID(), h.keyid[:]) == 0 {
-			decryptKey := k.(decryptEncryptKey)
-			compressed_plaintext, err := decryptKey.Decrypt(b)
-			if err != nil {
-				return nil, err
-			}
-			return kz.decompress(compressed_plaintext)
-		}
+	k, err := kc.kz.getKeyForID(h.keyid[:])
+	if err != nil {
+		return nil, err
 	}
 
-	return nil, ErrKeyNotFound
+	decryptKey := k.(decryptEncryptKey)
+	compressed_plaintext, err := decryptKey.Decrypt(b)
+	return kc.decompress(compressed_plaintext)
 }
 
 type keySigner struct {
-	*keyCzar
+	kz *keyCzar
 	encodingController
 }
 
 // Verify the signature on 'msg'
 // All the heavy lifting is done by the key
-func (kz *keySigner) Verify(msg []byte, signature string) (bool, error) {
+func (ks *keySigner) Verify(msg []byte, signature string) (bool, error) {
 
-	b, err := kz.decode([]byte(signature))
+	b, err := ks.decode([]byte(signature))
 
 	if err != nil {
 		return false, ErrBase64Decoding
@@ -289,22 +285,20 @@ func (kz *keySigner) Verify(msg []byte, signature string) (bool, error) {
 	copy(signedbytes, msg)
 	signedbytes[len(msg)] = kzVersion
 
-	for _, k := range kz.keys {
-		if bytes.Compare(k.KeyID(), h.keyid[:]) == 0 {
-			verifyKey := k.(verifyKey)
-			return verifyKey.Verify(signedbytes, sig)
-		}
+	k, err := ks.kz.getKeyForID(h.keyid[:])
+	if err != nil {
+		return false, err
 	}
 
-	return false, ErrKeyNotFound
-
+	verifyKey := k.(verifyKey)
+	return verifyKey.Verify(signedbytes, sig)
 }
 
 // Return a signature for 'msg'
 // All the heavy lifting is done by the key
-func (kz *keySigner) Sign(msg []byte) (string, error) {
+func (ks *keySigner) Sign(msg []byte) (string, error) {
 
-	key := kz.keys[kz.primary]
+	key := ks.kz.getPrimaryKey()
 
 	signingKey := key.(signVerifyKey)
 
@@ -321,7 +315,7 @@ func (kz *keySigner) Sign(msg []byte) (string, error) {
 	h := makeHeader(key)
 	signature = append(h, signature...)
 
-	s := kz.encode(signature)
+	s := ks.encode(signature)
 
 	return string(s), nil
 }
@@ -330,13 +324,13 @@ func (kz *keySigner) Sign(msg []byte) (string, error) {
 func NewCrypter(r KeyReader) (Crypter, error) {
 	k := new(keyCrypter)
 	var err error
-	k.keyCzar, err = newKeyCzar(r)
+	k.kz, err = newKeyCzar(r)
 
-	if !k.keyCzar.keymeta.Purpose.isValidPurpose(P_DECRYPT_AND_ENCRYPT) {
+	if !k.kz.keymeta.Purpose.isValidPurpose(P_DECRYPT_AND_ENCRYPT) {
 		return nil, ErrUnacceptablePurpose
 	}
 
-	err = k.loadPrimaryKey()
+	err = k.kz.loadPrimaryKey()
 	if err != nil {
 		return nil, err
 	}
@@ -348,13 +342,13 @@ func NewCrypter(r KeyReader) (Crypter, error) {
 func NewEncrypter(r KeyReader) (Encrypter, error) {
 	k := new(keyCrypter)
 	var err error
-	k.keyCzar, err = newKeyCzar(r)
+	k.kz, err = newKeyCzar(r)
 
-	if !k.keyCzar.keymeta.Purpose.isValidPurpose(P_ENCRYPT) {
+	if !k.kz.keymeta.Purpose.isValidPurpose(P_ENCRYPT) {
 		return nil, ErrUnacceptablePurpose
 	}
 
-	err = k.loadPrimaryKey()
+	err = k.kz.loadPrimaryKey()
 	if err != nil {
 		return nil, err
 	}
@@ -366,9 +360,9 @@ func NewEncrypter(r KeyReader) (Encrypter, error) {
 func NewVerifier(r KeyReader) (Verifier, error) {
 	k := new(keySigner)
 	var err error
-	k.keyCzar, err = newKeyCzar(r)
+	k.kz, err = newKeyCzar(r)
 
-	if !k.keyCzar.keymeta.Purpose.isValidPurpose(P_VERIFY) {
+	if !k.kz.keymeta.Purpose.isValidPurpose(P_VERIFY) {
 		return nil, ErrUnacceptablePurpose
 	}
 
@@ -379,13 +373,13 @@ func NewVerifier(r KeyReader) (Verifier, error) {
 func NewSigner(r KeyReader) (Signer, error) {
 	k := new(keySigner)
 	var err error
-	k.keyCzar, err = newKeyCzar(r)
+	k.kz, err = newKeyCzar(r)
 
-	if !k.keyCzar.keymeta.Purpose.isValidPurpose(P_SIGN_AND_VERIFY) {
+	if !k.kz.keymeta.Purpose.isValidPurpose(P_SIGN_AND_VERIFY) {
 		return nil, ErrUnacceptablePurpose
 	}
 
-	err = k.loadPrimaryKey()
+	err = k.kz.loadPrimaryKey()
 	if err != nil {
 		return nil, err
 	}
@@ -446,6 +440,21 @@ func (kz *keyCzar) loadPrimaryKey() error {
 
 	return nil
 
+}
+
+func (kz *keyCzar) getPrimaryKey() keyIDer {
+	return kz.keys[kz.primary]
+}
+
+func (kz *keyCzar) getKeyForID(id []byte) (keyIDer, error) {
+
+	for _, k := range kz.keys {
+		if bytes.Compare(k.KeyID(), id[:]) == 0 {
+			return k, nil
+		}
+	}
+
+	return nil, ErrKeyNotFound
 }
 
 // construct a keyczar object from a reader for a given purpose
