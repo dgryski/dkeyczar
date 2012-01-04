@@ -461,6 +461,27 @@ func (kz *keyCzar) getKeyForID(id []byte) (keyIDer, error) {
 	return nil, ErrKeyNotFound
 }
 
+func newKeysFromReader(r KeyReader, km keyMeta, keyFromJSON func([]byte) (keyIDer, error)) (map[int]keyIDer, error) {
+
+	keys := make(map[int]keyIDer)
+
+	for _, kv := range km.Versions {
+		s, err := r.GetKey(kv.VersionNumber)
+		if err != nil {
+			return nil, err
+		}
+
+		k, err := keyFromJSON([]byte(s))
+		if err != nil {
+			return nil, err
+		}
+
+		keys[kv.VersionNumber] = k
+	}
+
+	return keys, nil
+}
+
 // construct a keyczar object from a reader for a given purpose
 func newKeyCzar(r KeyReader) (*keyCzar, error) {
 
@@ -476,22 +497,26 @@ func newKeyCzar(r KeyReader) (*keyCzar, error) {
 		return nil, err
 	}
 
+	var f func(s []byte) (keyIDer, error)
+
 	switch kz.keymeta.Type {
 	case T_AES:
-		kz.keys, err = newAESKeys(r, kz.keymeta)
+		f = func(s []byte) (keyIDer, error) { return newAESKeyFromJSON(s) }
 	case T_HMAC_SHA1:
-		kz.keys, err = newHMACKeys(r, kz.keymeta)
+		f = func(s []byte) (keyIDer, error) { return newHMACKeyFromJSON(s) }
 	case T_DSA_PRIV:
-		kz.keys, err = newDSAKeys(r, kz.keymeta)
+		f = func(s []byte) (keyIDer, error) { return newDSAKeyFromJSON(s) }
 	case T_DSA_PUB:
-		kz.keys, err = newDSAPublicKeys(r, kz.keymeta)
+		f = func(s []byte) (keyIDer, error) { return newDSAPublicKeyFromJSON(s) }
 	case T_RSA_PRIV:
-		kz.keys, err = newRSAKeys(r, kz.keymeta)
+		f = func(s []byte) (keyIDer, error) { return newRSAKeyFromJSON(s) }
 	case T_RSA_PUB:
-		kz.keys, err = newRSAPublicKeys(r, kz.keymeta)
+		f = func(s []byte) (keyIDer, error) { return newRSAPublicKeyFromJSON(s) }
 	default:
 		return nil, ErrUnsupportedType
 	}
+
+	kz.keys, err = newKeysFromReader(r, kz.keymeta, f)
 
 	return kz, err
 }
