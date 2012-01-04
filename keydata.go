@@ -17,13 +17,13 @@ import (
 	"math/big"
 )
 
-type keyIDer interface {
+type keydata interface {
 	KeyID() []byte
 	ToKeyJSON() []byte
 }
 
 type encryptKey interface {
-	keyIDer
+	keydata
 	Encrypt(b []byte) ([]byte, error)
 }
 
@@ -33,7 +33,7 @@ type decryptEncryptKey interface {
 }
 
 type verifyKey interface {
-	keyIDer
+	keydata
 	Verify(message []byte, signature []byte) (bool, error)
 }
 
@@ -42,7 +42,7 @@ type signVerifyKey interface {
 	Sign(message []byte) ([]byte, error)
 }
 
-func generateKey(ktype keyType, size uint) keyIDer {
+func generateKey(ktype keyType, size uint) keydata {
 
 	switch ktype {
 	case T_AES:

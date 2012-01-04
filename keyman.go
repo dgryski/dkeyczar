@@ -175,7 +175,7 @@ func (m *keyManager) PubKeys() KeyManager {
 
 	km.kz.keymeta.Versions = m.kz.keymeta.Versions
 
-	km.kz.keys = make(map[int]keyIDer)
+	km.kz.keys = make(map[int]keydata)
 
 	for version, privkey := range m.kz.keys {
 		switch k := privkey.(type) {

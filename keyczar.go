@@ -41,7 +41,7 @@ const (
 // Our main base type.  We only expose this through one of the interfaces.
 type keyCzar struct {
 	keymeta keyMeta         // metadata for this key
-	keys    map[int]keyIDer // maps versions to keys
+	keys    map[int]keydata // maps versions to keys
 	primary int             // integer version of the primary key
 }
 
@@ -442,7 +442,7 @@ func (kz *keyCzar) loadPrimaryKey() error {
 
 }
 
-func (kz *keyCzar) getPrimaryKey() keyIDer {
+func (kz *keyCzar) getPrimaryKey() keydata {
 	return kz.keys[kz.primary]
 }
 
@@ -450,7 +450,7 @@ func (kz *keyCzar) isAcceptablePurpose(purpose keyPurpose) bool {
 	return kz.keymeta.Purpose.isAcceptablePurpose(purpose)
 }
 
-func (kz *keyCzar) getKeyForID(id []byte) (keyIDer, error) {
+func (kz *keyCzar) getKeyForID(id []byte) (keydata, error) {
 
 	for _, k := range kz.keys {
 		if bytes.Compare(k.KeyID(), id[:]) == 0 {
@@ -461,9 +461,9 @@ func (kz *keyCzar) getKeyForID(id []byte) (keyIDer, error) {
 	return nil, ErrKeyNotFound
 }
 
-func newKeysFromReader(r KeyReader, km keyMeta, keyFromJSON func([]byte) (keyIDer, error)) (map[int]keyIDer, error) {
+func newKeysFromReader(r KeyReader, km keyMeta, keyFromJSON func([]byte) (keydata, error)) (map[int]keydata, error) {
 
-	keys := make(map[int]keyIDer)
+	keys := make(map[int]keydata)
 
 	for _, kv := range km.Versions {
 		s, err := r.GetKey(kv.VersionNumber)
@@ -497,21 +497,21 @@ func newKeyCzar(r KeyReader) (*keyCzar, error) {
 		return nil, err
 	}
 
-	var f func(s []byte) (keyIDer, error)
+	var f func(s []byte) (keydata, error)
 
 	switch kz.keymeta.Type {
 	case T_AES:
-		f = func(s []byte) (keyIDer, error) { return newAESKeyFromJSON(s) }
+		f = func(s []byte) (keydata, error) { return newAESKeyFromJSON(s) }
 	case T_HMAC_SHA1:
-		f = func(s []byte) (keyIDer, error) { return newHMACKeyFromJSON(s) }
+		f = func(s []byte) (keydata, error) { return newHMACKeyFromJSON(s) }
 	case T_DSA_PRIV:
-		f = func(s []byte) (keyIDer, error) { return newDSAKeyFromJSON(s) }
+		f = func(s []byte) (keydata, error) { return newDSAKeyFromJSON(s) }
 	case T_DSA_PUB:
-		f = func(s []byte) (keyIDer, error) { return newDSAPublicKeyFromJSON(s) }
+		f = func(s []byte) (keydata, error) { return newDSAPublicKeyFromJSON(s) }
 	case T_RSA_PRIV:
-		f = func(s []byte) (keyIDer, error) { return newRSAKeyFromJSON(s) }
+		f = func(s []byte) (keydata, error) { return newRSAKeyFromJSON(s) }
 	case T_RSA_PUB:
-		f = func(s []byte) (keyIDer, error) { return newRSAPublicKeyFromJSON(s) }
+		f = func(s []byte) (keydata, error) { return newRSAPublicKeyFromJSON(s) }
 	default:
 		return nil, ErrUnsupportedType
 	}
@@ -530,7 +530,7 @@ type kHeader struct {
 }
 
 // make and return a header for the given key
-func makeHeader(key keyIDer) []byte {
+func makeHeader(key keydata) []byte {
 	b := make([]byte, kzHeaderLength)
 	b[0] = kzVersion
 	copy(b[1:], key.KeyID())
