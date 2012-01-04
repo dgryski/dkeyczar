@@ -1,13 +1,6 @@
 
 High Priority:
 
-    - implement keyczar tool so our library is standalone
-        => other export options (cert? pkcs8/pkcs5? ...?)
-
-    - key.ID()
-    - key.IsAcceptablePurpose(purpose) / key.Purpose() { return KpPURPOSE } ?
-    - key.Type() => ktFOO constant
-
     - improve internal documentation (keydata)
 
     - PKCS#8 private key import/export
@@ -15,8 +8,13 @@ High Priority:
       (dsa not supported -- must implement)
       (rsa export not supported -- must implement)
 
-Low Priority:
 
+Low Priority:
+    - key.ID()
+    - key.IsAcceptablePurpose(purpose) / key.Purpose() { return KpPURPOSE } ?
+    - key.Type() => ktFOO constant
+
+    - some of the keyman routines poke into keyCzar internals
     - write code to generate c++ test case for compatibility
     - keyIDer is a bad name
     - some of the ImportFOOForBar would be easier if we exported the KeyPurpose enum
