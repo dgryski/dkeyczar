@@ -182,7 +182,7 @@ var keyPurposeLookup = map[string]keyPurpose{
 	"TEST":                P_TEST,
 }
 
-func (have keyPurpose) isValidPurpose(want keyPurpose) bool {
+func (have keyPurpose) isAcceptablePurpose(want keyPurpose) bool {
 
 	switch want {
 	case P_ENCRYPT:

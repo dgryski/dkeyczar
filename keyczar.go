@@ -326,7 +326,7 @@ func NewCrypter(r KeyReader) (Crypter, error) {
 	var err error
 	k.kz, err = newKeyCzar(r)
 
-	if !k.kz.keymeta.Purpose.isValidPurpose(P_DECRYPT_AND_ENCRYPT) {
+	if !k.kz.keymeta.Purpose.isAcceptablePurpose(P_DECRYPT_AND_ENCRYPT) {
 		return nil, ErrUnacceptablePurpose
 	}
 
@@ -344,7 +344,7 @@ func NewEncrypter(r KeyReader) (Encrypter, error) {
 	var err error
 	k.kz, err = newKeyCzar(r)
 
-	if !k.kz.keymeta.Purpose.isValidPurpose(P_ENCRYPT) {
+	if !k.kz.keymeta.Purpose.isAcceptablePurpose(P_ENCRYPT) {
 		return nil, ErrUnacceptablePurpose
 	}
 
@@ -362,7 +362,7 @@ func NewVerifier(r KeyReader) (Verifier, error) {
 	var err error
 	k.kz, err = newKeyCzar(r)
 
-	if !k.kz.keymeta.Purpose.isValidPurpose(P_VERIFY) {
+	if !k.kz.keymeta.Purpose.isAcceptablePurpose(P_VERIFY) {
 		return nil, ErrUnacceptablePurpose
 	}
 
@@ -375,7 +375,7 @@ func NewSigner(r KeyReader) (Signer, error) {
 	var err error
 	k.kz, err = newKeyCzar(r)
 
-	if !k.kz.keymeta.Purpose.isValidPurpose(P_SIGN_AND_VERIFY) {
+	if !k.kz.keymeta.Purpose.isAcceptablePurpose(P_SIGN_AND_VERIFY) {
 		return nil, ErrUnacceptablePurpose
 	}
 
