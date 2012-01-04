@@ -21,7 +21,6 @@ Low Priority:
     - keyIDer is a bad name
     - some of the ImportFOOForBar would be easier if we exported the KeyPurpose enum
     - newKeysFromJSON is actually newKeysFromReader and probably belongs in keyczar.go
-    - change order of init for compression and encoding constants so '0' is default (and correct)
     - fix keymeta.Versions so Versions[versionNumber] is correct (placeholder? nil?)
 
     - write functions to abstract byte-stream format
