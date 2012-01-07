@@ -10,6 +10,7 @@ High Priority:
 
 
 Low Priority:
+    - writing pbe keys
     - key.Type() => ktFOO constant
     - some of the keyman routines poke into keyCzar internals
     - write code to generate c++ test case for compatibility
