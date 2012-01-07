@@ -103,26 +103,26 @@ func (ec *encodingController) SetEncoding(encoding KeyczarEncoding) {
 }
 
 // return 'data' encoded based on the value of the 'encoding' field
-func (ec *encodingController) encode(data []byte) []byte {
+func (ec *encodingController) encode(data []byte) string {
 
 	switch ec.encoding {
 	case NO_ENCODING:
-		return data
+		return string(data)
 	case BASE64W:
-		return []byte(encodeWeb64String(data))
+		return encodeWeb64String(data)
 	}
 
 	panic("not reached")
 }
 
 // return 'data' decoded based on the value of the 'encoding' field
-func (ec *encodingController) decode(data []byte) ([]byte, error) {
+func (ec *encodingController) decode(data string) ([]byte, error) {
 
 	switch ec.encoding {
 	case NO_ENCODING:
-		return data, nil
+		return []byte(data), nil
 	case BASE64W:
-		return decodeWeb64String(string(data))
+		return decodeWeb64String(data)
 	}
 
 	panic("not reached")
@@ -220,7 +220,7 @@ func (kc *keyCrypter) Encrypt(plaintext []uint8) (string, error) {
 
 	s := kc.encode(ciphertext)
 
-	return string(s), nil
+	return s, nil
 
 }
 
@@ -228,7 +228,7 @@ func (kc *keyCrypter) Encrypt(plaintext []uint8) (string, error) {
 // All the heavy lifting is done by the key
 func (kc *keyCrypter) Decrypt(ciphertext string) ([]uint8, error) {
 
-	b, err := kc.decode([]byte(ciphertext))
+	b, err := kc.decode(ciphertext)
 
 	if err != nil {
 		return nil, ErrBase64Decoding
@@ -238,7 +238,7 @@ func (kc *keyCrypter) Decrypt(ciphertext string) ([]uint8, error) {
 		return nil, ErrShortCiphertext
 	}
 
-	h := getHeader([]byte(b))
+	h := getHeader(b)
 
 	if h.version != kzVersion {
 		return nil, ErrBadVersion
@@ -263,7 +263,7 @@ type keySigner struct {
 // All the heavy lifting is done by the key
 func (ks *keySigner) Verify(msg []byte, signature string) (bool, error) {
 
-	b, err := ks.decode([]byte(signature))
+	b, err := ks.decode(signature)
 
 	if err != nil {
 		return false, ErrBase64Decoding
@@ -317,7 +317,7 @@ func (ks *keySigner) Sign(msg []byte) (string, error) {
 
 	s := ks.encode(signature)
 
-	return string(s), nil
+	return s, nil
 }
 
 // NewCrypter returns an object capable of encrypting and decrypting using the key provded by the reader
