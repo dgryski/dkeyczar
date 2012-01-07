@@ -4,10 +4,17 @@ This code is licensed under the Apache License, version 2.0
 
 You can learn more about the Keyczar library at http://www.keyczar.org/
 
-The library is still in development but should be mostly complete.  You can
-currently load AES, HMAC, RSA, and DSA keys and use them for signing and
-verification.  RSA public and private keys can be loaded from PEM files as well
-as keyczar key files.  The library also supports creating session keys.
+The library supports:
+   AES+HMAC for symmetric encryption,
+   HMAC for symmetric signing
+   RSA for asymmetric encryption or signing
+   DSA for asymmetric signing
+
+It uses sensible defaults for key sizes and all output is encoding in web-safe
+base64.
+
+See the godoc for more information.  It is also viewable online at:
+http://gopkgdoc.appspot.com/pkg/github.com/dgryski/dkeyczar
 
 At the moment, the tests require the keyczar-cpp source tree, since that's
 where the test files are kept.  The path to the 06b testfiles must be specified
