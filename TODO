@@ -1,8 +1,6 @@
 
 High Priority:
 
-    - improve internal documentation (keydata)
-
     - PKCS#8 private key import/export
       -- asn1 is painful.
       (dsa not supported -- must implement)
