@@ -443,6 +443,9 @@ func (kz *keyCzar) loadPrimaryKey() error {
 }
 
 func (kz *keyCzar) getPrimaryKey() keydata {
+	if kz.primary == -1 {
+		return nil
+	}
 	return kz.keys[kz.primary]
 }
 
@@ -486,6 +489,8 @@ func newKeysFromReader(r KeyReader, km keyMeta, keyFromJSON func([]byte) (keydat
 func newKeyCzar(r KeyReader) (*keyCzar, error) {
 
 	kz := new(keyCzar)
+
+	kz.primary = -1
 
 	s, err := r.GetMetadata()
 	if err != nil {
