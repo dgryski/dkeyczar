@@ -1,5 +1,17 @@
 package dkeyczar
 
+/*
+This file handles all the actual cryptographic routines and key handling.
+
+There are two main types in use: fooKey and fooKeyJSON
+
+The fooKeyJSON match the on-disk representation of stored keys.  The fooKey
+store just the key material.  There are routines for converting back and forth
+between these two types.
+
+There are types for AES+HMAC, HMAC, RSA and RSA Public, DSA and DSA Public.
+*/
+
 import (
 	"crypto"
 	"crypto/aes"
@@ -58,6 +70,7 @@ func generateKey(ktype keyType, size uint) (keydata, error) {
 	panic("not reached")
 }
 
+// we only support one hmac size for the moment
 const hmacSigLength = 20
 
 type hmacKeyJSON struct {
@@ -114,10 +127,14 @@ func generateAESKey(size uint) (*aesKey, error) {
 	return ak, nil
 }
 
+// The session encryption uses packed keys to send the aes and hmac key material
+// return the aes+hmac key material as packed keys
 func (ak *aesKey) packedKeys() []byte {
 	return lenPrefixPack(ak.key, ak.hmacKey.key)
 }
 
+// this is used for session encryption
+// unpack the b array and return a new aes+hmac struct
 func newAESFromPackedKeys(b []byte) (*aesKey, error) {
 
 	keys := lenPrefixUnpack(b)
@@ -212,6 +229,7 @@ func (ak *aesKey) Encrypt(data []byte) ([]byte, error) {
 		return nil, err
 	}
 
+        // aes only ever created with CBC as a mode
 	crypter := cipher.NewCBCEncrypter(aesCipher, iv_bytes)
 
 	cipherBytes := make([]byte, len(data))
@@ -226,6 +244,7 @@ func (ak *aesKey) Encrypt(data []byte) ([]byte, error) {
 	msg = append(msg, iv_bytes...)
 	msg = append(msg, cipherBytes...)
 
+        // we sign the header, iv, and ciphertext
 	sig, err := ak.hmacKey.Sign(msg)
 	if err != nil {
 		return nil, err
@@ -236,15 +255,33 @@ func (ak *aesKey) Encrypt(data []byte) ([]byte, error) {
 
 }
 
+/*
+We do a bunch of array splicing below.
+
+The data array should contain the following fields:
+
+|header|iv|ciphertext|signature|
+
+with lengths
+
+|kzHeaderLength|aes.BlockSize|<unknown>|hmacSigLength|
+
+The expressions could probably be simplified.
+
+*/
+
+
 func (ak *aesKey) Decrypt(data []byte) ([]byte, error) {
+
 
 	if len(data) < kzHeaderLength+aes.BlockSize+hmacSigLength {
 		return nil, ErrShortCiphertext
 	}
 
-	msg := data[0 : len(data)-hmacSigLength]
+	msg := data[:len(data)-hmacSigLength]
 	sig := data[len(data)-hmacSigLength:]
 
+        // before doing anything else, first check the signature
 	if ok, err := ak.hmacKey.Verify(msg, sig); !ok || err != nil {
 		if err == nil {
 			err = ErrInvalidSignature
