@@ -40,8 +40,8 @@ func main() {
 	optName := flag.String("name", "", "the name of the key")
 	optPurpose := flag.String("purpose", "", "the purpose of the key (crypt/sign)")
 	optCrypter := flag.String("crypter", "", "the key to use when dealing with encrypted keys")
-	optAsymmetric := flag.String("asymmetric", "", "the assymeteric algorithm to use (dsa/rsa)")
-	optStatus := flag.String("status", "", "the status (active/primary)")
+	optAsymmetric := flag.String("asymmetric", "", "the asymmetric algorithm to use (dsa/rsa)")
+	optStatus := flag.String("status", "", "the status (active/primary/inactive)")
 	optVersion := flag.Int("version", 0, "the version of the key to use")
 	optDestination := flag.String("destination", "", "the location to store the exported keys")
 
@@ -49,16 +49,10 @@ func main() {
 
 	command := flag.Arg(0)
 
-	fmt.Println("command=", command)
-
-	fmt.Println("asymmetric=", *optAsymmetric)
-	fmt.Println("location=", *optLocation)
-	fmt.Println("name=", *optName)
-	fmt.Println("purpose=", *optPurpose)
-	fmt.Println("size=", *optSize)
-	fmt.Println("status=", *optStatus)
-	fmt.Println("version=", *optVersion)
-	fmt.Println("crypter=", *optCrypter)
+	if command == "" {
+		flag.Usage()
+		return
+	}
 
 	var crypter dkeyczar.Crypter
 
@@ -72,6 +66,11 @@ func main() {
 
 	if command != "create" {
 
+		if *optLocation == "" {
+			fmt.Println("missing required --location argument")
+			return
+		}
+
 		lr := dkeyczar.NewFileReader(*optLocation)
 
 		if crypter != nil {
@@ -79,17 +78,11 @@ func main() {
 			lr = dkeyczar.NewEncryptedReader(lr, crypter)
 		}
 
-		km.Load(lr)
-
-	}
-
-	s := km.ToJSONs(nil)
-
-	fmt.Println("before")
-	fmt.Println("meta=", s[0])
-
-	for i := 1; i < len(s); i++ {
-		fmt.Println(i, "=", s[i])
+		err := km.Load(lr)
+		if err != nil {
+			fmt.Println("failed to load key: ", err)
+			return
+		}
 	}
 
 	if command == "create" {
@@ -107,6 +100,11 @@ func main() {
 			return
 		}
 
+		if *optAsymmetric != "" && *optAsymmetric != "dsa" && *optAsymmetric != "rsa" {
+			fmt.Println("unknown asymmetric key type: ", *optAsymmetric)
+			return
+		}
+
 		keytype := dkeyczar.T_AES
 
 		switch {
@@ -121,7 +119,7 @@ func main() {
 		case keypurpose == dkeyczar.P_SIGN_AND_VERIFY && *optAsymmetric == "dsa":
 			keytype = dkeyczar.T_DSA_PRIV
 		default:
-			fmt.Println("unknown purpose / asymmetric pair: ", *optPurpose, "/", *optAsymmetric)
+			fmt.Println("unknown or invalid purpose/asymmetric combination: ", *optPurpose, "/", *optAsymmetric)
 			return
 		}
 
@@ -150,7 +148,11 @@ func main() {
 			fmt.Println("unknown status: ", *optStatus)
 		}
 
-		km.AddKey(uint(*optSize), status)
+		err := km.AddKey(uint(*optSize), status)
+		if err != nil {
+			fmt.Println("error adding key: ", err)
+			return
+		}
 		Update(*optLocation, km, crypter)
 	} else if command == "pubkey" {
 		kpub := km.PubKeys()
