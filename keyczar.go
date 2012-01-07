@@ -390,7 +390,7 @@ func NewSigner(r KeyReader) (Signer, error) {
 // NewSessionEncrypter returns an Encrypter that has been initailized with a random session key.  This key material is encrypted with crypter and returned.
 func NewSessionEncrypter(encrypter Encrypter) (Crypter, string, error) {
 
-	aeskey := generateAESKey(0)
+	aeskey, _ := generateAESKey(0) // shouldn't fail
 	r := newImportedAESKeyReader(aeskey)
 
 	keys, err := encrypter.Encrypt(aeskey.packedKeys())

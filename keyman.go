@@ -6,8 +6,8 @@ import (
 
 type KeyManager interface {
 	Create(name string, purpose keyPurpose, ktype keyType) error
-	Load(reader KeyReader)
-	AddKey(size uint, status keyStatus)
+	Load(reader KeyReader) error
+	AddKey(size uint, status keyStatus) error
 	Promote(version int)
 	Demote(version int)
 	// Revoke
@@ -24,8 +24,10 @@ func NewKeyManager() KeyManager {
 	return new(keyManager)
 }
 
-func (m *keyManager) Load(reader KeyReader) {
-	m.kz, _ = newKeyCzar(reader)
+func (m *keyManager) Load(reader KeyReader) error {
+	var err error
+	m.kz, err = newKeyCzar(reader)
+	return err
 }
 
 func (m *keyManager) Create(name string, purpose keyPurpose, ktype keyType) error {
@@ -76,7 +78,7 @@ func (m *keyManager) ToJSONs(crypter Crypter) []string {
 
 }
 
-func (m *keyManager) AddKey(size uint, status keyStatus) {
+func (m *keyManager) AddKey(size uint, status keyStatus) error {
 
 	exportable := false
 
@@ -104,9 +106,13 @@ func (m *keyManager) AddKey(size uint, status keyStatus) {
 		m.kz.keymeta.Versions = append(m.kz.keymeta.Versions, kv)
 	}
 
-	k := generateKey(m.kz.keymeta.Type, size)
+	k, err := generateKey(m.kz.keymeta.Type, size)
+	if err != nil {
+		return err
+	}
 
 	m.kz.keys[maxVersion] = k
+	return nil
 }
 
 func (m *keyManager) Promote(version int) {

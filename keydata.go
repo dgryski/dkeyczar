@@ -42,7 +42,7 @@ type signVerifyKey interface {
 	Sign(message []byte) ([]byte, error)
 }
 
-func generateKey(ktype keyType, size uint) keydata {
+func generateKey(ktype keyType, size uint) (keydata, error) {
 
 	switch ktype {
 	case T_AES:
@@ -70,13 +70,13 @@ type hmacKey struct {
 	id  []byte
 }
 
-func generateHMACKey() *hmacKey {
+func generateHMACKey() (*hmacKey, error) {
 	hk := new(hmacKey)
 
 	hk.key = make([]byte, T_HMAC_SHA1.defaultSize()/8)
 	io.ReadFull(rand.Reader, hk.key)
 
-	return hk
+	return hk, nil
 }
 
 type aesKeyJSON struct {
@@ -92,7 +92,7 @@ type aesKey struct {
 	id      []byte
 }
 
-func generateAESKey(size uint) *aesKey {
+func generateAESKey(size uint) (*aesKey, error) {
 	ak := new(aesKey)
 
 	if size == 0 {
@@ -100,16 +100,18 @@ func generateAESKey(size uint) *aesKey {
 	}
 
 	if !T_AES.isAcceptableSize(size) {
-		return nil
+		return nil, ErrInvalidKeySize
 	}
 
 	ak.key = make([]byte, size/8)
 
 	io.ReadFull(rand.Reader, ak.key)
 
-	ak.hmacKey = *generateHMACKey()
+	hmackey, _ := generateHMACKey()
 
-	return ak
+	ak.hmacKey = *hmackey
+
+	return ak, nil
 }
 
 func (ak *aesKey) packedKeys() []byte {
@@ -359,7 +361,7 @@ type dsaKey struct {
 	publicKey dsaPublicKey
 }
 
-func generateDSAKey(size uint) *dsaKey {
+func generateDSAKey(size uint) (*dsaKey, error) {
 
 	dsakey := new(dsaKey)
 
@@ -368,7 +370,7 @@ func generateDSAKey(size uint) *dsaKey {
 	}
 
 	if !T_DSA_PRIV.isAcceptableSize(size) {
-		return nil
+		return nil, ErrInvalidKeySize
 	}
 
 	var psz dsa.ParameterSizes
@@ -381,17 +383,17 @@ func generateDSAKey(size uint) *dsaKey {
 
 	err := dsa.GenerateParameters(&dsakey.key.PublicKey.Parameters, rand.Reader, psz)
 	if err != nil {
-		panic("error during dsa parameter generation")
+		return nil, err
 	}
 
 	err = dsa.GenerateKey(&dsakey.key, rand.Reader)
 	if err != nil {
-		panic("error during dsa key generation")
+		return nil, err
 	}
 
 	dsakey.publicKey.key = dsakey.key.PublicKey
 
-	return dsakey
+	return dsakey, nil
 }
 
 func newDSAPublicKeyFromJSON(s []byte) (*dsaPublicKey, error) {
@@ -612,7 +614,7 @@ type rsaKey struct {
 	publicKey rsaPublicKey
 }
 
-func generateRSAKey(size uint) *rsaKey {
+func generateRSAKey(size uint) (*rsaKey, error) {
 
 	rsakey := new(rsaKey)
 
@@ -621,19 +623,19 @@ func generateRSAKey(size uint) *rsaKey {
 	}
 
 	if !T_RSA_PRIV.isAcceptableSize(size) {
-		return nil
+		return nil, ErrInvalidKeySize
 	}
 
 	priv, err := rsa.GenerateKey(rand.Reader, int(size))
 
 	if err != nil {
-		panic("error during rsa key generation")
+		return nil, err
 	}
 
 	rsakey.key = *priv
 	rsakey.publicKey.key = priv.PublicKey
 
-	return rsakey
+	return rsakey, nil
 }
 
 func (rk *rsaPublicKey) KeyID() []byte {
