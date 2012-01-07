@@ -36,7 +36,7 @@ func Update(location string, km dkeyczar.KeyManager, crypter dkeyczar.Crypter) {
 func main() {
 
 	optLocation := flag.String("location", "", "the location of the keys")
-	optSize := flag.Int("size", 0, "the size of key to generate")
+	optSize := flag.Int("size", 0, "the size of key to generate in bits")
 	optName := flag.String("name", "", "the name of the key")
 	optPurpose := flag.String("purpose", "", "the purpose of the key (crypt/sign)")
 	optCrypter := flag.String("crypter", "", "the key to use when dealing with encrypted keys")
