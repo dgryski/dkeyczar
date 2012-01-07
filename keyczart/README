@@ -1,0 +1,25 @@
+
+The tool is somewhat fragile, so here are some examples of usage.  Note that if
+your parameters are wrong, you'll probably get a weird error message or more
+likely a segfault.
+
+Example: create an AES key for encryption:
+
+bash$ ./dkeyczart --location=my-aes-key --purpose=crypt create
+bash$ ./dkeyczart --location=my-aes-key addkey
+bash$ ./dkeyczart --location=my-aes-key --version=1 promote
+
+You can  now use this key for symmetric encryption.
+
+Example: create a DSA key for signing
+
+bash$ ./dkeyczart --location=my-dsa-key --purpose=sign --asymmetric=dsa create
+bash$ ./dkeyczart --location=my-dsa-key addkey
+bash$ ./dkeyczart --location=my-dsa-key --version=1 promote
+
+Example: exporting the public half of a key pair
+
+bash$ ./dkeyczart --location=my-dsa-key --destination=my-dsa-key.public pubkey
+
+The public half of the DSA key will now be in the directory
+'my-dsa-key.public', ready to be used for verification.
