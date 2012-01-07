@@ -14,7 +14,7 @@ func Save(location string, km dkeyczar.KeyManager, crypter dkeyczar.Crypter) {
 	err := os.Mkdir(location, 0700)
 
 	if err != nil {
-		fmt.Println("unable to create key directory: " + err.Error())
+		fmt.Println("unable to create key directory:" + err.Error())
 		return
 	}
 
@@ -50,6 +50,7 @@ func main() {
 	command := flag.Arg(0)
 
 	if command == "" {
+		fmt.Println("missing command, need: create addkey promote demote pubkey")
 		flag.Usage()
 		return
 	}
@@ -57,9 +58,14 @@ func main() {
 	var crypter dkeyczar.Crypter
 
 	if *optCrypter != "" {
-		fmt.Println("using crypter: ", *optCrypter)
+		fmt.Println("using crypter:", *optCrypter)
 		r := dkeyczar.NewFileReader(*optCrypter)
-		crypter, _ = dkeyczar.NewCrypter(r)
+		var err error
+		crypter, err = dkeyczar.NewCrypter(r)
+		if err != nil {
+			fmt.Println("failed to load crypter:", err)
+			return
+		}
 	}
 
 	km := dkeyczar.NewKeyManager()
@@ -80,7 +86,7 @@ func main() {
 
 		err := km.Load(lr)
 		if err != nil {
-			fmt.Println("failed to load key: ", err)
+			fmt.Println("failed to load key:", err)
 			return
 		}
 	}
@@ -95,13 +101,16 @@ func main() {
 			keypurpose = dkeyczar.P_DECRYPT_AND_ENCRYPT
 		case "sign":
 			keypurpose = dkeyczar.P_SIGN_AND_VERIFY
+		case "":
+			fmt.Println("must provide a purpose with --purpose")
+			return
 		default:
-			fmt.Println("unknown cryptographic purpose: ", *optPurpose)
+			fmt.Println("unknown cryptographic purpose:", *optPurpose)
 			return
 		}
 
 		if *optAsymmetric != "" && *optAsymmetric != "dsa" && *optAsymmetric != "rsa" {
-			fmt.Println("unknown asymmetric key type: ", *optAsymmetric)
+			fmt.Println("unknown asymmetric key type:", *optAsymmetric)
 			return
 		}
 
@@ -119,7 +128,7 @@ func main() {
 		case keypurpose == dkeyczar.P_SIGN_AND_VERIFY && *optAsymmetric == "dsa":
 			keytype = dkeyczar.T_DSA_PRIV
 		default:
-			fmt.Println("unknown or invalid purpose/asymmetric combination: ", *optPurpose, "/", *optAsymmetric)
+			fmt.Println("unknown or invalid purpose/asymmetric combination:", *optPurpose, "/", *optAsymmetric)
 			return
 		}
 
@@ -128,9 +137,17 @@ func main() {
 		Save(*optLocation, km, crypter)
 
 	} else if command == "promote" {
+		if *optVersion == 0 {
+			fmt.Println("must provide a version with --version")
+			return
+		}
 		km.Promote(*optVersion)
 		Update(*optLocation, km, crypter)
 	} else if command == "demote" {
+		if *optVersion == 0 {
+			fmt.Println("must provide a version with --version")
+			return
+		}
 		km.Demote(*optVersion)
 		Update(*optLocation, km, crypter)
 	} else if command == "addkey" {
@@ -145,12 +162,12 @@ func main() {
 		} else if *optStatus == "inactive" {
 			status = dkeyczar.S_INACTIVE
 		} else {
-			fmt.Println("unknown status: ", *optStatus)
+			fmt.Println("unknown status:", *optStatus)
 		}
 
 		err := km.AddKey(uint(*optSize), status)
 		if err != nil {
-			fmt.Println("error adding key: ", err)
+			fmt.Println("error adding key:", err)
 			return
 		}
 		Update(*optLocation, km, crypter)
