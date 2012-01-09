@@ -91,7 +91,9 @@ func main() {
 		}
 	}
 
-	if command == "create" {
+	switch command {
+
+	case "create":
 		// make sure location doesn't exist
 
 		keypurpose := dkeyczar.P_TEST
@@ -136,33 +138,35 @@ func main() {
 
 		Save(*optLocation, km, crypter)
 
-	} else if command == "promote" {
+	case "promote":
 		if *optVersion == 0 {
 			fmt.Println("must provide a version with --version")
 			return
 		}
 		km.Promote(*optVersion)
 		Update(*optLocation, km, crypter)
-	} else if command == "demote" {
+	case "demote":
 		if *optVersion == 0 {
 			fmt.Println("must provide a version with --version")
 			return
 		}
 		km.Demote(*optVersion)
 		Update(*optLocation, km, crypter)
-	} else if command == "addkey" {
+	case "addkey":
 		status := dkeyczar.S_ACTIVE
-		if *optStatus == "" {
+		switch *optStatus {
+		case "":
 			// FIXME: really, want to do: status = (km.kz.primary == -1 ? S_PRIMARY : S_ACTIVE)
 			status = dkeyczar.S_ACTIVE
-		} else if *optStatus == "primary" {
+		case "primary":
 			status = dkeyczar.S_PRIMARY
-		} else if *optStatus == "active" {
+		case "active":
 			status = dkeyczar.S_ACTIVE
-		} else if *optStatus == "inactive" {
+		case "inactive":
 			status = dkeyczar.S_INACTIVE
-		} else {
+		default:
 			fmt.Println("unknown status:", *optStatus)
+			return
 		}
 
 		err := km.AddKey(uint(*optSize), status)
@@ -171,7 +175,7 @@ func main() {
 			return
 		}
 		Update(*optLocation, km, crypter)
-	} else if command == "pubkey" {
+	case "pubkey":
 		kpub := km.PubKeys()
 		Save(*optDestination, kpub, nil) // doesn't make sense to encrypt a public key
 	}
