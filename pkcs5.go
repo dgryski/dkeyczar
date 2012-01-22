@@ -2,6 +2,7 @@ package dkeyczar
 
 import (
 	"crypto/hmac"
+	"crypto/sha1"
 	"encoding/binary"
 )
 
@@ -11,7 +12,7 @@ func pbkdf2(password []byte, salt []byte, c int, dklen int) []byte {
 
 	const hlen = 20
 
-	h := hmac.NewSHA1(password)
+	h := hmac.New(sha1.New, password)
 
         // number of blocks we need
 	l := (dklen + hlen - 1) / hlen

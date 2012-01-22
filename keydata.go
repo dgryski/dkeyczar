@@ -359,7 +359,7 @@ func (hm *hmacKey) KeyID() []byte {
 
 func (hm *hmacKey) Sign(msg []byte) ([]byte, error) {
 
-	sha1hmac := hmac.NewSHA1(hm.key)
+	sha1hmac := hmac.New(sha1.New, hm.key)
 	sha1hmac.Write(msg)
 	sig := sha1hmac.Sum(nil)
 	return sig, nil
@@ -367,7 +367,7 @@ func (hm *hmacKey) Sign(msg []byte) ([]byte, error) {
 
 func (hm *hmacKey) Verify(msg []byte, signature []byte) (bool, error) {
 
-	sha1hmac := hmac.NewSHA1(hm.key)
+	sha1hmac := hmac.New(sha1.New, hm.key)
 	sha1hmac.Write(msg)
 	sig := sha1hmac.Sum(nil)
 
