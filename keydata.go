@@ -229,7 +229,7 @@ func (ak *aesKey) Encrypt(data []byte) ([]byte, error) {
 		return nil, err
 	}
 
-        // aes only ever created with CBC as a mode
+	// aes only ever created with CBC as a mode
 	crypter := cipher.NewCBCEncrypter(aesCipher, iv_bytes)
 
 	cipherBytes := make([]byte, len(data))
@@ -244,7 +244,7 @@ func (ak *aesKey) Encrypt(data []byte) ([]byte, error) {
 	msg = append(msg, iv_bytes...)
 	msg = append(msg, cipherBytes...)
 
-        // we sign the header, iv, and ciphertext
+	// we sign the header, iv, and ciphertext
 	sig, err := ak.hmacKey.Sign(msg)
 	if err != nil {
 		return nil, err
@@ -270,9 +270,7 @@ The expressions could probably be simplified.
 
 */
 
-
 func (ak *aesKey) Decrypt(data []byte) ([]byte, error) {
-
 
 	if len(data) < kzHeaderLength+aes.BlockSize+hmacSigLength {
 		return nil, ErrShortCiphertext
@@ -281,7 +279,7 @@ func (ak *aesKey) Decrypt(data []byte) ([]byte, error) {
 	msg := data[:len(data)-hmacSigLength]
 	sig := data[len(data)-hmacSigLength:]
 
-        // before doing anything else, first check the signature
+	// before doing anything else, first check the signature
 	if ok, err := ak.hmacKey.Verify(msg, sig); !ok || err != nil {
 		if err == nil {
 			err = ErrInvalidSignature

@@ -8,13 +8,14 @@ import (
 
 // http://www.rsa.com/rsalabs/node.asp?id=2127
 // http://www.di-mgt.com.au/cryptoKDFs.html#pbkdf2
+// http://tools.ietf.org/html/rfc2898
 func pbkdf2(password []byte, salt []byte, c int, dklen int) []byte {
 
 	const hlen = 20
 
 	h := hmac.New(sha1.New, password)
 
-        // number of blocks we need
+	// number of blocks we need
 	l := (dklen + hlen - 1) / hlen
 
 	T := make([]byte, 0, dklen)
@@ -54,8 +55,6 @@ func pkcs5pad(data []byte, blocksize int) []byte {
 
 func pkcs5unpad(data []byte) []byte {
 	pad := int(data[len(data)-1])
-        // FIXME: check that the padding bytes are all what we expect
+	// FIXME: check that the padding bytes are all what we expect
 	return data[0 : len(data)-pad]
 }
-
-
