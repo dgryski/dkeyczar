@@ -1,7 +1,7 @@
 package main
 
 import (
-	"../_obj/dkeyczar"
+	"dkeyczar"
 	"flag"
 	"fmt"
 	"io/ioutil"
