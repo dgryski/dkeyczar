@@ -1,13 +1,16 @@
 
 High Priority:
 
+    - improve external docs (README, examples, ...)
+
     - PKCS#8 private key import/export
       -- asn1 is painful.
       (dsa not supported -- must implement)
       (rsa export not supported -- must implement)
 
-
 Low Priority:
+    - remove internal pbkdf2 implementation and use go.crypto version?
+        - extra dependency, but 'standard lib' ?
     - writing pbe keys
     - key.Type() => ktFOO constant
     - some of the keyman routines poke into keyCzar internals
