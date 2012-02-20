@@ -150,13 +150,13 @@ func (cc *compressionController) compress(data []byte) []byte {
 		return data
 	case GZIP:
 		var b bytes.Buffer
-		w, _ := gzip.NewWriter(&b)
+		w := gzip.NewWriter(&b)
 		w.Write(data)
 		w.Close()
 		return b.Bytes()
 	case ZLIB:
 		var b bytes.Buffer
-		w, _ := zlib.NewWriter(&b)
+		w := zlib.NewWriter(&b)
 		w.Write(data)
 		w.Close()
 		return b.Bytes()
