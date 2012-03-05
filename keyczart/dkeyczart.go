@@ -1,7 +1,7 @@
 package main
 
 import (
-	"dkeyczar"
+	"github.com/dgryski/dkeyczar"
 	"flag"
 	"fmt"
 	"io/ioutil"
