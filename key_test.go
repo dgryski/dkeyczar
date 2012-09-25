@@ -114,6 +114,21 @@ func testSignVerify(t *testing.T, keytype string, f KeyReader) {
 	if !b {
 		t.Error(keytype + " verify failed")
 	}
+
+	s, err = kz.AttachedSign([]byte(INPUT), []byte{0, 1, 2, 3, 4, 5, 6, 7})
+	if err != nil {
+		t.Fatal("failed to attachedsign for keytype " + keytype + ": " + err.Error())
+	}
+
+	msg, _ := kv.AttachedVerify(s, []byte{0, 1, 2, 3, 4, 5, 6, 7})
+	if err != nil {
+		t.Fatal("failed to attachedverify for keytype " + keytype + ": " + err.Error())
+	}
+
+	if msg == nil || !bytes.Equal(msg, []byte(INPUT)) {
+		t.Error(keytype + " attachedverify failed")
+	}
+
 }
 
 func testDecrypt(t *testing.T, keytype string, f KeyReader) {

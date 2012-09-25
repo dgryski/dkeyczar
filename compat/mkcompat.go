@@ -31,6 +31,9 @@ class JSONReader(readers.Reader):
     def GetKey(self, version):
         return self.keys[version]
 
+    def Close():
+        pass
+
 def check_verify(reader, what, plaintext, signature):
     try:
         verifier = keyczar.Verifier(reader)
@@ -41,6 +44,17 @@ def check_verify(reader, what, plaintext, signature):
             print "FAIL VERIFY: ", what
     except errors.KeyczarError as e:
         print "FAIL VERIFY (exception): ", what, ": ", e
+
+def check_attached_verify(reader, what, plaintext, signeddata, nonce):
+    try:
+        verifier = keyczar.Verifier(reader)
+        msg = verifier.AttachedVerify(signeddata, nonce)
+        if msg == plaintext:
+            print "ok attached verify: ", what
+        else:
+            print "FAIL ATTACHED VERIFY: ", what
+    except errors.KeyczarError as e:
+        print "FAIL ATTACHED VERIFY (exception): ", what, ": ", e
 
 def check_decrypt(reader, what, plaintext, ciphertext):
     try:
@@ -90,6 +104,17 @@ check_verify(readers.FileReader("` + fulldir + `"),
     "` + PLAINTEXT + `",
     "` + signature + `",
 )`)
+
+	attachedSig, _ := signer.AttachedSign([]byte(PLAINTEXT), []byte{0,1,2,3,4,5,6,7})
+
+	fmt.Println(`
+check_attached_verify(readers.FileReader("` + fulldir + `"),
+    "` + dir + `",
+    "` + PLAINTEXT + `",
+    "` + attachedSig + `",
+    "\x00\x01\x02\x03\x04\x05\x06\x07",
+)`)
+
 
 }
 

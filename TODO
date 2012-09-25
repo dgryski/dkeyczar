@@ -4,7 +4,6 @@ High Priority:
     (Items from interop list at https://groups.google.com/forum/?fromgroups=#!topic/keyczar-discuss/NMyTgnimcwY )
 
     - RSA encrypt/decrypt only supports OAEP, not PKCS#1
-    - Attached Sign/Verify
     - Timeout Sign/Verify
     - Signed Session encryption (?)
     - Unversioned Sign/Verify

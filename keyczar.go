@@ -19,6 +19,7 @@ import (
 	"bytes"
 	"compress/gzip"
 	"compress/zlib"
+	"encoding/binary"
 	"encoding/json"
 	"io"
 )
@@ -79,6 +80,7 @@ type Signer interface {
 	Verifier
 	// Sign returns a cryptographic signature for the message
 	Sign(message []byte) (string, error)
+	AttachedSign(message []byte, nonce []byte) (string, error)
 }
 
 // A type that can be used for verification
@@ -86,6 +88,7 @@ type Verifier interface {
 	KeyczarEncodingController
 	// Verify checks the cryptographic signature for a message
 	Verify(message []byte, signature string) (bool, error)
+	AttachedVerify(signedMessage string, nonce []byte) ([]byte, error)
 }
 
 type encodingController struct {
@@ -316,6 +319,106 @@ func (ks *keySigner) Sign(msg []byte) (string, error) {
 	signature = append(h, signature...)
 
 	s := ks.encode(signature)
+
+	return s, nil
+}
+
+// Verify the attached signature on 'msg', and return the signed data if valid
+// All the heavy lifting is done by the key
+func (ks *keySigner) AttachedVerify(signedMsg string, nonce []byte) ([]byte, error) {
+
+	b, err := ks.decode(signedMsg)
+
+	if err != nil {
+		return nil, ErrBase64Decoding
+	}
+
+	if len(b) < kzHeaderLength+4 {
+		return nil, ErrShortSignature
+	}
+
+	h := getHeader(b)
+
+	if h.version != kzVersion {
+		return nil, ErrBadVersion
+	}
+
+	k, err := ks.kz.getKeyForID(h.keyid[:])
+	if err != nil {
+		return nil, err
+	}
+
+	offs := kzHeaderLength
+
+	msglen := int(binary.BigEndian.Uint32(b[offs:]))
+
+	offs += 4
+
+	if msglen > len(b[offs:]) {
+		return nil, ErrShortSignature
+	}
+
+	msg := b[offs : offs+msglen]
+	offs += msglen
+	sig := b[offs:]
+
+	signedbytes := make([]byte, len(msg)+4+len(nonce)+1)
+	offs = 0
+	copy(signedbytes[offs:], msg)
+	offs += len(msg)
+	binary.BigEndian.PutUint32(signedbytes[offs:], uint32(len(nonce)))
+	offs += 4
+	copy(signedbytes[offs:], nonce)
+	offs += len(nonce)
+	signedbytes[offs] = kzVersion
+
+	verifyKey := k.(verifyKey)
+	isValid, err := verifyKey.Verify(signedbytes, sig)
+
+	if isValid == false || err != nil {
+		return nil, err
+	}
+
+	return msg, nil
+}
+
+// Return a signature for 'msg' and the nonce
+// All the heavy lifting is done by the key
+func (ks *keySigner) AttachedSign(msg []byte, nonce []byte) (string, error) {
+
+	key := ks.kz.getPrimaryKey()
+
+	signingKey := key.(signVerifyKey)
+
+	signedbytes := make([]byte, len(msg)+4+len(nonce)+1)
+	offs := 0
+	copy(signedbytes[offs:], msg)
+	offs += len(msg)
+	binary.BigEndian.PutUint32(signedbytes[offs:], uint32(len(nonce)))
+	offs += 4
+	copy(signedbytes[offs:], nonce)
+	offs += len(nonce)
+	signedbytes[offs] = kzVersion
+
+	signature, err := signingKey.Sign(signedbytes)
+
+	if err != nil {
+		return "", err
+	}
+
+	h := makeHeader(key)
+
+	signedMsg := make([]byte, len(h)+4+len(msg)+len(signature))
+	offs = 0
+	copy(signedMsg[offs:], h)
+	offs += len(h)
+	binary.BigEndian.PutUint32(signedMsg[offs:], uint32(len(msg)))
+	offs += 4
+	copy(signedMsg[offs:], msg)
+	offs += len(msg)
+	copy(signedMsg[offs:], signature)
+
+	s := ks.encode(signedMsg)
 
 	return s, nil
 }
