@@ -115,6 +115,15 @@ check_attached_verify(readers.FileReader("` + fulldir + `"),
     "\x00\x01\x02\x03\x04\x05\x06\x07",
 )`)
 
+	attachedSig, _ = signer.AttachedSign([]byte(PLAINTEXT), nil)
+
+	fmt.Println(`
+check_attached_verify(readers.FileReader("` + fulldir + `"),
+    "` + dir + `",
+    "` + PLAINTEXT + `",
+    "` + attachedSig + `",
+    None
+)`)
 
 }
 

@@ -362,14 +362,21 @@ func (ks *keySigner) AttachedVerify(signedMsg string, nonce []byte) ([]byte, err
 	offs += msglen
 	sig := b[offs:]
 
-	signedbytes := make([]byte, len(msg)+4+len(nonce)+1)
+	signedBytesLen := len(msg) + 1
+	if nonce != nil {
+		signedBytesLen += 4 + len(nonce)
+	}
+
+	signedbytes := make([]byte, signedBytesLen)
 	offs = 0
 	copy(signedbytes[offs:], msg)
 	offs += len(msg)
-	binary.BigEndian.PutUint32(signedbytes[offs:], uint32(len(nonce)))
-	offs += 4
-	copy(signedbytes[offs:], nonce)
-	offs += len(nonce)
+	if nonce != nil {
+		binary.BigEndian.PutUint32(signedbytes[offs:], uint32(len(nonce)))
+		offs += 4
+		copy(signedbytes[offs:], nonce)
+		offs += len(nonce)
+	}
 	signedbytes[offs] = kzVersion
 
 	verifyKey := k.(verifyKey)
@@ -390,14 +397,21 @@ func (ks *keySigner) AttachedSign(msg []byte, nonce []byte) (string, error) {
 
 	signingKey := key.(signVerifyKey)
 
-	signedbytes := make([]byte, len(msg)+4+len(nonce)+1)
+	signedBytesLen := len(msg) + 1
+	if nonce != nil {
+		signedBytesLen += 4 + len(nonce)
+	}
+
+	signedbytes := make([]byte, signedBytesLen)
 	offs := 0
 	copy(signedbytes[offs:], msg)
 	offs += len(msg)
-	binary.BigEndian.PutUint32(signedbytes[offs:], uint32(len(nonce)))
-	offs += 4
-	copy(signedbytes[offs:], nonce)
-	offs += len(nonce)
+	if nonce != nil {
+		binary.BigEndian.PutUint32(signedbytes[offs:], uint32(len(nonce)))
+		offs += 4
+		copy(signedbytes[offs:], nonce)
+		offs += len(nonce)
+	}
 	signedbytes[offs] = kzVersion
 
 	signature, err := signingKey.Sign(signedbytes)
