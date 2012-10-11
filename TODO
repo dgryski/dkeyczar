@@ -3,6 +3,8 @@ High Priority:
 
     (Items from interop list at https://groups.google.com/forum/?fromgroups=#!topic/keyczar-discuss/NMyTgnimcwY )
 
+    - Java compatibility fixes:
+        - json must include a leading zero if high bit set to match java BigInt
     - RSA encrypt/decrypt only supports OAEP, not PKCS#1
     - Timeout Sign/Verify
     - Signed Session encryption (?)
@@ -10,6 +12,8 @@ High Priority:
     - Creation of PBE keys via keyczart
 
     - HMAC_SHA256
+
+    - AES key hashing bug backwards compat fix (?)
 
     - improve external docs (README, examples, ...)
 
