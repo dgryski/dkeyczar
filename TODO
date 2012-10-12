@@ -11,9 +11,12 @@ High Priority:
     - Unversioned Sign/Verify
     - Creation of PBE keys via keyczart
 
+    - validate timeout signatures against java implementation
+    - Remove dup'd code
+        new signature types increased the copy pasta
+
     - HMAC_SHA256
 
-    - AES key hashing bug backwards compat fix (?)
 
     - improve external docs (README, examples, ...)
 
@@ -27,7 +30,7 @@ Low Priority:
         - extra dependency, but 'standard lib' ?
     - key.Type() => ktFOO constant
     - some of the keyman routines poke into keyCzar internals
-    - write code to generate c++ test case for compatibility
+    - write code to generate c++/java test case for compatibility
     - some of the ImportFOOForBar would be easier if we exported the KeyPurpose enum
     - fix keymeta.Versions so Versions[versionNumber] is correct (placeholder? nil?)
     - write functions to abstract byte-stream format
@@ -48,3 +51,4 @@ Low Priority:
     - pbkdf2 should take hash.Hash instead of password? (generalize?)
     - code reorg
         split keydata into aeskey, rsakey, ... ?
+    - AES key hashing bug backwards compat fix (?)
