@@ -86,6 +86,9 @@ type Signer interface {
 	// TimeoutSign returns a signature for the message that is valid until expiration
 	// expiration should be milliseconds since 1/1/1970 GMT
 	TimeoutSign(message []byte, expiration int64) (string, error)
+
+	// UnversionedSign signs the message with a plain, non-Keyczar-tagged signature
+	UnversionedSign(message []byte) (string, error)
 }
 
 // A type that can be used for verification
@@ -97,6 +100,9 @@ type Verifier interface {
 
 	// TimeoutVerify checks the cryptographic signature for a message and ensure it hasn't expired.
 	TimeoutVerify(message []byte, signature string) (bool, error)
+
+	// UnversionedVerify checks the plained, non-Keyczar-tagged cryptographic signature for a message
+	UnversionedVerify(message []byte, signature string) (bool, error)
 }
 
 type encodingController struct {
@@ -268,6 +274,44 @@ func (kc *keyCrypter) Decrypt(ciphertext string) ([]uint8, error) {
 type keySigner struct {
 	kz *keyCzar
 	encodingController
+}
+
+func (ks *keySigner) UnversionedSign(message []byte) (string, error) {
+
+	key := ks.kz.getPrimaryKey()
+
+	signingKey := key.(signVerifyKey)
+
+	signature, err := signingKey.Sign(message)
+
+	if err != nil {
+		return "", err
+	}
+
+	s := ks.encode(signature)
+
+	return s, nil
+}
+
+func (ks *keySigner) UnversionedVerify(message []byte, signature string) (bool, error) {
+
+	b, err := ks.decode(signature)
+
+	if err != nil {
+		return false, err
+	}
+
+	// without a key id, we have to check all the keys
+	for _, k := range ks.kz.keys {
+		verifyKey := k.(verifyKey)
+		// errors ignored here
+		valid, _ := verifyKey.Verify(message, b)
+		if valid {
+			return true, nil
+		}
+	}
+
+	return false, nil
 }
 
 // Verify the signature on 'msg'

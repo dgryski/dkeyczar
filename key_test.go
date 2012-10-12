@@ -176,6 +176,20 @@ func testSignVerify(t *testing.T, keytype string, f KeyReader) {
 		t.Error(keytype + " timeoutverify(past) didn't fail!")
 	}
 
+
+	s, err = kz.UnversionedSign([]byte(INPUT))
+	if err != nil {
+		t.Fatal("failed to unversionedsign for keytype " + keytype + ": " + err.Error())
+	}
+
+	b, err = kv.UnversionedVerify([]byte(INPUT), s)
+	if err != nil {
+		t.Fatal("failed to unversionedverify for keytype " + keytype + ": " + err.Error())
+	}
+
+	if !b {
+		t.Error(keytype + " unversionedverify failed")
+	}
 }
 
 func testDecrypt(t *testing.T, keytype string, f KeyReader) {

@@ -56,6 +56,19 @@ def check_attached_verify(reader, what, plaintext, signeddata, nonce):
     except errors.KeyczarError as e:
         print "FAIL ATTACHED VERIFY (exception): ", what, ": ", e
 
+
+def check_unversioned_verify(reader, what, plaintext, signeddata):
+    try:
+        verifier = keyczar.UnversionedVerifier(reader)
+        valid = verifier.Verify(plaintext, signeddata)
+        if valid:
+            print "ok unversioned verify: ", what
+        else:
+            print "FAIL UNVERSIONED VERIFY: ", what
+    except errors.KeyczarError as e:
+        print "FAIL UNVERSIONED VERIFY (exception): ", what, ": ", e
+
+
 def check_decrypt(reader, what, plaintext, ciphertext):
     try:
         crypter = keyczar.Crypter(reader)
@@ -123,6 +136,15 @@ check_attached_verify(readers.FileReader("` + fulldir + `"),
     "` + PLAINTEXT + `",
     "` + attachedSig + `",
     None
+)`)
+
+	unversionedSig, _ := signer.UnversionedSign([]byte(PLAINTEXT))
+
+	fmt.Println(`
+check_unversioned_verify(readers.FileReader("` + fulldir + `"),
+    "` + dir + `",
+    "` + PLAINTEXT + `",
+    "` + unversionedSig + `",
 )`)
 
 }
