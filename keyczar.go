@@ -95,7 +95,7 @@ type Verifier interface {
 	Verify(message []byte, signature string) (bool, error)
 	AttachedVerify(signedMessage string, nonce []byte) ([]byte, error)
 
-	// Verify checks the cryptographic signature for a message and ensure it hasn't expired.
+	// TimeoutVerify checks the cryptographic signature for a message and ensure it hasn't expired.
 	TimeoutVerify(message []byte, signature string) (bool, error)
 }
 
