@@ -6,9 +6,7 @@ High Priority:
     - Java compatibility fixes:
         - json must include a leading zero if high bit set to match java BigInt
     - RSA encrypt/decrypt only supports OAEP, not PKCS#1
-    - Timeout Sign/Verify
     - Signed Session encryption (?)
-    - Unversioned Sign/Verify
     - Creation of PBE keys via keyczart
 
     - validate timeout signatures against java implementation
@@ -16,7 +14,6 @@ High Priority:
         new signature types increased the copy pasta
 
     - HMAC_SHA256
-
 
     - improve external docs (README, examples, ...)
 
@@ -52,3 +49,4 @@ Low Priority:
     - code reorg
         split keydata into aeskey, rsakey, ... ?
     - AES key hashing bug backwards compat fix (?)
+    - standardize some of the variable name randomness: msg/message/sig/signature/...
