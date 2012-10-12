@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"os"
 	"testing"
+	"time"
 )
 
 const INPUT = "This is some test data"
@@ -141,6 +142,38 @@ func testSignVerify(t *testing.T, keytype string, f KeyReader) {
 
 	if msg == nil || !bytes.Equal(msg, []byte(INPUT)) {
 		t.Error(keytype + " attachedverify (no nonce) failed")
+	}
+
+	futureMillis := int64(2*time.Minute) + time.Now().UnixNano()/int64(time.Millisecond)
+
+	s, err = kz.TimeoutSign([]byte(INPUT), futureMillis)
+	if err != nil {
+		t.Fatal("failed to timeoutSign(future) for keytype " + keytype + ": " + err.Error())
+	}
+
+	b, err = kv.TimeoutVerify([]byte(INPUT), s)
+	if err != nil {
+		t.Fatal("failed to timeoutverify(future) for keytype " + keytype + ": " + err.Error())
+	}
+
+	if !b {
+		t.Error(keytype + " timeoutverify(future) failed")
+	}
+
+	pastMillis := int64(-2*time.Minute) + time.Now().UnixNano()/int64(time.Millisecond)
+
+	s, err = kz.TimeoutSign([]byte(INPUT), pastMillis)
+	if err != nil {
+		t.Fatal("failed to timeoutSign(past) for keytype " + keytype + ": " + err.Error())
+	}
+
+	b, err = kv.TimeoutVerify([]byte(INPUT), s)
+	if err != nil {
+		t.Fatal("failed to timeoutverify(past) for keytype " + keytype + ": " + err.Error())
+	}
+
+	if b {
+		t.Error(keytype + " timeoutverify(past) didn't fail!")
 	}
 
 }

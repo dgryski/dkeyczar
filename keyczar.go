@@ -22,6 +22,7 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"io"
+	"time"
 )
 
 type KeyczarEncoding int
@@ -81,6 +82,10 @@ type Signer interface {
 	// Sign returns a cryptographic signature for the message
 	Sign(message []byte) (string, error)
 	AttachedSign(message []byte, nonce []byte) (string, error)
+
+	// TimeoutSign returns a signature for the message that is valid until expiration
+	// expiration should be milliseconds since 1/1/1970 GMT
+	TimeoutSign(message []byte, expiration int64) (string, error)
 }
 
 // A type that can be used for verification
@@ -89,6 +94,9 @@ type Verifier interface {
 	// Verify checks the cryptographic signature for a message
 	Verify(message []byte, signature string) (bool, error)
 	AttachedVerify(signedMessage string, nonce []byte) ([]byte, error)
+
+	// Verify checks the cryptographic signature for a message and ensure it hasn't expired.
+	TimeoutVerify(message []byte, signature string) (bool, error)
 }
 
 type encodingController struct {
@@ -435,6 +443,108 @@ func (ks *keySigner) AttachedSign(msg []byte, nonce []byte) (string, error) {
 	s := ks.encode(signedMsg)
 
 	return s, nil
+}
+
+const timestampSize = 8
+
+// construct and return a timeout signature
+func (ks *keySigner) TimeoutSign(msg []byte, expiration int64) (string, error) {
+
+	key := ks.kz.getPrimaryKey()
+
+	signingKey := key.(signVerifyKey)
+
+	h := makeHeader(key)
+
+	signedBytesLen := len(msg) + timestampSize + 1
+
+	signedbytes := make([]byte, signedBytesLen)
+	offs := 0
+
+	binary.BigEndian.PutUint64(signedbytes[offs:], uint64(expiration))
+	offs += timestampSize
+
+	copy(signedbytes[offs:], msg)
+	offs += len(msg)
+
+	signedbytes[offs] = kzVersion
+
+	signature, err := signingKey.Sign(signedbytes)
+
+	if err != nil {
+		return "", err
+	}
+
+	signedMsg := make([]byte, len(h)+timestampSize+len(signature))
+	offs = 0
+
+	copy(signedMsg[offs:], h)
+	offs += len(h)
+
+	binary.BigEndian.PutUint64(signedMsg[offs:], uint64(expiration))
+	offs += timestampSize
+
+	copy(signedMsg[offs:], signature)
+
+	s := ks.encode(signedMsg)
+
+	return s, nil
+}
+
+// validate a timeout signature.  must be both cryptographically valid and not yet expired.
+func (ks *keySigner) TimeoutVerify(message []byte, signature string) (bool, error) {
+
+	b, err := ks.decode(signature)
+
+	if err != nil {
+		return false, ErrBase64Decoding
+	}
+
+	if len(b) < kzHeaderLength+4 {
+		return false, ErrShortSignature
+	}
+
+	h := getHeader(b)
+
+	if h.version != kzVersion {
+		return false, ErrBadVersion
+	}
+
+	k, err := ks.kz.getKeyForID(h.keyid[:])
+	if err != nil {
+		return false, err
+	}
+
+	offs := kzHeaderLength
+
+	expiration := int64(binary.BigEndian.Uint64(b[offs:]))
+	offs += timestampSize
+
+	sig := b[offs:]
+
+	signedBytesLen := len(message) + timestampSize + 1
+
+	signedbytes := make([]byte, signedBytesLen)
+	offs = 0
+
+	binary.BigEndian.PutUint64(signedbytes[offs:], uint64(expiration))
+	offs += timestampSize
+
+	copy(signedbytes[offs:], message)
+	offs += len(message)
+
+	signedbytes[offs] = kzVersion
+
+	verifyKey := k.(verifyKey)
+	isValid, err := verifyKey.Verify(signedbytes, sig)
+
+	currentMillis := time.Now().UnixNano() / int64(time.Millisecond)
+
+	if isValid == false || err != nil || currentMillis > expiration {
+		return false, err
+	}
+
+	return true, nil
 }
 
 // NewCrypter returns an object capable of encrypting and decrypting using the key provded by the reader
