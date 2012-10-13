@@ -350,6 +350,28 @@ func (ks *keySigner) Sign(msg []byte) (string, error) {
 	return s, nil
 }
 
+func buildAttachedSignedBytes(msg []byte, nonce []byte) []byte {
+
+	signedBytesLen := len(msg) + 1
+	if nonce != nil {
+		signedBytesLen += 4 + len(nonce)
+	}
+
+	signedbytes := make([]byte, signedBytesLen)
+	offs := 0
+	copy(signedbytes[offs:], msg)
+	offs += len(msg)
+	if nonce != nil {
+		binary.BigEndian.PutUint32(signedbytes[offs:], uint32(len(nonce)))
+		offs += 4
+		copy(signedbytes[offs:], nonce)
+		offs += len(nonce)
+	}
+	signedbytes[offs] = kzVersion
+
+	return signedbytes
+}
+
 // Verify the attached signature on 'msg', and return the signed data if valid
 // All the heavy lifting is done by the key
 func (ks *keySigner) AttachedVerify(signedMsg string, nonce []byte) ([]byte, error) {
@@ -378,22 +400,7 @@ func (ks *keySigner) AttachedVerify(signedMsg string, nonce []byte) ([]byte, err
 	offs += msglen
 	sig := b[offs:]
 
-	signedBytesLen := len(msg) + 1
-	if nonce != nil {
-		signedBytesLen += 4 + len(nonce)
-	}
-
-	signedbytes := make([]byte, signedBytesLen)
-	offs = 0
-	copy(signedbytes[offs:], msg)
-	offs += len(msg)
-	if nonce != nil {
-		binary.BigEndian.PutUint32(signedbytes[offs:], uint32(len(nonce)))
-		offs += 4
-		copy(signedbytes[offs:], nonce)
-		offs += len(nonce)
-	}
-	signedbytes[offs] = kzVersion
+	signedbytes := buildAttachedSignedBytes(msg, nonce)
 
 	verifyKey := k.(verifyKey)
 	isValid, err := verifyKey.Verify(signedbytes, sig)
@@ -413,22 +420,7 @@ func (ks *keySigner) AttachedSign(msg []byte, nonce []byte) (string, error) {
 
 	signingKey := key.(signVerifyKey)
 
-	signedBytesLen := len(msg) + 1
-	if nonce != nil {
-		signedBytesLen += 4 + len(nonce)
-	}
-
-	signedbytes := make([]byte, signedBytesLen)
-	offs := 0
-	copy(signedbytes[offs:], msg)
-	offs += len(msg)
-	if nonce != nil {
-		binary.BigEndian.PutUint32(signedbytes[offs:], uint32(len(nonce)))
-		offs += 4
-		copy(signedbytes[offs:], nonce)
-		offs += len(nonce)
-	}
-	signedbytes[offs] = kzVersion
+	signedbytes := buildAttachedSignedBytes(msg, nonce)
 
 	signature, err := signingKey.Sign(signedbytes)
 
@@ -439,7 +431,7 @@ func (ks *keySigner) AttachedSign(msg []byte, nonce []byte) (string, error) {
 	h := makeHeader(key)
 
 	signedMsg := make([]byte, len(h)+4+len(msg)+len(signature))
-	offs = 0
+	offs := 0
 	copy(signedMsg[offs:], h)
 	offs += len(h)
 	binary.BigEndian.PutUint32(signedMsg[offs:], uint32(len(msg)))
