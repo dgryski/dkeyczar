@@ -497,6 +497,11 @@ func (ks *keySigner) TimeoutVerify(message []byte, signature string) (bool, erro
 	sig, k, err := splitHeader(ks.encodingController, ks.kz, signature, ErrShortSignature)
 
 	offs := kzHeaderLength
+
+	if len(sig[offs:]) < timestampSize {
+		return false, ErrShortSignature
+	}
+
 	expiration := int64(binary.BigEndian.Uint64(sig[offs:]))
 	offs += timestampSize
 
