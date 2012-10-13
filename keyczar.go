@@ -245,23 +245,8 @@ func (kc *keyCrypter) Encrypt(plaintext []uint8) (string, error) {
 // All the heavy lifting is done by the key
 func (kc *keyCrypter) Decrypt(ciphertext string) ([]uint8, error) {
 
-	b, err := kc.decode(ciphertext)
+	b, k, err := splitHeader(kc.encodingController, kc.kz, ciphertext, ErrShortCiphertext)
 
-	if err != nil {
-		return nil, ErrBase64Decoding
-	}
-
-	if len(b) < kzHeaderLength {
-		return nil, ErrShortCiphertext
-	}
-
-	h := getHeader(b)
-
-	if h.version != kzVersion {
-		return nil, ErrBadVersion
-	}
-
-	k, err := kc.kz.getKeyForID(h.keyid[:])
 	if err != nil {
 		return nil, err
 	}
@@ -318,32 +303,17 @@ func (ks *keySigner) UnversionedVerify(message []byte, signature string) (bool, 
 // All the heavy lifting is done by the key
 func (ks *keySigner) Verify(msg []byte, signature string) (bool, error) {
 
-	b, err := ks.decode(signature)
+	b, k, err := splitHeader(ks.encodingController, ks.kz, signature, ErrShortSignature)
 
 	if err != nil {
-		return false, ErrBase64Decoding
+		return false, err
 	}
-
-	if len(b) < kzHeaderLength {
-		return false, ErrShortSignature
-	}
-
-	h := getHeader(b)
-
-	if h.version != kzVersion {
-		return false, ErrBadVersion
-	}
-
-	sig := b[kzHeaderLength:]
 
 	signedbytes := make([]byte, len(msg)+1)
 	copy(signedbytes, msg)
 	signedbytes[len(msg)] = kzVersion
 
-	k, err := ks.kz.getKeyForID(h.keyid[:])
-	if err != nil {
-		return false, err
-	}
+	sig := b[kzHeaderLength:]
 
 	verifyKey := k.(verifyKey)
 	return verifyKey.Verify(signedbytes, sig)
@@ -379,28 +349,17 @@ func (ks *keySigner) Sign(msg []byte) (string, error) {
 // All the heavy lifting is done by the key
 func (ks *keySigner) AttachedVerify(signedMsg string, nonce []byte) ([]byte, error) {
 
-	b, err := ks.decode(signedMsg)
+	b, k, err := splitHeader(ks.encodingController, ks.kz, signedMsg, ErrShortSignature)
 
-	if err != nil {
-		return nil, ErrBase64Decoding
-	}
-
-	if len(b) < kzHeaderLength+4 {
-		return nil, ErrShortSignature
-	}
-
-	h := getHeader(b)
-
-	if h.version != kzVersion {
-		return nil, ErrBadVersion
-	}
-
-	k, err := ks.kz.getKeyForID(h.keyid[:])
 	if err != nil {
 		return nil, err
 	}
 
 	offs := kzHeaderLength
+
+	if len(b[offs:]) < 4 {
+		return nil, ErrShortSignature
+	}
 
 	msglen := int(binary.BigEndian.Uint32(b[offs:]))
 
@@ -538,33 +497,13 @@ func (ks *keySigner) TimeoutSign(msg []byte, expiration int64) (string, error) {
 // validate a timeout signature.  must be both cryptographically valid and not yet expired.
 func (ks *keySigner) TimeoutVerify(message []byte, signature string) (bool, error) {
 
-	b, err := ks.decode(signature)
-
-	if err != nil {
-		return false, ErrBase64Decoding
-	}
-
-	if len(b) < kzHeaderLength+4 {
-		return false, ErrShortSignature
-	}
-
-	h := getHeader(b)
-
-	if h.version != kzVersion {
-		return false, ErrBadVersion
-	}
-
-	k, err := ks.kz.getKeyForID(h.keyid[:])
-	if err != nil {
-		return false, err
-	}
+	sig, k, err := splitHeader(ks.encodingController, ks.kz, signature, ErrShortSignature)
 
 	offs := kzHeaderLength
-
-	expiration := int64(binary.BigEndian.Uint64(b[offs:]))
+	expiration := int64(binary.BigEndian.Uint64(sig[offs:]))
 	offs += timestampSize
 
-	sig := b[offs:]
+	sig = sig[offs:]
 
 	signedBytesLen := len(message) + timestampSize + 1
 
@@ -740,6 +679,10 @@ func (kz *keyCzar) isAcceptablePurpose(purpose keyPurpose) bool {
 	return kz.keymeta.Purpose.isAcceptablePurpose(purpose)
 }
 
+type lookupKeyIDer interface {
+	getKeyForID(id []byte) (keydata, error)
+}
+
 func (kz *keyCzar) getKeyForID(id []byte) (keydata, error) {
 
 	for _, k := range kz.keys {
@@ -830,11 +773,26 @@ func makeHeader(key keydata) []byte {
 	return b
 }
 
-// parse and return the header from a given bytestream
-func getHeader(b []byte) kHeader {
+func splitHeader(ec encodingController, lookup lookupKeyIDer, cryptotext string, errTooShort error) ([]byte, keydata, error) {
 
-	h := new(kHeader)
-	h.version = b[0]
-	copy(h.keyid[:], b[1:5])
-	return *h
+	b, err := ec.decode(cryptotext)
+
+	if err != nil {
+		return nil, nil, ErrBase64Decoding
+	}
+
+	if len(b) < kzHeaderLength {
+		return nil, nil, errTooShort
+	}
+
+	if b[0] != kzVersion {
+		return nil, nil, ErrBadVersion
+	}
+
+	k, err := lookup.getKeyForID(b[1:5])
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return b, k, nil
 }
