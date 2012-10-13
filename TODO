@@ -10,8 +10,6 @@ High Priority:
     - Creation of PBE keys via keyczart
 
     - validate timeout signatures against java implementation
-    - Remove dup'd code
-        new signature types increased the copy pasta
 
     - HMAC_SHA256
 
