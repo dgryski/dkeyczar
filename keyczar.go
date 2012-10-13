@@ -447,14 +447,7 @@ func (ks *keySigner) AttachedSign(msg []byte, nonce []byte) (string, error) {
 
 const timestampSize = 8
 
-// construct and return a timeout signature
-func (ks *keySigner) TimeoutSign(msg []byte, expiration int64) (string, error) {
-
-	key := ks.kz.getPrimaryKey()
-
-	signingKey := key.(signVerifyKey)
-
-	h := makeHeader(key)
+func buildTimeoutSignedBytes(msg []byte, expiration int64) []byte {
 
 	signedBytesLen := timestampSize + len(msg) + 1
 
@@ -469,6 +462,20 @@ func (ks *keySigner) TimeoutSign(msg []byte, expiration int64) (string, error) {
 
 	signedbytes[offs] = kzVersion
 
+	return signedbytes
+}
+
+// construct and return a timeout signature
+func (ks *keySigner) TimeoutSign(msg []byte, expiration int64) (string, error) {
+
+	key := ks.kz.getPrimaryKey()
+
+	signingKey := key.(signVerifyKey)
+
+	h := makeHeader(key)
+
+	signedbytes := buildTimeoutSignedBytes(msg, expiration)
+
 	signature, err := signingKey.Sign(signedbytes)
 
 	if err != nil {
@@ -476,7 +483,7 @@ func (ks *keySigner) TimeoutSign(msg []byte, expiration int64) (string, error) {
 	}
 
 	signedMsg := make([]byte, kzHeaderLength+timestampSize+len(signature))
-	offs = 0
+	offs := 0
 
 	copy(signedMsg[offs:], h)
 	offs += kzHeaderLength
@@ -507,18 +514,7 @@ func (ks *keySigner) TimeoutVerify(message []byte, signature string) (bool, erro
 
 	sig = sig[offs:]
 
-	signedBytesLen := len(message) + timestampSize + 1
-
-	signedbytes := make([]byte, signedBytesLen)
-	offs = 0
-
-	binary.BigEndian.PutUint64(signedbytes[offs:], uint64(expiration))
-	offs += timestampSize
-
-	copy(signedbytes[offs:], message)
-	offs += len(message)
-
-	signedbytes[offs] = kzVersion
+	signedbytes := buildTimeoutSignedBytes(message, expiration)
 
 	verifyKey := k.(verifyKey)
 	isValid, err := verifyKey.Verify(signedbytes, sig)
