@@ -253,6 +253,11 @@ func (kc *keyCrypter) Decrypt(ciphertext string) ([]uint8, error) {
 
 	decryptKey := k.(decryptEncryptKey)
 	compressed_plaintext, err := decryptKey.Decrypt(b)
+
+	if err != nil {
+		return nil, err
+	}
+
 	return kc.decompress(compressed_plaintext)
 }
 

@@ -16,6 +16,7 @@ High Priority:
     - HMAC_SHA256
 
     - improve external docs (README, examples, ...)
+    - improve tests -- not enough failure cases are checked
 
     - PKCS#8 private key import/export
       -- asn1 is painful.
