@@ -238,7 +238,7 @@ func (ak *aesKey) Encrypt(data []byte) ([]byte, error) {
 
 	h := makeHeader(ak)
 
-	msg := make([]byte, 0, len(h)+aes.BlockSize+len(cipherBytes)+hmacSigLength)
+	msg := make([]byte, 0, kzHeaderLength+aes.BlockSize+len(cipherBytes)+hmacSigLength)
 
 	msg = append(msg, h...)
 	msg = append(msg, iv_bytes...)

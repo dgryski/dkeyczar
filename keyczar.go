@@ -430,10 +430,10 @@ func (ks *keySigner) AttachedSign(msg []byte, nonce []byte) (string, error) {
 
 	h := makeHeader(key)
 
-	signedMsg := make([]byte, len(h)+4+len(msg)+len(signature))
+	signedMsg := make([]byte, kzHeaderLength+4+len(msg)+len(signature))
 	offs := 0
 	copy(signedMsg[offs:], h)
-	offs += len(h)
+	offs += kzHeaderLength
 	binary.BigEndian.PutUint32(signedMsg[offs:], uint32(len(msg)))
 	offs += 4
 	copy(signedMsg[offs:], msg)
@@ -475,11 +475,11 @@ func (ks *keySigner) TimeoutSign(msg []byte, expiration int64) (string, error) {
 		return "", err
 	}
 
-	signedMsg := make([]byte, len(h)+timestampSize+len(signature))
+	signedMsg := make([]byte, kzHeaderLength+timestampSize+len(signature))
 	offs = 0
 
 	copy(signedMsg[offs:], h)
-	offs += len(h)
+	offs += kzHeaderLength
 
 	binary.BigEndian.PutUint64(signedMsg[offs:], uint64(expiration))
 	offs += timestampSize
