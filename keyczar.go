@@ -456,7 +456,7 @@ func (ks *keySigner) TimeoutSign(msg []byte, expiration int64) (string, error) {
 
 	h := makeHeader(key)
 
-	signedBytesLen := len(msg) + timestampSize + 1
+	signedBytesLen := timestampSize + len(msg) + 1
 
 	signedbytes := make([]byte, signedBytesLen)
 	offs := 0
