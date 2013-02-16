@@ -18,6 +18,4 @@ All output is encoded in web-safe base64.
 See the godoc for usage information.   This documentation is also viewable
 online at: http://gopkgdoc.appspot.com/pkg/github.com/dgryski/dkeyczar
 
-At the moment, the tests require the keyczar-cpp source tree, since that's
-where the test files are kept.  The path to the 06b testfiles must be specified
-in the KEYCZAR_TESTDATA environment variable.
+To pull in testdata for unit tests run `git submodule init`
