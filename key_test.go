@@ -2,7 +2,6 @@ package dkeyczar
 
 import (
 	"bytes"
-	"os"
 	"testing"
 	"time"
 )
@@ -12,7 +11,7 @@ const INPUT = "This is some test data"
 var TESTDATA = ""
 
 func init() {
-	TESTDATA = os.Getenv("KEYCZAR_TESTDATA")
+	TESTDATA = "testdata/existing-data/cpp/" 
 }
 
 func testEncrypt(t *testing.T, keytype string, f KeyReader) {
