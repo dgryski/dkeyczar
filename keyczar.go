@@ -355,6 +355,8 @@ func buildAttachedSignedBytes(msg []byte, nonce []byte) []byte {
 	signedBytesLen := len(msg) + 1
 	if nonce != nil {
 		signedBytesLen += 4 + len(nonce)
+	} else {
+		signedBytesLen += 4
 	}
 
 	signedbytes := make([]byte, signedBytesLen)
@@ -366,6 +368,9 @@ func buildAttachedSignedBytes(msg []byte, nonce []byte) []byte {
 		offs += 4
 		copy(signedbytes[offs:], nonce)
 		offs += len(nonce)
+	} else {
+		binary.BigEndian.PutUint32(signedbytes[offs:], uint32(0))
+		offs += 4
 	}
 	signedbytes[offs] = kzVersion
 

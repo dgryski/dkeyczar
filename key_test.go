@@ -8,11 +8,7 @@ import (
 
 const INPUT = "This is some test data"
 
-var TESTDATA = ""
-
-func init() {
-	TESTDATA = "testdata/existing-data/cpp/" 
-}
+const TESTDATA = "testdata/existing-data/cpp/" 
 
 func testEncrypt(t *testing.T, keytype string, f KeyReader) {
 

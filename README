@@ -18,4 +18,4 @@ All output is encoded in web-safe base64.
 See the godoc for usage information.   This documentation is also viewable
 online at: http://gopkgdoc.appspot.com/pkg/github.com/dgryski/dkeyczar
 
-To pull in testdata for unit tests run git `submodule init`
+To pull in testdata for unit tests run `git submodule init`
