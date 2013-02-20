@@ -260,9 +260,11 @@ func (kc *keyCrypter) Decrypt(ciphertext string) ([]uint8, error) {
 
 	return kc.decompress(compressed_plaintext)
 }
+type currentTime func () int64
 
 type keySigner struct {
 	kz *keyCzar
+	currentTime
 	encodingController
 }
 
@@ -524,7 +526,7 @@ func (ks *keySigner) TimeoutVerify(message []byte, signature string) (bool, erro
 	verifyKey := k.(verifyKey)
 	isValid, err := verifyKey.Verify(signedbytes, sig)
 
-	currentMillis := time.Now().UnixNano() / int64(time.Millisecond)
+	currentMillis := ks.currentTime()
 
 	if isValid == false || err != nil || currentMillis > expiration {
 		return false, err
@@ -580,9 +582,29 @@ func NewEncrypter(r KeyReader) (Encrypter, error) {
 // NewVerifier returns an object capable of verifying signatures using the key provded by the reader
 func NewVerifier(r KeyReader) (Verifier, error) {
 	k := new(keySigner)
+	k.currentTime = func() int64{
+		return time.Now().UnixNano() / int64(time.Millisecond)
+	}
 	var err error
 	k.kz, err = newKeyCzar(r)
+	
+	if err != nil {
+		return nil, err
+	}
 
+	if !k.kz.isAcceptablePurpose(P_VERIFY) {
+		return nil, ErrUnacceptablePurpose
+	}
+
+	return k, err
+}
+
+func NewVerifierTimeProvider(r KeyReader, t currentTime) (Verifier, error) {
+	k := new(keySigner)
+	k.currentTime = t
+	var err error
+	k.kz, err = newKeyCzar(r)
+	
 	if err != nil {
 		return nil, err
 	}
