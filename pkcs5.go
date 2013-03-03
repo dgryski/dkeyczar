@@ -33,7 +33,7 @@ func pbkdf2(password []byte, salt []byte, c int, dklen int) []byte {
 			h.Reset()
 			h.Write(u)
 			u = h.Sum(nil)
-			for k, _ := range u {
+			for k := range u {
 				f[k] ^= u[k]
 			}
 		}
