@@ -1,8 +1,8 @@
 package main
 
 import (
-	"github.com/dgryski/dkeyczar"
 	"fmt"
+	"github.com/dgryski/dkeyczar"
 	"os"
 	"strconv"
 )
@@ -118,7 +118,7 @@ check_verify(readers.FileReader("` + fulldir + `"),
     "` + signature + `",
 )`)
 
-	attachedSig, _ := signer.AttachedSign([]byte(PLAINTEXT), []byte{0,1,2,3,4,5,6,7})
+	attachedSig, _ := signer.AttachedSign([]byte(PLAINTEXT), []byte{0, 1, 2, 3, 4, 5, 6, 7})
 
 	fmt.Println(`
 check_attached_verify(readers.FileReader("` + fulldir + `"),
@@ -151,48 +151,48 @@ check_unversioned_verify(readers.FileReader("` + fulldir + `"),
 
 func WriteKeyczartTest(dir string) {
 
-    fulldir := TESTDATA + dir
+	fulldir := TESTDATA + dir
 
-    km := dkeyczar.NewKeyManager()
+	km := dkeyczar.NewKeyManager()
 
-    r := dkeyczar.NewFileReader(fulldir)
+	r := dkeyczar.NewFileReader(fulldir)
 
-    km.Load(r)
+	km.Load(r)
 
-    json := km.ToJSONs(nil)
+	json := km.ToJSONs(nil)
 
-    fmt.Println(`
+	fmt.Println(`
 
 meta = """` + json[0] + `"""
 keys={`)
 
-    for i := 1; i < len(json); i++ {
-        fmt.Println("    " + strconv.Itoa(i) + `: """` +  json[i] + `""",`)
-    }
-    fmt.Println(`}
+	for i := 1; i < len(json); i++ {
+		fmt.Println("    " + strconv.Itoa(i) + `: """` + json[i] + `""",`)
+	}
+	fmt.Println(`}
 r = JSONReader(meta, keys)`)
-    signer, _ := dkeyczar.NewSigner(r)
-    if signer != nil {
+	signer, _ := dkeyczar.NewSigner(r)
+	if signer != nil {
 
-	signature, _ := signer.Sign([]byte(PLAINTEXT))
+		signature, _ := signer.Sign([]byte(PLAINTEXT))
 
-	fmt.Println(
-`check_verify(r,
+		fmt.Println(
+			`check_verify(r,
         "json ` + dir + `",
         "` + PLAINTEXT + `",
         "` + signature + `",
 )`)
-    } else {
-	crypter, _ := dkeyczar.NewCrypter(r)
+	} else {
+		crypter, _ := dkeyczar.NewCrypter(r)
 
-	ciphertext, _ := crypter.Encrypt([]byte(PLAINTEXT))
-	fmt.Println(
-`check_decrypt(r,
+		ciphertext, _ := crypter.Encrypt([]byte(PLAINTEXT))
+		fmt.Println(
+			`check_decrypt(r,
     "json ` + dir + `",
     "` + PLAINTEXT + `",
     "` + ciphertext + `",
 )`)
-    }
+	}
 
 }
 
@@ -212,9 +212,9 @@ func main() {
 		WriteVerifyTest(k)
 	}
 
-        for _, k := range[]string{"aes", "rsa", "hmac", "rsa-sign", "dsa"} {
-            WriteKeyczartTest(k)
-        }
+	for _, k := range []string{"aes", "rsa", "hmac", "rsa-sign", "dsa"} {
+		WriteKeyczartTest(k)
+	}
 
 	WriteFooter()
 }
