@@ -10,6 +10,8 @@ High Priority:
     - Creation of PBE keys via keyczart
 
     - validate timeout signatures against java implementation
+    - Make all encrypt/decrypt/sign/verify calls expose same api, if possible
+        -- If you want an attached signature, created an AttachedSigner 
 
     - HMAC_SHA256
 
