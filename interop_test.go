@@ -9,7 +9,7 @@ var INTEROP_INPUT = "This is some test data"
 
 var INTEROP_TESTDATA = "testdata/interop-data/"
 
-var INTEROP_LANGS = []string{"cs", "py", "j"}
+var INTEROP_LANGS = []string{"cs", "py","py3", "j"}
 
 func testPath(lang string, subdir string) string {
 	return INTEROP_TESTDATA + lang + "_data" + "/" + subdir
@@ -162,7 +162,7 @@ func testInteropDecrypt(t *testing.T, subdir string) {
 }
 
 func testInteropSessionDecrypt(t *testing.T, subdir string) {
-    for _, lang := range INTEROP_LANGS {
+		for _, lang := range INTEROP_LANGS {
 	    path := testPath(lang, subdir)
 	    f := NewFileReader(path)
 		crypter, err := NewCrypter(f)
@@ -184,6 +184,56 @@ func testInteropSessionDecrypt(t *testing.T, subdir string) {
 			}
 			
 			kz, err := NewSessionDecrypter(crypter, m)
+			if err != nil {
+				t.Error("failed to create session decrypter for " + path + ": " + err.Error())
+				continue
+			}
+
+			p, err := kz.Decrypt(c)
+			if err != nil {
+				t.Error("failed decrypt for " + path + ": " + err.Error())
+				continue
+			}
+
+			if string(p) != INTEROP_INPUT {
+				t.Error("decrypt failed for " + path + "/" + out)
+				continue
+			}
+		}
+	}
+}
+
+func testInteropSignedSessionDecrypt(t *testing.T, subdir string, subverify string) {
+		for _, lang := range INTEROP_LANGS {
+			path := testPath(lang, subdir)
+			f := NewFileReader(path)
+		  crypter, err := NewCrypter(f)
+  		if err != nil {
+  			t.Error("failed to create crypter for " + path + ": " + err.Error())
+  			continue
+  		}
+
+				path2 := testPath(lang, subverify)
+				f2 := NewFileReader(path2)
+			  verifier, err := NewVerifier(f2)
+	  		if err != nil {
+	  			t.Error("failed to create crypter for " + path + ": " + err.Error())
+	  			continue
+	  		}
+		
+		for _, out := range []string{"2.signedsession"} {
+			m, err := slurp(path + "/" + out + ".material")
+			if err != nil {
+				t.Error("failed slurp " + out + " for " + path + ": " + err.Error())
+				continue
+			}
+			c, err := slurp(path + "/" + out + ".ciphertext")
+			if err != nil {
+				t.Error("failed slurp " + out + " for " + path + ": " + err.Error())
+				continue
+			}
+			
+			kz, err := NewSignedSessionDecrypter(crypter, verifier, m)
 			if err != nil {
 				t.Error("failed to create session decrypter for " + path + ": " + err.Error())
 				continue
@@ -320,6 +370,11 @@ func TestRSAInteropDecryptSizes(t *testing.T) {
 func TestRSAInteropSessionDecrypt(t *testing.T) {
 	testInteropSessionDecrypt(t, "rsa")
 }
+
+func TestRSAInteropSignedSessionDecrypt(t *testing.T) {
+	testInteropSignedSessionDecrypt(t, "rsa", "dsa")
+}
+
 
 
 func TestHMACInteropVerify(t *testing.T) {

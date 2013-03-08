@@ -92,6 +92,69 @@ func generateHMACKey() (*hmacKey, error) {
 	return hk, nil
 }
 
+type sessionMaterialJSON struct {
+	Key     aesKeyJSON      `json:"key"`
+	Nonce   string          `json:"nonce"`
+}
+
+type sessionMaterial struct {
+  key  	   aesKey
+	nonce   []byte
+}
+
+func (sm *sessionMaterial) ToSessionMatarialJSON() []byte {
+	j := newSessionMaterialJSON(sm)
+	s, _ := json.Marshal(j)
+	return s
+}
+
+func newSessionMaterialFromJSON(s []byte) (*sessionMaterial, error) {
+	sm := new(sessionMaterial)
+	smjson := new(sessionMaterialJSON)
+	json.Unmarshal([]byte(s), &smjson)
+
+	if !T_AES.isAcceptableSize(smjson.Key.Size) {
+		return nil, ErrInvalidKeySize
+	}
+
+	var err error
+	sm.key.key, err = decodeWeb64String(smjson.Key.AESKeyString)
+	if err != nil {
+		return nil, ErrBase64Decoding
+	}
+
+	if !T_HMAC_SHA1.isAcceptableSize(smjson.Key.HMACKey.Size) {
+		return nil, ErrInvalidKeySize
+	}
+
+	sm.key.hmacKey.key, err = decodeWeb64String(smjson.Key.HMACKey.HMACKeyString)
+	if err != nil {
+		return nil, ErrBase64Decoding
+	}
+
+	sm.nonce, err = decodeWeb64String(smjson.Nonce)
+	if err != nil {
+		return nil, ErrBase64Decoding
+	}
+
+	return sm, nil
+}
+
+func newSessionMaterialJSON(sm *sessionMaterial) *sessionMaterialJSON {
+
+	smjson := new(sessionMaterialJSON)
+
+	smjson.Key.AESKeyString = encodeWeb64String(sm.key.key)
+	smjson.Key.Size = uint(len(sm.key.key)) * 8
+	smjson.Key.HMACKey.HMACKeyString = encodeWeb64String(sm.key.hmacKey.key)
+	smjson.Key.HMACKey.Size = uint(len(sm.key.hmacKey.key)) * 8
+	smjson.Key.Mode = cmCBC
+	
+	smjson.Nonce = encodeWeb64String(sm.nonce)
+
+	return smjson
+}
+
 type aesKeyJSON struct {
 	AESKeyString string      `json:"aesKeyString"`
 	Size         uint        `json:"size"`
