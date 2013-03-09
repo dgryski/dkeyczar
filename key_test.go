@@ -8,7 +8,7 @@ import (
 
 const INPUT = "This is some test data"
 
-const TESTDATA = "testdata/existing-data/cpp/" 
+const TESTDATA = "testdata/existing-data/cpp/"
 
 func testEncrypt(t *testing.T, keytype string, f KeyReader) {
 
@@ -170,7 +170,6 @@ func testSignVerify(t *testing.T, keytype string, f KeyReader) {
 	if b {
 		t.Error(keytype + " timeoutverify(past) didn't fail!")
 	}
-
 
 	s, err = kz.UnversionedSign([]byte(INPUT))
 	if err != nil {

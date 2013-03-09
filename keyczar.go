@@ -19,6 +19,7 @@ import (
 	"bytes"
 	"compress/gzip"
 	"compress/zlib"
+	"crypto/rand"
 	"encoding/binary"
 	"encoding/json"
 	"io"
@@ -72,6 +73,22 @@ type Encrypter interface {
 // A type that can used for encrypting or decrypting
 type Crypter interface {
 	Encrypter
+	// Decrypt returns the plaintext bytes of an encrypted string
+	Decrypt(ciphertext string) ([]uint8, error)
+}
+
+//A type that can be used for encrypting and signing
+type SignedEncrypter interface {
+	KeyczarEncodingController
+	KeyczarCompressionController
+	// Encrypt returns an encrypted string representing the plaintext bytes passed.
+	Encrypt(plaintext []uint8) (string, error)
+}
+
+//A type that can be used for decrypting and verifying
+type SignedDecrypter interface {
+	KeyczarEncodingController
+	KeyczarCompressionController
 	// Decrypt returns the plaintext bytes of an encrypted string
 	Decrypt(ciphertext string) ([]uint8, error)
 }
@@ -220,6 +237,22 @@ type keyCrypter struct {
 	compressionController
 }
 
+type keySignedEncypter struct {
+	kz *keyCzar
+	encodingController
+	compressionController
+	nonce  []byte
+	signer Signer
+}
+
+type keySignedDecrypter struct {
+	kz *keyCzar
+	encodingController
+	compressionController
+	nonce    []byte
+	verifier Verifier
+}
+
 // Encrypt plaintext and return encoded encrypted text as a string
 // All the heavy lifting is done by the key
 func (kc *keyCrypter) Encrypt(plaintext []uint8) (string, error) {
@@ -239,6 +272,28 @@ func (kc *keyCrypter) Encrypt(plaintext []uint8) (string, error) {
 
 	return s, nil
 
+}
+
+func (kc *keySignedEncypter) Encrypt(plaintext []uint8) (string, error) {
+
+	key := kc.kz.getPrimaryKey()
+
+	encryptKey := key.(encryptKey)
+
+	compressed_plaintext := kc.compress(plaintext)
+
+	ciphertext, err := encryptKey.Encrypt(compressed_plaintext)
+	if err != nil {
+		return "", err
+	}
+
+	attachedMessage, err := kc.signer.AttachedSign(ciphertext, kc.nonce)
+
+	if err != nil {
+		return "", err
+	}
+
+	return attachedMessage, nil
 }
 
 // Decode and decrypt ciphertext and return plaintext as []byte
@@ -261,8 +316,37 @@ func (kc *keyCrypter) Decrypt(ciphertext string) ([]uint8, error) {
 	return kc.decompress(compressed_plaintext)
 }
 
+// Decode and decrypt ciphertext and return plaintext as []byte
+// All the heavy lifting is done by the key
+func (kc *keySignedDecrypter) Decrypt(signed_ciphertext string) ([]uint8, error) {
+
+	ciphertext, err := kc.verifier.AttachedVerify(signed_ciphertext, kc.nonce)
+
+	if err != nil {
+		return nil, err
+	}
+
+	b, k, err := splitHeaderBytes(kc.encodingController, kc.kz, ciphertext, ErrShortCiphertext)
+
+	if err != nil {
+		return nil, err
+	}
+
+	decryptKey := k.(decryptEncryptKey)
+	compressed_plaintext, err := decryptKey.Decrypt(b)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return kc.decompress(compressed_plaintext)
+}
+
+type currentTime func() int64
+
 type keySigner struct {
 	kz *keyCzar
+	currentTime
 	encodingController
 }
 
@@ -524,7 +608,7 @@ func (ks *keySigner) TimeoutVerify(message []byte, signature string) (bool, erro
 	verifyKey := k.(verifyKey)
 	isValid, err := verifyKey.Verify(signedbytes, sig)
 
-	currentMillis := time.Now().UnixNano() / int64(time.Millisecond)
+	currentMillis := ks.currentTime()
 
 	if isValid == false || err != nil || currentMillis > expiration {
 		return false, err
@@ -538,6 +622,52 @@ func NewCrypter(r KeyReader) (Crypter, error) {
 	k := new(keyCrypter)
 	var err error
 	k.kz, err = newKeyCzar(r)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if !k.kz.isAcceptablePurpose(P_DECRYPT_AND_ENCRYPT) {
+		return nil, ErrUnacceptablePurpose
+	}
+
+	err = k.kz.loadPrimaryKey()
+	if err != nil {
+		return nil, err
+	}
+
+	return k, err
+}
+
+func NewSignedEncrypter(r KeyReader, signer Signer, nonce []byte) (SignedEncrypter, error) {
+	k := new(keySignedEncypter)
+	var err error
+	k.kz, err = newKeyCzar(r)
+	k.nonce = nonce
+	k.signer = signer
+
+	if err != nil {
+		return nil, err
+	}
+
+	if !k.kz.isAcceptablePurpose(P_DECRYPT_AND_ENCRYPT) {
+		return nil, ErrUnacceptablePurpose
+	}
+
+	err = k.kz.loadPrimaryKey()
+	if err != nil {
+		return nil, err
+	}
+
+	return k, err
+}
+
+func NewSignedDecrypter(r KeyReader, verifier Verifier, nonce []byte) (SignedDecrypter, error) {
+	k := new(keySignedDecrypter)
+	var err error
+	k.kz, err = newKeyCzar(r)
+	k.nonce = nonce
+	k.verifier = verifier
 
 	if err != nil {
 		return nil, err
@@ -580,6 +710,26 @@ func NewEncrypter(r KeyReader) (Encrypter, error) {
 // NewVerifier returns an object capable of verifying signatures using the key provded by the reader
 func NewVerifier(r KeyReader) (Verifier, error) {
 	k := new(keySigner)
+	k.currentTime = func() int64 {
+		return time.Now().UnixNano() / int64(time.Millisecond)
+	}
+	var err error
+	k.kz, err = newKeyCzar(r)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if !k.kz.isAcceptablePurpose(P_VERIFY) {
+		return nil, ErrUnacceptablePurpose
+	}
+
+	return k, err
+}
+
+func NewVerifierTimeProvider(r KeyReader, t currentTime) (Verifier, error) {
+	k := new(keySigner)
+	k.currentTime = t
 	var err error
 	k.kz, err = newKeyCzar(r)
 
@@ -646,6 +796,46 @@ func NewSessionDecrypter(crypter Crypter, sessionKeys string) (Crypter, error) {
 	r := newImportedAESKeyReader(aeskey)
 
 	return NewCrypter(r)
+}
+
+// NewSignedSessionEncrypter returns an Encrypter that has been initailized with a random session key.  This key material is encrypted with crypter and returned.
+func NewSignedSessionEncrypter(encrypter Encrypter, signer Signer) (SignedEncrypter, string, error) {
+
+	aeskey, _ := generateAESKey(0) // shouldn't fail
+	r := newImportedAESKeyReader(aeskey)
+
+	nonce := make([]byte, 16)
+	io.ReadFull(rand.Reader, nonce)
+
+	sm := new(sessionMaterial)
+	sm.key = *aeskey
+	sm.nonce = nonce
+
+	keys, err := encrypter.Encrypt(sm.ToSessionMaterialJSON())
+	if err != nil {
+		return nil, "", err
+	}
+
+	sessionCrypter, err := NewSignedEncrypter(r, signer, nonce)
+
+	return sessionCrypter, keys, err
+}
+
+// NewSignedSessionDecrypter decrypts the sessionKeys string and returns a new Crypter using these keys.
+func NewSignedSessionDecrypter(crypter Crypter, verifier Verifier, sessionKeys string) (SignedDecrypter, error) {
+
+	smJson, err := crypter.Decrypt(sessionKeys)
+	if err != nil {
+		return nil, err
+	}
+
+	sm, err := newSessionMaterialFromJSON(smJson)
+	if err != nil {
+		return nil, err
+	}
+	r := newImportedAESKeyReader(&sm.key)
+
+	return NewSignedDecrypter(r, verifier, sm.nonce)
 }
 
 func (kz *keyCzar) loadPrimaryKey() error {
@@ -774,6 +964,26 @@ func makeHeader(key keydata) []byte {
 	copy(b[1:], key.KeyID())
 
 	return b
+}
+
+func splitHeaderBytes(ec encodingController, lookup lookupKeyIDer, cryptotext []byte, errTooShort error) ([]byte, keydata, error) {
+
+	b := cryptotext
+
+	if len(b) < kzHeaderLength {
+		return nil, nil, errTooShort
+	}
+
+	if b[0] != kzVersion {
+		return nil, nil, ErrBadVersion
+	}
+
+	k, err := lookup.getKeyForID(b[1:5])
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return b, k, nil
 }
 
 func splitHeader(ec encodingController, lookup lookupKeyIDer, cryptotext string, errTooShort error) ([]byte, keydata, error) {
