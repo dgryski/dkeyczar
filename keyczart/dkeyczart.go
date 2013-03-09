@@ -1,9 +1,9 @@
 package main
 
 import (
-	"github.com/dgryski/dkeyczar"
 	"flag"
 	"fmt"
+	"github.com/dgryski/dkeyczar"
 	"io/ioutil"
 	"os"
 	"strconv"
