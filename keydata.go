@@ -93,16 +93,16 @@ func generateHMACKey() (*hmacKey, error) {
 }
 
 type sessionMaterialJSON struct {
-	Key     aesKeyJSON      `json:"key"`
-	Nonce   string          `json:"nonce"`
+	Key   aesKeyJSON `json:"key"`
+	Nonce string     `json:"nonce"`
 }
 
 type sessionMaterial struct {
-  key  	   aesKey
-	nonce   []byte
+	key   aesKey
+	nonce []byte
 }
 
-func (sm *sessionMaterial) ToSessionMatarialJSON() []byte {
+func (sm *sessionMaterial) ToSessionMaterialJSON() []byte {
 	j := newSessionMaterialJSON(sm)
 	s, _ := json.Marshal(j)
 	return s
@@ -149,7 +149,7 @@ func newSessionMaterialJSON(sm *sessionMaterial) *sessionMaterialJSON {
 	smjson.Key.HMACKey.HMACKeyString = encodeWeb64String(sm.key.hmacKey.key)
 	smjson.Key.HMACKey.Size = uint(len(sm.key.hmacKey.key)) * 8
 	smjson.Key.Mode = cmCBC
-	
+
 	smjson.Nonce = encodeWeb64String(sm.nonce)
 
 	return smjson

@@ -19,9 +19,9 @@ import (
 	"bytes"
 	"compress/gzip"
 	"compress/zlib"
+	"crypto/rand"
 	"encoding/binary"
 	"encoding/json"
-	"crypto/rand"
 	"io"
 	"time"
 )
@@ -241,7 +241,7 @@ type keySignedEncypter struct {
 	kz *keyCzar
 	encodingController
 	compressionController
-	nonce []byte
+	nonce  []byte
 	signer Signer
 }
 
@@ -249,7 +249,7 @@ type keySignedDecrypter struct {
 	kz *keyCzar
 	encodingController
 	compressionController
-	nonce []byte
+	nonce    []byte
 	verifier Verifier
 }
 
@@ -286,13 +286,13 @@ func (kc *keySignedEncypter) Encrypt(plaintext []uint8) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	
-	attachedMessage, err := kc.signer.AttachedSign(ciphertext,kc.nonce)
+
+	attachedMessage, err := kc.signer.AttachedSign(ciphertext, kc.nonce)
 
 	if err != nil {
 		return "", err
 	}
-	
+
 	return attachedMessage, nil
 }
 
@@ -320,18 +320,18 @@ func (kc *keyCrypter) Decrypt(ciphertext string) ([]uint8, error) {
 // All the heavy lifting is done by the key
 func (kc *keySignedDecrypter) Decrypt(signed_ciphertext string) ([]uint8, error) {
 
-	ciphertext,err := kc.verifier.AttachedVerify(signed_ciphertext,kc.nonce)
-	
+	ciphertext, err := kc.verifier.AttachedVerify(signed_ciphertext, kc.nonce)
+
 	if err != nil {
 		return nil, err
 	}
-	
+
 	b, k, err := splitHeaderBytes(kc.encodingController, kc.kz, ciphertext, ErrShortCiphertext)
 
 	if err != nil {
 		return nil, err
 	}
-	
+
 	decryptKey := k.(decryptEncryptKey)
 	compressed_plaintext, err := decryptKey.Decrypt(b)
 
@@ -342,8 +342,7 @@ func (kc *keySignedDecrypter) Decrypt(signed_ciphertext string) ([]uint8, error)
 	return kc.decompress(compressed_plaintext)
 }
 
-
-type currentTime func () int64
+type currentTime func() int64
 
 type keySigner struct {
 	kz *keyCzar
@@ -640,14 +639,13 @@ func NewCrypter(r KeyReader) (Crypter, error) {
 	return k, err
 }
 
-
 func NewSignedEncrypter(r KeyReader, signer Signer, nonce []byte) (SignedEncrypter, error) {
 	k := new(keySignedEncypter)
 	var err error
 	k.kz, err = newKeyCzar(r)
-    k.nonce = nonce
+	k.nonce = nonce
 	k.signer = signer
-	
+
 	if err != nil {
 		return nil, err
 	}
@@ -668,9 +666,9 @@ func NewSignedDecrypter(r KeyReader, verifier Verifier, nonce []byte) (SignedDec
 	k := new(keySignedDecrypter)
 	var err error
 	k.kz, err = newKeyCzar(r)
-  k.nonce = nonce
+	k.nonce = nonce
 	k.verifier = verifier
-	
+
 	if err != nil {
 		return nil, err
 	}
@@ -712,12 +710,12 @@ func NewEncrypter(r KeyReader) (Encrypter, error) {
 // NewVerifier returns an object capable of verifying signatures using the key provded by the reader
 func NewVerifier(r KeyReader) (Verifier, error) {
 	k := new(keySigner)
-	k.currentTime = func() int64{
+	k.currentTime = func() int64 {
 		return time.Now().UnixNano() / int64(time.Millisecond)
 	}
 	var err error
 	k.kz, err = newKeyCzar(r)
-	
+
 	if err != nil {
 		return nil, err
 	}
@@ -734,7 +732,7 @@ func NewVerifierTimeProvider(r KeyReader, t currentTime) (Verifier, error) {
 	k.currentTime = t
 	var err error
 	k.kz, err = newKeyCzar(r)
-	
+
 	if err != nil {
 		return nil, err
 	}
@@ -805,19 +803,19 @@ func NewSignedSessionEncrypter(encrypter Encrypter, signer Signer) (SignedEncryp
 
 	aeskey, _ := generateAESKey(0) // shouldn't fail
 	r := newImportedAESKeyReader(aeskey)
-    
-  nonce := make([]byte, 16)
+
+	nonce := make([]byte, 16)
 	io.ReadFull(rand.Reader, nonce)
 
-  sm := new(sessionMaterial)
-  sm.key = *aeskey
-  sm.nonce = nonce
+	sm := new(sessionMaterial)
+	sm.key = *aeskey
+	sm.nonce = nonce
 
-	keys, err := encrypter.Encrypt(sm.ToSessionMatarialJSON())
+	keys, err := encrypter.Encrypt(sm.ToSessionMaterialJSON())
 	if err != nil {
 		return nil, "", err
 	}
-	
+
 	sessionCrypter, err := NewSignedEncrypter(r, signer, nonce)
 
 	return sessionCrypter, keys, err
@@ -970,7 +968,7 @@ func makeHeader(key keydata) []byte {
 
 func splitHeaderBytes(ec encodingController, lookup lookupKeyIDer, cryptotext []byte, errTooShort error) ([]byte, keydata, error) {
 
-	b:= cryptotext
+	b := cryptotext
 
 	if len(b) < kzHeaderLength {
 		return nil, nil, errTooShort
