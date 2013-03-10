@@ -9,7 +9,7 @@ var INTEROP_INPUT = "This is some test data"
 
 var INTEROP_TESTDATA = "testdata/interop-data/"
 
-var INTEROP_LANGS = []string{"cs", "py", "py3", "j"}
+var INTEROP_LANGS = []string{"cs", "py", "py3", "j", "go"}
 
 func testPath(lang string, subdir string) string {
 	return INTEROP_TESTDATA + lang + "_data" + "/" + subdir
