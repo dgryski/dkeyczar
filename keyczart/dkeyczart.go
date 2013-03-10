@@ -193,7 +193,7 @@ func main() {
 			return
 		}
 		kpub := km.PubKeys()
-		Save(pubKeyOpts.Location, kpub, nil) // doesn't make sense to encrypt a public key
+		Save(pubKeyOpts.Destination, kpub, nil) // doesn't make sense to encrypt a public key
 		return
 	case "usekey":
 		c := loadCrypter(useKeyOpts.Crypter)
