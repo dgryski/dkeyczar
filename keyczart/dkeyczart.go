@@ -92,8 +92,6 @@ func main() {
 
 	command := os.Args[1]
 
-	var crypter dkeyczar.Crypter
-
 	km := dkeyczar.NewKeyManager()
 
 	switch command {
@@ -140,10 +138,10 @@ func main() {
 
 		km.Create(createOpts.Name, keypurpose, keytype)
 
-		Save(createOpts.Location, km, crypter)
+		Save(createOpts.Location, km, nil)
 
 	case "promote":
-		if !loadLocationReader(km, promoteOpts.Location, "") {
+		if !loadLocationReader(km, promoteOpts.Location, nil) {
 			return
 		}
 		if promoteOpts.Version == 0 {
@@ -151,9 +149,9 @@ func main() {
 			return
 		}
 		km.Promote(promoteOpts.Version)
-		Update(promoteOpts.Location, km, crypter)
+		Update(promoteOpts.Location, km, nil)
 	case "demote":
-		if !loadLocationReader(km, demoteOpts.Location, "") {
+		if !loadLocationReader(km, demoteOpts.Location, nil) {
 			return
 		}
 
@@ -162,9 +160,10 @@ func main() {
 			return
 		}
 		km.Demote(demoteOpts.Version)
-		Update(demoteOpts.Location, km, crypter)
+		Update(demoteOpts.Location, km, nil)
 	case "addkey":
-		if !loadLocationReader(km, addKeyOpts.Location, "") {
+		c := loadCrypter(addKeyOpts.Crypter)
+		if !loadLocationReader(km, addKeyOpts.Location, c) {
 			return
 		}
 		status := dkeyczar.S_ACTIVE
@@ -188,16 +187,17 @@ func main() {
 			fmt.Println("error adding key:", err)
 			return
 		}
-		Update(addKeyOpts.Location, km, crypter)
+		Update(addKeyOpts.Location, km, c)
 	case "pubkey":
-		if !loadLocationReader(km, pubKeyOpts.Location, "") {
+		if !loadLocationReader(km, pubKeyOpts.Location, nil) {
 			return
 		}
 		kpub := km.PubKeys()
 		Save(pubKeyOpts.Location, kpub, nil) // doesn't make sense to encrypt a public key
 		return
 	case "usekey":
-		r := loadReader(useKeyOpts.Location, useKeyOpts.Crypter)
+		c := loadCrypter(useKeyOpts.Crypter)
+		r := loadReader(useKeyOpts.Location, c)
 		if r == nil {
 			return
 		}
@@ -234,17 +234,39 @@ func main() {
 			signer, _ := dkeyczar.NewSigner(r)
 			output, _ = signer.AttachedSign(input, []byte(nonce))
 		case "crypt-session":
-			e, _ := dkeyczar.NewEncrypter(r)
+			e, err := dkeyczar.NewEncrypter(r)
+			if err != nil {
+				fmt.Println(err)
+			}
 			var se dkeyczar.Crypter
-			se, output2, _ = dkeyczar.NewSessionEncrypter(e)
-			output, _ = se.Encrypt(input)
+			se, output2, err = dkeyczar.NewSessionEncrypter(e)
+			if err != nil {
+				fmt.Println(err)
+			}
+			output, err = se.Encrypt(input)
+			if err != nil {
+				fmt.Println(err)
+			}
 		case "crypt-signsession":
-			r2 := loadReader(useKeyOpts.Location2, useKeyOpts.Crypter2)
-			e, _ := dkeyczar.NewEncrypter(r)
-			s, _ := dkeyczar.NewSigner(r2)
+			c2 := loadCrypter(useKeyOpts.Crypter2)
+			r2 := loadReader(useKeyOpts.Location2, c2)
+			e, err := dkeyczar.NewEncrypter(r)
+			if err != nil {
+				fmt.Println(err)
+			}
+			s, err := dkeyczar.NewSigner(r2)
+			if err != nil {
+				fmt.Println(err)
+			}
 			var se dkeyczar.SignedEncrypter
-			se, output2, _ = dkeyczar.NewSignedSessionEncrypter(e, s)
-			output, _ = se.Encrypt(input)
+			se, output2, err = dkeyczar.NewSignedSessionEncrypter(e, s)
+			if err != nil {
+				fmt.Println(err)
+			}
+			output, err = se.Encrypt(input)
+			if err != nil {
+				fmt.Println(err)
+			}
 		default:
 			fmt.Println("must provide a format with --format")
 			return
@@ -265,26 +287,13 @@ func main() {
 	}
 }
 
-func loadReader(optLocation string, optCrypter string) dkeyczar.KeyReader {
+func loadReader(optLocation string, crypter dkeyczar.Crypter) dkeyczar.KeyReader {
 	if optLocation == "" {
 		fmt.Println("missing required --location argument")
 		return nil
 	}
 
 	lr := dkeyczar.NewFileReader(optLocation)
-
-	var crypter dkeyczar.Crypter
-
-	if optCrypter != "" {
-		fmt.Println("using crypter:", optCrypter)
-		r := dkeyczar.NewFileReader(optCrypter)
-		var err error
-		crypter, err = dkeyczar.NewCrypter(r)
-		if err != nil {
-			fmt.Println("failed to load crypter:", err)
-			return nil
-		}
-	}
 
 	if crypter != nil {
 		fmt.Println("decrypting keys..")
@@ -294,26 +303,27 @@ func loadReader(optLocation string, optCrypter string) dkeyczar.KeyReader {
 	return lr
 }
 
-func loadLocationReader(km dkeyczar.KeyManager, optLocation string, optCrypter string) bool {
+func loadCrypter(optCrypter string) dkeyczar.Crypter {
+	if optCrypter != "" {
+		fmt.Println("using crypter:", optCrypter)
+		r := dkeyczar.NewFileReader(optCrypter)
+		crypter, err := dkeyczar.NewCrypter(r)
+		if err != nil {
+			fmt.Println("failed to load crypter:", err)
+			return nil
+		}
+		return crypter
+	}
+	return nil
+}
+
+func loadLocationReader(km dkeyczar.KeyManager, optLocation string, crypter dkeyczar.Crypter) bool {
 	if optLocation == "" {
 		fmt.Println("missing required --location argument")
 		return false
 	}
 
 	lr := dkeyczar.NewFileReader(optLocation)
-
-	var crypter dkeyczar.Crypter
-
-	if optCrypter != "" {
-		fmt.Println("using crypter:", optCrypter)
-		r := dkeyczar.NewFileReader(optCrypter)
-		var err error
-		crypter, err = dkeyczar.NewCrypter(r)
-		if err != nil {
-			fmt.Println("failed to load crypter:", err)
-			return false
-		}
-	}
 
 	if crypter != nil {
 		fmt.Println("decrypting keys..")
