@@ -247,7 +247,7 @@ func main() {
 			if err != nil {
 				fmt.Println(err)
 			}
-		case "crypt-signsession":
+		case "crypt-signedsession":
 			c2 := loadCrypter(useKeyOpts.Crypter2)
 			r2 := loadReader(useKeyOpts.Location2, c2)
 			e, err := dkeyczar.NewEncrypter(r)
