@@ -12,7 +12,7 @@ import (
 
 func Save(location string, km dkeyczar.KeyManager, crypter dkeyczar.Crypter) {
 
-	err := os.Mkdir(location, 0700)
+	err := os.MkdirAll(location, 0700)
 
 	if err != nil {
 		fmt.Println("unable to create key directory:" + err.Error())
