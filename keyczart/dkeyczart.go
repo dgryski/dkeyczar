@@ -239,11 +239,11 @@ func main() {
 				fmt.Println(err)
 			}
 			var se dkeyczar.Crypter
-			se, output2, err = dkeyczar.NewSessionEncrypter(e)
+			se, output, err = dkeyczar.NewSessionEncrypter(e)
 			if err != nil {
 				fmt.Println(err)
 			}
-			output, err = se.Encrypt(input)
+			output2, err = se.Encrypt(input)
 			if err != nil {
 				fmt.Println(err)
 			}
@@ -259,11 +259,11 @@ func main() {
 				fmt.Println(err)
 			}
 			var se dkeyczar.SignedEncrypter
-			se, output2, err = dkeyczar.NewSignedSessionEncrypter(e, s)
+			se, output, err = dkeyczar.NewSignedSessionEncrypter(e, s)
 			if err != nil {
 				fmt.Println(err)
 			}
-			output, err = se.Encrypt(input)
+			output2, err = se.Encrypt(input)
 			if err != nil {
 				fmt.Println(err)
 			}
