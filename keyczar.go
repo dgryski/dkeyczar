@@ -887,11 +887,14 @@ func (kz *keyCzar) getKeyForID(id []byte) (keydata, error) {
 	return nil, ErrKeyNotFound
 }
 
-func newKeysFromReader(r KeyReader, km keyMeta, keyFromJSON func([]byte) (keydata, error)) (map[int]keydata, error) {
+func newKeysFromReader(r KeyReader, kz *keyCzar, keyFromJSON func([]byte) (keydata, error)) (map[int]keydata, error) {
 
 	keys := make(map[int]keydata)
 
-	for _, kv := range km.Versions {
+	for _, kv := range kz.keymeta.Versions {
+		if kv.Status == S_PRIMARY {
+			kz.primary = kv.VersionNumber
+		}
 		s, err := r.GetKey(kv.VersionNumber)
 		if err != nil {
 			return nil, err
@@ -944,7 +947,7 @@ func newKeyCzar(r KeyReader) (*keyCzar, error) {
 		return nil, ErrUnsupportedType
 	}
 
-	kz.keys, err = newKeysFromReader(r, kz.keymeta, f)
+	kz.keys, err = newKeysFromReader(r, kz, f)
 
 	return kz, err
 }
