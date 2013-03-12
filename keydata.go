@@ -534,11 +534,11 @@ func newDSAJSONFromKey(key *dsa.PrivateKey) *dsaKeyJSON {
 
 	dsajson := new(dsaKeyJSON)
 
-	dsajson.PublicKey.P = encodeWeb64String(key.P.Bytes())
-	dsajson.PublicKey.Q = encodeWeb64String(key.Q.Bytes())
-	dsajson.PublicKey.Y = encodeWeb64String(key.Y.Bytes())
-	dsajson.PublicKey.G = encodeWeb64String(key.G.Bytes())
-	dsajson.X = encodeWeb64String(key.X.Bytes())
+	dsajson.PublicKey.P = encodeWeb64String(bigIntBytes(key.P))
+	dsajson.PublicKey.Q = encodeWeb64String(bigIntBytes(key.Q))
+	dsajson.PublicKey.Y = encodeWeb64String(bigIntBytes(key.Y))
+	dsajson.PublicKey.G = encodeWeb64String(bigIntBytes(key.G))
+	dsajson.X = encodeWeb64String(bigIntBytes(key.X))
 
 	dsajson.Size = uint(len(key.P.Bytes())) * 8
 	dsajson.PublicKey.Size = uint(len(key.P.Bytes())) * 8
@@ -556,10 +556,10 @@ func newDSAPublicJSONFromKey(key *dsa.PublicKey) *dsaPublicKeyJSON {
 
 	dsajson := new(dsaPublicKeyJSON)
 
-	dsajson.P = encodeWeb64String(key.P.Bytes())
-	dsajson.Q = encodeWeb64String(key.Q.Bytes())
-	dsajson.Y = encodeWeb64String(key.Y.Bytes())
-	dsajson.G = encodeWeb64String(key.G.Bytes())
+	dsajson.P = encodeWeb64String(bigIntBytes(key.P))
+	dsajson.Q = encodeWeb64String(bigIntBytes(key.Q))
+	dsajson.Y = encodeWeb64String(bigIntBytes(key.Y))
+	dsajson.G = encodeWeb64String(bigIntBytes(key.G))
 
 	dsajson.Size = uint(len(key.P.Bytes())) * 8
 
@@ -791,10 +791,10 @@ func newRSAPublicJSONFromKey(key *rsa.PublicKey) *rsaPublicKeyJSON {
 
 	rsajson := new(rsaPublicKeyJSON)
 
-	rsajson.Modulus = encodeWeb64String(key.N.Bytes())
+	rsajson.Modulus = encodeWeb64String(bigIntBytes(key.N))
 
 	e := big.NewInt(int64(key.E))
-	rsajson.PublicExponent = encodeWeb64String(e.Bytes())
+	rsajson.PublicExponent = encodeWeb64String(bigIntBytes(e))
 
 	rsajson.Size = uint(len(key.N.Bytes())) * 8
 
@@ -883,17 +883,17 @@ func newRSAJSONFromKey(key *rsa.PrivateKey) *rsaKeyJSON {
 
 	rsajson := new(rsaKeyJSON)
 
-	rsajson.PublicKey.Modulus = encodeWeb64String(key.PublicKey.N.Bytes())
+	rsajson.PublicKey.Modulus = encodeWeb64String(bigIntBytes(key.PublicKey.N))
 
 	e := big.NewInt(int64(key.PublicKey.E))
-	rsajson.PublicKey.PublicExponent = encodeWeb64String(e.Bytes())
+	rsajson.PublicKey.PublicExponent = encodeWeb64String(bigIntBytes(e))
 
-	rsajson.PrimeP = encodeWeb64String(key.Primes[0].Bytes())
-	rsajson.PrimeQ = encodeWeb64String(key.Primes[1].Bytes())
-	rsajson.PrivateExponent = encodeWeb64String(key.D.Bytes())
-	rsajson.PrimeExponentP = encodeWeb64String(key.Precomputed.Dp.Bytes())
-	rsajson.PrimeExponentQ = encodeWeb64String(key.Precomputed.Dq.Bytes())
-	rsajson.CrtCoefficient = encodeWeb64String(key.Precomputed.Qinv.Bytes())
+	rsajson.PrimeP = encodeWeb64String(bigIntBytes(key.Primes[0]))
+	rsajson.PrimeQ = encodeWeb64String(bigIntBytes(key.Primes[1]))
+	rsajson.PrivateExponent = encodeWeb64String(bigIntBytes(key.D))
+	rsajson.PrimeExponentP = encodeWeb64String(bigIntBytes(key.Precomputed.Dp))
+	rsajson.PrimeExponentQ = encodeWeb64String(bigIntBytes(key.Precomputed.Dq))
+	rsajson.CrtCoefficient = encodeWeb64String(bigIntBytes(key.Precomputed.Qinv))
 
 	rsajson.Size = uint(len(key.N.Bytes())) * 8
 	rsajson.PublicKey.Size = uint(len(key.N.Bytes())) * 8

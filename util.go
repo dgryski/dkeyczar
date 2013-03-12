@@ -4,7 +4,17 @@ import (
 	"bytes"
 	"encoding/base64"
 	"encoding/binary"
+	"math/big"
 )
+
+func bigIntBytes(value *big.Int) []byte {
+	absbytes := value.Bytes()
+	if absbytes[0]&0x80 != 0x00 {
+		zero := []byte{0x00}
+		return append(zero, absbytes...)
+	}
+	return absbytes
+}
 
 // A Web64 string is a base64 encoded string with a web-safe character set and no trailing equal signs.
 func decodeWeb64String(key string) ([]byte, error) {
