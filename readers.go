@@ -135,7 +135,10 @@ func (r *pbeReader) GetKey(version int) (string, error) {
 
 	var pbejson pbeKeyJSON
 
-	json.Unmarshal([]byte(s), &pbejson)
+	err = json.Unmarshal([]byte(s), &pbejson)
+        if err != nil {
+            return "", err
+        }
 
 	if pbejson.Cipher != "AES128" || pbejson.HMAC != "HMAC_SHA1" {
 		return "", ErrUnsupportedType
