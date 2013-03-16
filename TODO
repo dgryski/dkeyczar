@@ -3,13 +3,9 @@ High Priority:
 
     (Items from interop list at https://groups.google.com/forum/?fromgroups=#!topic/keyczar-discuss/NMyTgnimcwY )
 
-    - Java compatibility fixes:
-        - json must include a leading zero if high bit set to match java BigInt
     - RSA encrypt/decrypt only supports OAEP, not PKCS#1
-    - Signed Session encryption (?)
     - Creation of PBE keys via keyczart
 
-    - validate timeout signatures against java implementation
     - Make all encrypt/decrypt/sign/verify calls expose same api, if possible
         -- If you want an attached signature, created an AttachedSigner 
 
@@ -28,7 +24,6 @@ Low Priority:
         - extra dependency, but 'standard lib' ?
     - key.Type() => ktFOO constant
     - some of the keyman routines poke into keyCzar internals
-    - write code to generate c++/java test case for compatibility
     - some of the ImportFOOForBar would be easier if we exported the KeyPurpose enum
     - fix keymeta.Versions so Versions[versionNumber] is correct (placeholder? nil?)
     - write functions to abstract byte-stream format
