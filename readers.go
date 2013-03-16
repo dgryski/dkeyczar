@@ -1,10 +1,12 @@
 package dkeyczar
 
 import (
+	"code.google.com/p/go.crypto/pbkdf2"
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/dsa"
 	"crypto/rsa"
+	"crypto/sha1"
 	"crypto/x509"
 	"encoding/json"
 	"encoding/pem"
@@ -136,9 +138,9 @@ func (r *pbeReader) GetKey(version int) (string, error) {
 	var pbejson pbeKeyJSON
 
 	err = json.Unmarshal([]byte(s), &pbejson)
-        if err != nil {
-            return "", err
-        }
+	if err != nil {
+		return "", err
+	}
 
 	if pbejson.Cipher != "AES128" || pbejson.HMAC != "HMAC_SHA1" {
 		return "", ErrUnsupportedType
@@ -159,7 +161,7 @@ func (r *pbeReader) GetKey(version int) (string, error) {
 		return "", err
 	}
 
-	keybytes := pbkdf2(r.password, salt, pbejson.IterationCount, 128/8)
+	keybytes := pbkdf2.Key(r.password, salt, pbejson.IterationCount, 128/8, sha1.New)
 
 	aesCipher, err := aes.NewCipher(keybytes)
 	if err != nil {

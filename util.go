@@ -94,3 +94,19 @@ func lenPrefixUnpack(packed []byte) [][]byte {
 
 	return arrays
 }
+
+// only needed by AES?
+func pkcs5pad(data []byte, blocksize int) []byte {
+	pad := blocksize - len(data)%blocksize
+	b := make([]byte, pad, pad)
+	for i := 0; i < pad; i++ {
+		b[i] = uint8(pad)
+	}
+	return append(data, b...)
+}
+
+func pkcs5unpad(data []byte) []byte {
+	pad := int(data[len(data)-1])
+	// FIXME: check that the padding bytes are all what we expect
+	return data[0 : len(data)-pad]
+}

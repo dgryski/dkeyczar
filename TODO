@@ -20,8 +20,6 @@ High Priority:
       (rsa export not supported -- must implement)
 
 Low Priority:
-    - remove internal pbkdf2 implementation and use go.crypto version?
-        - extra dependency, but 'standard lib' ?
     - key.Type() => ktFOO constant
     - some of the keyman routines poke into keyCzar internals
     - some of the ImportFOOForBar would be easier if we exported the KeyPurpose enum
@@ -41,7 +39,6 @@ Low Priority:
         lenPrefixPack
         lenPrefixUnpack
     - for pbereader, don't store password, only hmac? (and let it store the password?0
-    - pbkdf2 should take hash.Hash instead of password? (generalize?)
     - code reorg
         split keydata into aeskey, rsakey, ... ?
     - AES key hashing bug backwards compat fix (?)
