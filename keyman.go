@@ -13,7 +13,7 @@ type KeyManager interface {
 	// Revoke
 	PubKeys() KeyManager
 	// Write
-	ToJSONs(crypter Crypter) []string
+	ToJSONs(encrypter Encrypter) []string
 }
 
 type keyManager struct {
@@ -41,7 +41,7 @@ func (m *keyManager) Create(name string, purpose keyPurpose, ktype keyType) erro
 	return nil
 }
 
-func (m *keyManager) ToJSONs(crypter Crypter) []string {
+func (m *keyManager) ToJSONs(encrypter Encrypter) []string {
 
 	s := make([]string, 1)
 
@@ -50,7 +50,7 @@ func (m *keyManager) ToJSONs(crypter Crypter) []string {
 		return s
 	}
 
-	if crypter != nil {
+	if encrypter != nil {
 		m.kz.keymeta.Encrypted = true
 	}
 
@@ -64,8 +64,8 @@ func (m *keyManager) ToJSONs(crypter Crypter) []string {
 			if !ok {
 				break
 			}
-			if crypter != nil {
-				ks, _ := crypter.Encrypt(k.ToKeyJSON())
+			if encrypter != nil {
+				ks, _ := encrypter.Encrypt(k.ToKeyJSON())
 				s = append(s, ks)
 			} else {
 				b = k.ToKeyJSON()

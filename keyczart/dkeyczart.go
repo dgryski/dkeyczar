@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-func Save(location string, km dkeyczar.KeyManager, crypter dkeyczar.Crypter) {
+func Save(location string, km dkeyczar.KeyManager, encrypter dkeyczar.Encrypter) {
 
 	err := os.MkdirAll(location, 0700)
 
@@ -19,12 +19,12 @@ func Save(location string, km dkeyczar.KeyManager, crypter dkeyczar.Crypter) {
 		return
 	}
 
-	Update(location, km, crypter)
+	Update(location, km, encrypter)
 }
 
-func Update(location string, km dkeyczar.KeyManager, crypter dkeyczar.Crypter) {
+func Update(location string, km dkeyczar.KeyManager, encrypter dkeyczar.Encrypter) {
 
-	s := km.ToJSONs(crypter)
+	s := km.ToJSONs(encrypter)
 
 	ioutil.WriteFile(location+"/meta", []byte(s[0]), 0600)
 
