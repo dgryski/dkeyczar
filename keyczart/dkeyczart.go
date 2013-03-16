@@ -304,17 +304,18 @@ func loadReader(optLocation string, crypter dkeyczar.Crypter) dkeyczar.KeyReader
 }
 
 func loadCrypter(optCrypter string) dkeyczar.Crypter {
-	if optCrypter != "" {
-		fmt.Println("using crypter:", optCrypter)
-		r := dkeyczar.NewFileReader(optCrypter)
-		crypter, err := dkeyczar.NewCrypter(r)
-		if err != nil {
-			fmt.Println("failed to load crypter:", err)
-			return nil
-		}
-		return crypter
+	if optCrypter == "" {
+		return nil
 	}
-	return nil
+
+	fmt.Println("using crypter:", optCrypter)
+	r := dkeyczar.NewFileReader(optCrypter)
+	crypter, err := dkeyczar.NewCrypter(r)
+	if err != nil {
+		fmt.Println("failed to load crypter:", err)
+		return nil
+	}
+	return crypter
 }
 
 func loadLocationReader(km dkeyczar.KeyManager, optLocation string, crypter dkeyczar.Crypter) bool {
