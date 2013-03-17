@@ -5,11 +5,13 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/dsa"
+	"crypto/rand"
 	"crypto/rsa"
 	"crypto/sha1"
 	"crypto/x509"
 	"encoding/json"
 	"encoding/pem"
+	"io"
 	"io/ioutil"
 	"os"
 	"strconv"
@@ -94,27 +96,12 @@ func (r *encryptedReader) GetKey(version int) (string, error) {
 	return string(b), nil
 }
 
-type pbeReader struct {
-	reader   KeyReader // our wrapped reader
-	password []byte    // the password to use for the PBE
-}
-
 // NewPBEReader returns a KeyReader which decrypts keys encrypted with password-based encryption
 func NewPBEReader(reader KeyReader, password []byte) KeyReader {
-	r := new(pbeReader)
 
-	r.password = make([]byte, len(password))
-	copy(r.password, password)
-	r.reader = reader
+	pbe := NewPBECrypter(password)
 
-	// FIXME: double check that the reader is looking at an encrypted key?
-
-	return r
-}
-
-// return the meta information from the wrapper reader.  Meta information is not encrypted.
-func (r *pbeReader) GetMetadata() (string, error) {
-	return r.reader.GetMetadata()
+	return NewEncryptedReader(reader, pbe)
 }
 
 type pbeKeyJSON struct {
@@ -126,46 +113,54 @@ type pbeKeyJSON struct {
 	Salt           string `json:"salt"`
 }
 
-// decrypt and return an encrypted key
-func (r *pbeReader) GetKey(version int) (string, error) {
-	s, err := r.reader.GetKey(version)
+// NewPBECrypter returns a Crypter for encrypting and decrypting password-based keys
+func NewPBECrypter(password []byte) Crypter {
+	return &pbeCrypter{password: password}
+}
 
-	if err != nil {
-		return "", err
+func NewPBEEncrypter(password []byte) Encrypter {
+	return &pbeCrypter{password: password}
+}
 
-	}
+// for writing pbe-json keys
+type pbeCrypter struct {
+	KeyczarCompressionController
+	KeyczarEncodingController
+	password []byte // the password to use for the PBE
+}
 
+func (c *pbeCrypter) Decrypt(message string) ([]byte, error) {
 	var pbejson pbeKeyJSON
 
-	err = json.Unmarshal([]byte(s), &pbejson)
+	err := json.Unmarshal([]byte(message), &pbejson)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	if pbejson.Cipher != "AES128" || pbejson.HMAC != "HMAC_SHA1" {
-		return "", ErrUnsupportedType
+		return nil, ErrUnsupportedType
 	}
 
 	salt, err := decodeWeb64String(pbejson.Salt)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	iv_bytes, err := decodeWeb64String(pbejson.Iv)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	ciphertext, err := decodeWeb64String(pbejson.Key)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
-	keybytes := pbkdf2.Key(r.password, salt, pbejson.IterationCount, 128/8, sha1.New)
+	keybytes := pbkdf2.Key(c.password, salt, pbejson.IterationCount, 128/8, sha1.New)
 
 	aesCipher, err := aes.NewCipher(keybytes)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	crypter := cipher.NewCBCDecrypter(aesCipher, iv_bytes)
@@ -174,7 +169,51 @@ func (r *pbeReader) GetKey(version int) (string, error) {
 
 	crypter.CryptBlocks(plaintext, ciphertext)
 
-	return string(plaintext), nil
+	return plaintext, nil
+}
+
+func (c *pbeCrypter) Encrypt(plaintext []byte) (string, error) {
+
+	var pbejson pbeKeyJSON
+	pbejson.Cipher = "AES128"
+	pbejson.HMAC = "HMAC_SHA1"
+	pbejson.IterationCount = 4096
+
+	salt := make([]byte, 16)
+	io.ReadFull(rand.Reader, salt)
+	pbejson.Salt = encodeWeb64String(salt)
+
+	iv_bytes := make([]byte, 16)
+	io.ReadFull(rand.Reader, iv_bytes)
+	pbejson.Iv = encodeWeb64String(iv_bytes)
+
+	keybytes := pbkdf2.Key(c.password, salt, pbejson.IterationCount, 128/8, sha1.New)
+
+	aesCipher, err := aes.NewCipher(keybytes)
+	if err != nil {
+		return "", err
+	}
+
+	// make sure plaintext is multiple of 16 bytes, padded with spaces
+	needed := 16 - len(plaintext)%16
+	p := make([]byte, len(plaintext)+needed)
+	copy(p, plaintext)
+	for i := len(plaintext); i < len(p); i++ {
+		p[i] = ' '
+	}
+
+	ciphertext := make([]byte, len(p))
+	crypter := cipher.NewCBCEncrypter(aesCipher, iv_bytes)
+	crypter.CryptBlocks(ciphertext, p)
+
+	pbejson.Key = encodeWeb64String(ciphertext)
+
+	j, err := json.Marshal(pbejson)
+	if err != nil {
+		return "", err
+	}
+
+	return string(j), nil
 }
 
 // a fake reader for an RSA private key
