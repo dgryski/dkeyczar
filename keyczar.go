@@ -43,9 +43,10 @@ const (
 
 // Our main base type.  We only expose this through one of the interfaces.
 type keyCzar struct {
-	keymeta keyMeta         // metadata for this key
-	keys    map[int]keydata // maps versions to keys
-	primary int             // integer version of the primary key
+	keymeta keyMeta             // metadata for this key
+	keys    map[int]keydata     // maps versions to keys
+	idkeys  map[int64][]keydata // maps keyids to keys
+	primary int                 // integer version of the primary key
 }
 
 type KeyczarCompressionController interface {
@@ -300,20 +301,21 @@ func (kc *keySignedEncypter) Encrypt(plaintext []uint8) (string, error) {
 // All the heavy lifting is done by the key
 func (kc *keyCrypter) Decrypt(ciphertext string) ([]uint8, error) {
 
-	b, k, err := splitHeader(kc.encodingController, kc.kz, ciphertext, ErrShortCiphertext)
+	b, kl, err := splitHeader(kc.encodingController, kc.kz, ciphertext, ErrShortCiphertext)
 
 	if err != nil {
 		return nil, err
 	}
 
-	decryptKey := k.(decryptEncryptKey)
-	compressed_plaintext, err := decryptKey.Decrypt(b)
-
-	if err != nil {
-		return nil, err
+	for _, k := range kl {
+		decryptKey := k.(decryptEncryptKey)
+		compressed_plaintext, err := decryptKey.Decrypt(b)
+		if err == nil {
+			return kc.decompress(compressed_plaintext)
+		}
 	}
 
-	return kc.decompress(compressed_plaintext)
+	return nil, ErrInvalidSignature
 }
 
 // Decode and decrypt ciphertext and return plaintext as []byte
@@ -326,20 +328,21 @@ func (kc *keySignedDecrypter) Decrypt(signed_ciphertext string) ([]uint8, error)
 		return nil, err
 	}
 
-	b, k, err := splitHeaderBytes(kc.encodingController, kc.kz, ciphertext, ErrShortCiphertext)
+	b, kl, err := splitHeaderBytes(kc.encodingController, kc.kz, ciphertext, ErrShortCiphertext)
 
 	if err != nil {
 		return nil, err
 	}
-
-	decryptKey := k.(decryptEncryptKey)
-	compressed_plaintext, err := decryptKey.Decrypt(b)
-
-	if err != nil {
-		return nil, err
+	for _, k := range kl {
+		decryptKey := k.(decryptEncryptKey)
+		compressed_plaintext, err := decryptKey.Decrypt(b)
+		if err == nil {
+			return kc.decompress(compressed_plaintext)
+		}
 	}
 
-	return kc.decompress(compressed_plaintext)
+	return nil, ErrInvalidSignature
+
 }
 
 type currentTime func() int64
@@ -392,20 +395,28 @@ func (ks *keySigner) UnversionedVerify(message []byte, signature string) (bool, 
 // All the heavy lifting is done by the key
 func (ks *keySigner) Verify(msg []byte, signature string) (bool, error) {
 
-	b, k, err := splitHeader(ks.encodingController, ks.kz, signature, ErrShortSignature)
+	b, kl, err := splitHeader(ks.encodingController, ks.kz, signature, ErrShortSignature)
 
 	if err != nil {
 		return false, err
 	}
 
-	signedbytes := make([]byte, len(msg)+1)
-	copy(signedbytes, msg)
-	signedbytes[len(msg)] = kzVersion
+	for _, k := range kl {
 
-	sig := b[kzHeaderLength:]
+		signedbytes := make([]byte, len(msg)+1)
+		copy(signedbytes, msg)
+		signedbytes[len(msg)] = kzVersion
 
-	verifyKey := k.(verifyKey)
-	return verifyKey.Verify(signedbytes, sig)
+		sig := b[kzHeaderLength:]
+
+		verifyKey := k.(verifyKey)
+		valid, _ := verifyKey.Verify(signedbytes, sig)
+		if valid {
+			return true, nil
+		}
+	}
+
+	return false, nil
 }
 
 // Return a signature for 'msg'
@@ -465,7 +476,7 @@ func buildAttachedSignedBytes(msg []byte, nonce []byte) []byte {
 // All the heavy lifting is done by the key
 func (ks *keySigner) AttachedVerify(signedMsg string, nonce []byte) ([]byte, error) {
 
-	b, k, err := splitHeader(ks.encodingController, ks.kz, signedMsg, ErrShortSignature)
+	b, kl, err := splitHeader(ks.encodingController, ks.kz, signedMsg, ErrShortSignature)
 
 	if err != nil {
 		return nil, err
@@ -490,15 +501,16 @@ func (ks *keySigner) AttachedVerify(signedMsg string, nonce []byte) ([]byte, err
 	sig := b[offs:]
 
 	signedbytes := buildAttachedSignedBytes(msg, nonce)
+	for _, k := range kl {
+		verifyKey := k.(verifyKey)
+		valid, _ := verifyKey.Verify(signedbytes, sig)
 
-	verifyKey := k.(verifyKey)
-	isValid, err := verifyKey.Verify(signedbytes, sig)
-
-	if isValid == false || err != nil {
-		return nil, err
+		if valid {
+			return msg, nil
+		}
 	}
 
-	return msg, nil
+	return nil, ErrInvalidSignature
 }
 
 // Return a signature for 'msg' and the nonce
@@ -590,7 +602,11 @@ func (ks *keySigner) TimeoutSign(msg []byte, expiration int64) (string, error) {
 // validate a timeout signature.  must be both cryptographically valid and not yet expired.
 func (ks *keySigner) TimeoutVerify(message []byte, signature string) (bool, error) {
 
-	sig, k, err := splitHeader(ks.encodingController, ks.kz, signature, ErrShortSignature)
+	sig, kl, err := splitHeader(ks.encodingController, ks.kz, signature, ErrShortSignature)
+
+	if err != nil {
+		return false, err
+	}
 
 	offs := kzHeaderLength
 
@@ -604,17 +620,17 @@ func (ks *keySigner) TimeoutVerify(message []byte, signature string) (bool, erro
 	sig = sig[offs:]
 
 	signedbytes := buildTimeoutSignedBytes(message, expiration)
-
-	verifyKey := k.(verifyKey)
-	isValid, err := verifyKey.Verify(signedbytes, sig)
-
 	currentMillis := ks.currentTime()
 
-	if isValid == false || err != nil || currentMillis > expiration {
-		return false, err
+	for _, k := range kl {
+		verifyKey := k.(verifyKey)
+		valid, _ := verifyKey.Verify(signedbytes, sig)
+		if valid {
+			return currentMillis < expiration, nil
+		}
 	}
 
-	return true, nil
+	return false, nil
 }
 
 // NewCrypter returns an object capable of encrypting and decrypting using the key provded by the reader
@@ -873,42 +889,50 @@ func (kz *keyCzar) isAcceptablePurpose(purpose keyPurpose) bool {
 }
 
 type lookupKeyIDer interface {
-	getKeyForID(id []byte) (keydata, error)
+	getKeyForID(id []byte) ([]keydata, error)
 }
 
-func (kz *keyCzar) getKeyForID(id []byte) (keydata, error) {
+func (kz *keyCzar) getKeyForID(id []byte) ([]keydata, error) {
 
-	for _, k := range kz.keys {
-		if bytes.Compare(k.KeyID(), id[:]) == 0 {
-			return k, nil
-		}
+	kl := kz.idkeys[bytesToInt(id)]
+
+	if kl != nil || len(kl) != 0 {
+		return kl, nil
 	}
 
-	return nil, ErrKeyNotFound
+	return kl, ErrKeyNotFound
 }
 
-func newKeysFromReader(r KeyReader, kz *keyCzar, keyFromJSON func([]byte) (keydata, error)) (map[int]keydata, error) {
+func newKeysFromReader(r KeyReader, kz *keyCzar, keyFromJSON func([]byte) (keydata, error)) (map[int]keydata, map[int64][]keydata, error) {
 
 	keys := make(map[int]keydata)
-
+	idkeys := make(map[int64][]keydata)
 	for _, kv := range kz.keymeta.Versions {
 		if kv.Status == S_PRIMARY {
 			kz.primary = kv.VersionNumber
 		}
 		s, err := r.GetKey(kv.VersionNumber)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 
 		k, err := keyFromJSON([]byte(s))
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 
 		keys[kv.VersionNumber] = k
+		//initialize fast lookup for keys
+		hash := bytesToInt(k.KeyID())
+		kl := idkeys[hash]
+		if kl == nil {
+			kl = make([]keydata, 0)
+		}
+		kl = append(kl, k)
+		idkeys[hash] = kl
 	}
 
-	return keys, nil
+	return keys, idkeys, nil
 }
 
 // construct a keyczar object from a reader for a given purpose
@@ -947,7 +971,7 @@ func newKeyCzar(r KeyReader) (*keyCzar, error) {
 		return nil, ErrUnsupportedType
 	}
 
-	kz.keys, err = newKeysFromReader(r, kz, f)
+	kz.keys, kz.idkeys, err = newKeysFromReader(r, kz, f)
 
 	return kz, err
 }
@@ -969,7 +993,7 @@ func makeHeader(key keydata) []byte {
 	return b
 }
 
-func splitHeaderBytes(ec encodingController, lookup lookupKeyIDer, cryptotext []byte, errTooShort error) ([]byte, keydata, error) {
+func splitHeaderBytes(ec encodingController, lookup lookupKeyIDer, cryptotext []byte, errTooShort error) ([]byte, []keydata, error) {
 
 	b := cryptotext
 
@@ -989,7 +1013,7 @@ func splitHeaderBytes(ec encodingController, lookup lookupKeyIDer, cryptotext []
 	return b, k, nil
 }
 
-func splitHeader(ec encodingController, lookup lookupKeyIDer, cryptotext string, errTooShort error) ([]byte, keydata, error) {
+func splitHeader(ec encodingController, lookup lookupKeyIDer, cryptotext string, errTooShort error) ([]byte, []keydata, error) {
 
 	b, err := ec.decode(cryptotext)
 
