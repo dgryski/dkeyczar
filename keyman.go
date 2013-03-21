@@ -32,7 +32,7 @@ func (m *keyManager) Load(reader KeyReader) error {
 
 func (m *keyManager) Create(name string, purpose keyPurpose, ktype keyType) error {
 
-	m.kz = &keyCzar{keyMeta{name, ktype, purpose, false, nil}, nil, -1}
+	m.kz = &keyCzar{keyMeta{name, ktype, purpose, false, nil}, nil, nil, -1}
 
 	// check purpose vs ktype
 	// complain if location/meta exists
@@ -171,7 +171,7 @@ func (m *keyManager) PubKeys() KeyManager {
 		return nil // unknown types
 	}
 
-	km.kz = &keyCzar{keyMeta{m.kz.keymeta.Name, kt, kp, false, nil}, nil, -1}
+	km.kz = &keyCzar{keyMeta{m.kz.keymeta.Name, kt, kp, false, nil}, nil, nil, -1}
 
 	km.kz.keymeta.Versions = make([]keyVersion, len(m.kz.keymeta.Versions))
 
