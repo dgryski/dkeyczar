@@ -43,10 +43,10 @@ const (
 
 // Our main base type.  We only expose this through one of the interfaces.
 type keyCzar struct {
-	keymeta keyMeta             // metadata for this key
-	keys    map[int]keydata     // maps versions to keys
-	idkeys  map[int64][]keydata // maps keyids to keys
-	primary int                 // integer version of the primary key
+	keymeta keyMeta              // metadata for this key
+	keys    map[int]keydata      // maps versions to keys
+	idkeys  map[uint32][]keydata // maps keyids to keys
+	primary int                  // integer version of the primary key
 }
 
 type KeyczarCompressionController interface {
@@ -401,14 +401,12 @@ func (ks *keySigner) Verify(msg []byte, signature string) (bool, error) {
 		return false, err
 	}
 
+	signedbytes := make([]byte, len(msg)+1)
+	copy(signedbytes, msg)
+	signedbytes[len(msg)] = kzVersion
+
 	for _, k := range kl {
-
-		signedbytes := make([]byte, len(msg)+1)
-		copy(signedbytes, msg)
-		signedbytes[len(msg)] = kzVersion
-
 		sig := b[kzHeaderLength:]
-
 		verifyKey := k.(verifyKey)
 		valid, _ := verifyKey.Verify(signedbytes, sig)
 		if valid {
@@ -894,19 +892,19 @@ type lookupKeyIDer interface {
 
 func (kz *keyCzar) getKeyForID(id []byte) ([]keydata, error) {
 
-	kl := kz.idkeys[bytesToInt(id)]
+	kl, ok := kz.idkeys[binary.BigEndian.Uint32(id)]
 
-	if kl != nil || len(kl) != 0 {
-		return kl, nil
+	if !ok || len(kl) == 0 {
+		return kl, ErrKeyNotFound
 	}
 
-	return kl, ErrKeyNotFound
+	return kl, nil
 }
 
-func newKeysFromReader(r KeyReader, kz *keyCzar, keyFromJSON func([]byte) (keydata, error)) (map[int]keydata, map[int64][]keydata, error) {
+func newKeysFromReader(r KeyReader, kz *keyCzar, keyFromJSON func([]byte) (keydata, error)) (map[int]keydata, map[uint32][]keydata, error) {
 
 	keys := make(map[int]keydata)
-	idkeys := make(map[int64][]keydata)
+	idkeys := make(map[uint32][]keydata)
 	for _, kv := range kz.keymeta.Versions {
 		if kv.Status == S_PRIMARY {
 			kz.primary = kv.VersionNumber
@@ -923,11 +921,8 @@ func newKeysFromReader(r KeyReader, kz *keyCzar, keyFromJSON func([]byte) (keyda
 
 		keys[kv.VersionNumber] = k
 		//initialize fast lookup for keys
-		hash := bytesToInt(k.KeyID())
+		hash := binary.BigEndian.Uint32(k.KeyID())
 		kl := idkeys[hash]
-		if kl == nil {
-			kl = make([]keydata, 0)
-		}
 		kl = append(kl, k)
 		idkeys[hash] = kl
 	}

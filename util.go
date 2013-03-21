@@ -16,12 +16,6 @@ func bigIntBytes(value *big.Int) []byte {
 	return absbytes
 }
 
-func bytesToInt(value []byte) int64 {
-	buf := bytes.NewBuffer(value)
-	out, _ := binary.ReadVarint(buf)
-	return out
-}
-
 // A Web64 string is a base64 encoded string with a web-safe character set and no trailing equal signs.
 func decodeWeb64String(key string) ([]byte, error) {
 
