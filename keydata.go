@@ -292,8 +292,8 @@ func (ak *aesKey) Encrypt(data []byte) ([]byte, error) {
 
 	data = pkcs5pad(data, aes.BlockSize)
 
-	iv_bytes := make([]byte, aes.BlockSize)
-	io.ReadFull(rand.Reader, iv_bytes)
+	iv := make([]byte, aes.BlockSize)
+	io.ReadFull(rand.Reader, iv)
 
 	aesCipher, err := aes.NewCipher(ak.key)
 	if err != nil {
@@ -301,7 +301,7 @@ func (ak *aesKey) Encrypt(data []byte) ([]byte, error) {
 	}
 
 	// aes only ever created with CBC as a mode
-	crypter := cipher.NewCBCEncrypter(aesCipher, iv_bytes)
+	crypter := cipher.NewCBCEncrypter(aesCipher, iv)
 
 	cipherBytes := make([]byte, len(data))
 
@@ -312,7 +312,7 @@ func (ak *aesKey) Encrypt(data []byte) ([]byte, error) {
 	msg := make([]byte, 0, kzHeaderLength+aes.BlockSize+len(cipherBytes)+hmacSigLength)
 
 	msg = append(msg, h...)
-	msg = append(msg, iv_bytes...)
+	msg = append(msg, iv...)
 	msg = append(msg, cipherBytes...)
 
 	// we sign the header, iv, and ciphertext
@@ -358,14 +358,14 @@ func (ak *aesKey) Decrypt(data []byte) ([]byte, error) {
 		return nil, err
 	}
 
-	iv_bytes := data[kzHeaderLength : kzHeaderLength+aes.BlockSize]
+	iv := data[kzHeaderLength : kzHeaderLength+aes.BlockSize]
 
 	aesCipher, err := aes.NewCipher(ak.key)
 	if err != nil {
 		return nil, err
 	}
 
-	crypter := cipher.NewCBCDecrypter(aesCipher, iv_bytes)
+	crypter := cipher.NewCBCDecrypter(aesCipher, iv)
 
 	plainBytes := make([]byte, len(data)-kzHeaderLength-hmacSigLength-aes.BlockSize)
 

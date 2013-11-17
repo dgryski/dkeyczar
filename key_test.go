@@ -408,7 +408,7 @@ func TestEncryptDecryptCompressed(t *testing.T) {
 		t.Fatal("failed to encrypt: " + err.Error())
 	}
 
-	uncompressed_len := len(c)
+	uncompressedLen := len(c)
 	p, err := kz.Decrypt(c)
 	if err != nil {
 		t.Fatal("failed to decrypt: " + err.Error())
@@ -428,7 +428,7 @@ func TestEncryptDecryptCompressed(t *testing.T) {
 		if err != nil {
 			t.Fatal("failed to encrypt with compression " + compression.ctype)
 		}
-		compressed_len := len(c)
+		compressedLen := len(c)
 
 		p, err = kz.Decrypt(c)
 		if err != nil {
@@ -439,7 +439,7 @@ func TestEncryptDecryptCompressed(t *testing.T) {
 			t.Error(compression.ctype + " raw decrypt(encrypt(p)) != p")
 		}
 
-		if compressed_len >= uncompressed_len {
+		if compressedLen >= uncompressedLen {
 			t.Error(compression.ctype + " failed to compress")
 		}
 

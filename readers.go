@@ -1,7 +1,6 @@
 package dkeyczar
 
 import (
-	"code.google.com/p/go.crypto/pbkdf2"
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/dsa"
@@ -15,6 +14,7 @@ import (
 	"io/ioutil"
 	"os"
 	"strconv"
+	"code.google.com/p/go.crypto/pbkdf2"
 )
 
 // KeyReader provides an interface for returning information about a particular key.
@@ -146,7 +146,7 @@ func (c *pbeCrypter) Decrypt(message string) ([]byte, error) {
 		return nil, err
 	}
 
-	iv_bytes, err := decodeWeb64String(pbejson.Iv)
+	iv, err := decodeWeb64String(pbejson.Iv)
 	if err != nil {
 		return nil, err
 	}
@@ -163,7 +163,7 @@ func (c *pbeCrypter) Decrypt(message string) ([]byte, error) {
 		return nil, err
 	}
 
-	crypter := cipher.NewCBCDecrypter(aesCipher, iv_bytes)
+	crypter := cipher.NewCBCDecrypter(aesCipher, iv)
 
 	plaintext := make([]byte, len(ciphertext))
 
@@ -183,9 +183,9 @@ func (c *pbeCrypter) Encrypt(plaintext []byte) (string, error) {
 	io.ReadFull(rand.Reader, salt)
 	pbejson.Salt = encodeWeb64String(salt)
 
-	iv_bytes := make([]byte, 16)
-	io.ReadFull(rand.Reader, iv_bytes)
-	pbejson.Iv = encodeWeb64String(iv_bytes)
+	iv := make([]byte, 16)
+	io.ReadFull(rand.Reader, iv)
+	pbejson.Iv = encodeWeb64String(iv)
 
 	keybytes := pbkdf2.Key(c.password, salt, pbejson.IterationCount, 128/8, sha1.New)
 
@@ -203,7 +203,7 @@ func (c *pbeCrypter) Encrypt(plaintext []byte) (string, error) {
 	}
 
 	ciphertext := make([]byte, len(p))
-	crypter := cipher.NewCBCEncrypter(aesCipher, iv_bytes)
+	crypter := cipher.NewCBCEncrypter(aesCipher, iv)
 	crypter.CryptBlocks(ciphertext, p)
 
 	pbejson.Key = encodeWeb64String(ciphertext)
@@ -347,7 +347,7 @@ func getRSAPublicKeyFromPEM(location string) (*rsa.PublicKey, error) {
 	return rsapub, nil
 }
 
-// ImportRSAPublicKeyFromPEM returns a KeyReader for the RSA Public Key contained in the PEM file specified in the location.
+// ImportRSAPublicKeyFromPEMForEncryption returns a KeyReader for the RSA Public Key contained in the PEM file specified in the location.
 // The resulting key can be used for encryption only.
 func ImportRSAPublicKeyFromPEMForEncryption(location string) (KeyReader, error) {
 

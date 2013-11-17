@@ -98,7 +98,7 @@ func testCollisionVerifyAttached(t *testing.T, secret string) {
 
 		for _, out := range []string{"2"} {
 			ext := ".attached"
-			var nonce []byte = nil
+			var nonce []byte
 			if secret != "" {
 				ext = "." + secret + ext
 				nonce = []byte(secret)

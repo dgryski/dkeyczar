@@ -1,7 +1,7 @@
 /*
-DKeyczar is a simplified wrapper around Go's native cryptography libraries.  It
-is modeled after and compatible with Google's Keyczar library
-(http://keyczar.org)
+Package dkeyczar is a simplified wrapper around Go's native cryptography libraries.
+
+It is modeled after and compatible with Google's Keyczar library (http://keyczar.org)
 
 Sample usage is:
 	reader := NewFileReader("/path/to/keys")
@@ -63,7 +63,7 @@ type KeyczarEncodingController interface {
 	Encoding() KeyczarEncoding
 }
 
-// A type that can used for encrypting
+// An Encrypter can be used for encrypting
 type Encrypter interface {
 	KeyczarEncodingController
 	KeyczarCompressionController
@@ -71,14 +71,14 @@ type Encrypter interface {
 	Encrypt(plaintext []uint8) (string, error)
 }
 
-// A type that can used for encrypting or decrypting
+// A Crypter can used for encrypting or decrypting
 type Crypter interface {
 	Encrypter
 	// Decrypt returns the plaintext bytes of an encrypted string
 	Decrypt(ciphertext string) ([]uint8, error)
 }
 
-//A type that can be used for encrypting and signing
+// A SignedEncrypter can be used for encrypting and signing
 type SignedEncrypter interface {
 	KeyczarEncodingController
 	KeyczarCompressionController
@@ -86,7 +86,7 @@ type SignedEncrypter interface {
 	Encrypt(plaintext []uint8) (string, error)
 }
 
-//A type that can be used for decrypting and verifying
+// A SignedDecrypter can be used for decrypting and verifying
 type SignedDecrypter interface {
 	KeyczarEncodingController
 	KeyczarCompressionController
@@ -94,7 +94,7 @@ type SignedDecrypter interface {
 	Decrypt(ciphertext string) ([]uint8, error)
 }
 
-// A type that can be used for signing and verification
+// A Signer can be used for signing and verification
 type Signer interface {
 	Verifier
 	// Sign returns a cryptographic signature for the message
@@ -109,7 +109,7 @@ type Signer interface {
 	UnversionedSign(message []byte) (string, error)
 }
 
-// A type that can be used for verification
+// A Verifier can be used for verification
 type Verifier interface {
 	KeyczarEncodingController
 	// Verify checks the cryptographic signature for a message
@@ -262,9 +262,9 @@ func (kc *keyCrypter) Encrypt(plaintext []uint8) (string, error) {
 
 	encryptKey := key.(encryptKey)
 
-	compressed_plaintext := kc.compress(plaintext)
+	compressedPlaintext := kc.compress(plaintext)
 
-	ciphertext, err := encryptKey.Encrypt(compressed_plaintext)
+	ciphertext, err := encryptKey.Encrypt(compressedPlaintext)
 	if err != nil {
 		return "", err
 	}
@@ -281,9 +281,9 @@ func (kc *keySignedEncypter) Encrypt(plaintext []uint8) (string, error) {
 
 	encryptKey := key.(encryptKey)
 
-	compressed_plaintext := kc.compress(plaintext)
+	compressedPlaintext := kc.compress(plaintext)
 
-	ciphertext, err := encryptKey.Encrypt(compressed_plaintext)
+	ciphertext, err := encryptKey.Encrypt(compressedPlaintext)
 	if err != nil {
 		return "", err
 	}
@@ -309,9 +309,9 @@ func (kc *keyCrypter) Decrypt(ciphertext string) ([]uint8, error) {
 
 	for _, k := range kl {
 		decryptKey := k.(decryptEncryptKey)
-		compressed_plaintext, err := decryptKey.Decrypt(b)
+		compressedPlaintext, err := decryptKey.Decrypt(b)
 		if err == nil {
-			return kc.decompress(compressed_plaintext)
+			return kc.decompress(compressedPlaintext)
 		}
 	}
 
@@ -320,9 +320,9 @@ func (kc *keyCrypter) Decrypt(ciphertext string) ([]uint8, error) {
 
 // Decode and decrypt ciphertext and return plaintext as []byte
 // All the heavy lifting is done by the key
-func (kc *keySignedDecrypter) Decrypt(signed_ciphertext string) ([]uint8, error) {
+func (kc *keySignedDecrypter) Decrypt(signedCiphertext string) ([]uint8, error) {
 
-	ciphertext, err := kc.verifier.AttachedVerify(signed_ciphertext, kc.nonce)
+	ciphertext, err := kc.verifier.AttachedVerify(signedCiphertext, kc.nonce)
 
 	if err != nil {
 		return nil, err
@@ -335,9 +335,9 @@ func (kc *keySignedDecrypter) Decrypt(signed_ciphertext string) ([]uint8, error)
 	}
 	for _, k := range kl {
 		decryptKey := k.(decryptEncryptKey)
-		compressed_plaintext, err := decryptKey.Decrypt(b)
+		compressedPlaintext, err := decryptKey.Decrypt(b)
 		if err == nil {
-			return kc.decompress(compressed_plaintext)
+			return kc.decompress(compressedPlaintext)
 		}
 	}
 
@@ -699,7 +699,7 @@ func NewSignedDecrypter(r KeyReader, verifier Verifier, nonce []byte) (SignedDec
 	return k, err
 }
 
-// NewEncypter returns an object capable of encrypting using the key provded by the reader
+// NewEncrypter returns an object capable of encrypting using the key provded by the reader
 func NewEncrypter(r KeyReader) (Encrypter, error) {
 	k := new(keyCrypter)
 	var err error
@@ -741,6 +741,7 @@ func NewVerifier(r KeyReader) (Verifier, error) {
 	return k, err
 }
 
+// NewVerifierTimeProvider returns an object verifying signatures valid for a certain period
 func NewVerifierTimeProvider(r KeyReader, t currentTime) (Verifier, error) {
 	k := new(keySigner)
 	k.currentTime = t

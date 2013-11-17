@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 )
 
+// KeyManager handles all aspects of dealing with keyczar key files
 type KeyManager interface {
 	Create(name string, purpose keyPurpose, ktype keyType) error
 	Load(reader KeyReader) error
@@ -20,6 +21,7 @@ type keyManager struct {
 	kz *keyCzar
 }
 
+// NewKeyManager returns a new KeyManager
 func NewKeyManager() KeyManager {
 	return new(keyManager)
 }
