@@ -2,9 +2,9 @@ package main
 
 import (
 	"fmt"
-	"github.com/dgryski/dkeyczar"
 	"os"
 	"strconv"
+	"github.com/dgryski/dkeyczar"
 )
 
 var TESTDATA = ""
@@ -202,19 +202,19 @@ func writeFooter() {
 
 func main() {
 
-	WriteHeader()
+	writeHeader()
 
 	for _, k := range []string{"aes", "rsa"} {
-		WriteDecryptTest(k)
+		writeDecryptTest(k)
 	}
 
 	for _, k := range []string{"hmac", "rsa-sign", "dsa"} {
-		WriteVerifyTest(k)
+		writeVerifyTest(k)
 	}
 
 	for _, k := range []string{"aes", "rsa", "hmac", "rsa-sign", "dsa"} {
-		WriteKeyczartTest(k)
+		writeKeyczartTest(k)
 	}
 
-	WriteFooter()
+	writeFooter()
 }
