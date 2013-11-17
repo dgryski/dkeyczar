@@ -182,17 +182,17 @@ var keyPurposeLookup = map[string]keyPurpose{
 	"TEST":                P_TEST,
 }
 
-func (have keyPurpose) isAcceptablePurpose(want keyPurpose) bool {
+func (k keyPurpose) isAcceptablePurpose(want keyPurpose) bool {
 
 	switch want {
 	case P_ENCRYPT:
-		return have == P_DECRYPT_AND_ENCRYPT || have == P_ENCRYPT
+		return k == P_DECRYPT_AND_ENCRYPT || k == P_ENCRYPT
 	case P_DECRYPT_AND_ENCRYPT:
-		return have == P_DECRYPT_AND_ENCRYPT
+		return k == P_DECRYPT_AND_ENCRYPT
 	case P_VERIFY:
-		return have == P_SIGN_AND_VERIFY || have == P_VERIFY
+		return k == P_SIGN_AND_VERIFY || k == P_VERIFY
 	case P_SIGN_AND_VERIFY:
-		return have == P_SIGN_AND_VERIFY
+		return k == P_SIGN_AND_VERIFY
 	}
 
 	panic("unknown purpose: " + string(want))

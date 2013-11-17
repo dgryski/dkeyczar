@@ -14,7 +14,7 @@ func init() {
 	TESTDATA = os.Getenv("KEYCZAR_TESTDATA")
 }
 
-func WriteHeader() {
+func writeHeader() {
 	fmt.Println(`
 from keyczar import keyczar
 from keyczar import readers
@@ -83,7 +83,7 @@ def check_decrypt(reader, what, plaintext, ciphertext):
 `)
 }
 
-func WriteDecryptTest(dir string) {
+func writeDecryptTest(dir string) {
 
 	fulldir := TESTDATA + dir
 
@@ -101,7 +101,7 @@ check_decrypt(readers.FileReader("` + fulldir + `"),
 
 }
 
-func WriteVerifyTest(dir string) {
+func writeVerifyTest(dir string) {
 
 	fulldir := TESTDATA + dir
 
@@ -149,7 +149,7 @@ check_unversioned_verify(readers.FileReader("` + fulldir + `"),
 
 }
 
-func WriteKeyczartTest(dir string) {
+func writeKeyczartTest(dir string) {
 
 	fulldir := TESTDATA + dir
 
@@ -196,7 +196,7 @@ r = JSONReader(meta, keys)`)
 
 }
 
-func WriteFooter() {
+func writeFooter() {
 	// empty
 }
 

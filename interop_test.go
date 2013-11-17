@@ -384,35 +384,35 @@ func TestHMACInteropVerifyAttached(t *testing.T) {
 	testInteropVerifyAttached(t, "hmac", "")
 }
 
-func TestHmacInteropVerifyTimeoutSucess(t *testing.T) {
+func TestHMACInteropVerifyTimeoutSucess(t *testing.T) {
 	testInteropVerifyTimeout(t, "hmac", true)
 }
 
-func TestHmacInteropVerifyTimeoutExpired(t *testing.T) {
+func TestHMACInteropVerifyTimeoutExpired(t *testing.T) {
 	testInteropVerifyTimeout(t, "hmac", false)
 }
 
-func TestDsaInteropVerify(t *testing.T) {
+func TestDSAInteropVerify(t *testing.T) {
 	testInteropVerify(t, "dsa")
 }
 
-func TestDsaInteropVerifyUnversioned(t *testing.T) {
+func TestDSAInteropVerifyUnversioned(t *testing.T) {
 	testInteropVerifyUnversioned(t, "dsa")
 }
 
-func TestDsaInteropVerifyAttached(t *testing.T) {
+func TestDSAInteropVerifyAttached(t *testing.T) {
 	testInteropVerifyAttached(t, "dsa", "")
 }
 
-func TestDsaInteropVerifyAttachedSecret(t *testing.T) {
+func TestDSAInteropVerifyAttachedSecret(t *testing.T) {
 	testInteropVerifyAttached(t, "dsa", "secret")
 }
 
-func TestDsaInteropVerifyTimeoutSucess(t *testing.T) {
+func TestDSAInteropVerifyTimeoutSucess(t *testing.T) {
 	testInteropVerifyTimeout(t, "dsa", true)
 }
 
-func TestDsaInteropVerifyTimeoutExpired(t *testing.T) {
+func TestDSAInteropVerifyTimeoutExpired(t *testing.T) {
 	testInteropVerifyTimeout(t, "dsa", false)
 }
 
@@ -424,22 +424,22 @@ func TestRSAInteropVerifySizes(t *testing.T) {
 	testInteropVerifySizes(t, "rsa-sign", []string{"1024", "2048", "4096"})
 }
 
-func TestRsaInteropVerifyUnversioned(t *testing.T) {
+func TestRSAInteropVerifyUnversioned(t *testing.T) {
 	testInteropVerifyUnversioned(t, "rsa-sign")
 }
 
-func TestRsaInteropVerifyAttached(t *testing.T) {
+func TestRSAInteropVerifyAttached(t *testing.T) {
 	testInteropVerifyAttached(t, "rsa-sign", "")
 }
 
-func TestRsaInteropVerifyAttachedSecret(t *testing.T) {
+func TestRSAInteropVerifyAttachedSecret(t *testing.T) {
 	testInteropVerifyAttached(t, "rsa-sign", "secret")
 }
 
-func TestRsaInteropVerifyTimeoutSucess(t *testing.T) {
+func TestRSAInteropVerifyTimeoutSucess(t *testing.T) {
 	testInteropVerifyTimeout(t, "rsa-sign", true)
 }
 
-func TestRsaInteropVerifyTimeoutExpired(t *testing.T) {
+func TestRSAInteropVerifyTimeoutExpired(t *testing.T) {
 	testInteropVerifyTimeout(t, "rsa-sign", false)
 }

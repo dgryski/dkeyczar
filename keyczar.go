@@ -838,12 +838,12 @@ func NewSignedSessionEncrypter(encrypter Encrypter, signer Signer) (SignedEncryp
 // NewSignedSessionDecrypter decrypts the sessionKeys string and returns a new Crypter using these keys.
 func NewSignedSessionDecrypter(crypter Crypter, verifier Verifier, sessionKeys string) (SignedDecrypter, error) {
 
-	smJson, err := crypter.Decrypt(sessionKeys)
+	smJSON, err := crypter.Decrypt(sessionKeys)
 	if err != nil {
 		return nil, err
 	}
 
-	sm, err := newSessionMaterialFromJSON(smJson)
+	sm, err := newSessionMaterialFromJSON(smJSON)
 	if err != nil {
 		return nil, err
 	}
