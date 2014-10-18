@@ -34,7 +34,11 @@ func (m *keyManager) Load(reader KeyReader) error {
 
 func (m *keyManager) Create(name string, purpose keyPurpose, ktype keyType) error {
 
-	m.kz = &keyCzar{keyMeta{name, ktype, purpose, false, nil}, nil, nil, -1}
+	m.kz = &keyCzar{
+		keymeta: keyMeta{name, ktype, purpose, false, nil},
+		keys:    make(map[int]keydata),
+		idkeys:  make(map[uint32][]keydata),
+		primary: -1}
 
 	// check purpose vs ktype
 	// complain if location/meta exists
