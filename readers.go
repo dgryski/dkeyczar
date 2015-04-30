@@ -14,7 +14,8 @@ import (
 	"io/ioutil"
 	"os"
 	"strconv"
-	"code.google.com/p/go.crypto/pbkdf2"
+
+	"golang.org/x/crypto/pbkdf2"
 )
 
 // KeyReader provides an interface for returning information about a particular key.
