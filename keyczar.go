@@ -16,29 +16,11 @@ Encrypted data and signatures are encoded with web-safe base64.
 package dkeyczar
 
 import (
-	"bytes"
-	"compress/gzip"
-	"compress/zlib"
 	"crypto/rand"
 	"encoding/binary"
 	"encoding/json"
 	"io"
 	"time"
-)
-
-type KeyczarEncoding int
-
-const (
-	BASE64W     KeyczarEncoding = iota // Encode the output with web-safe base64 [default]
-	NO_ENCODING                        // Do not encode the output
-)
-
-type KeyczarCompression int
-
-const (
-	NO_COMPRESSION KeyczarCompression = iota // Do not compress the plaintext before encrypting [default]
-	GZIP                                     // Use gzip compression
-	ZLIB                                     // Use zlib compression
 )
 
 // Our main base type.  We only expose this through one of the interfaces.
@@ -49,26 +31,13 @@ type keyCzar struct {
 	primary int                  // integer version of the primary key
 }
 
-type KeyczarCompressionController interface {
-	// Set the current compression level
-	SetCompression(compression KeyczarCompression)
-	// Return the current compression level
-	Compression() KeyczarCompression
-}
-
-type KeyczarEncodingController interface {
-	// Set the current output encoding
-	SetEncoding(encoding KeyczarEncoding)
-	// Return the current output encoding
-	Encoding() KeyczarEncoding
-}
-
 // An Encrypter can be used for encrypting
 type Encrypter interface {
 	KeyczarEncodingController
 	KeyczarCompressionController
 	// Encrypt returns an encrypted string representing the plaintext bytes passed.
 	Encrypt(plaintext []uint8) (string, error)
+	EncryptWriter(io.Writer) (io.WriteCloser, error)
 }
 
 // A Crypter can used for encrypting or decrypting
@@ -76,6 +45,7 @@ type Crypter interface {
 	Encrypter
 	// Decrypt returns the plaintext bytes of an encrypted string
 	Decrypt(ciphertext string) ([]uint8, error)
+	DecryptReader(io.Reader) (io.ReadCloser, error)
 }
 
 // A SignedEncrypter can be used for encrypting and signing
@@ -123,115 +93,6 @@ type Verifier interface {
 	UnversionedVerify(message []byte, signature string) (bool, error)
 }
 
-type encodingController struct {
-	encoding KeyczarEncoding
-}
-
-// Encoding returns the current output encoding for the keyczar object
-func (ec *encodingController) Encoding() KeyczarEncoding {
-	return ec.encoding
-}
-
-// SetEncoding sets the current output encoding for the keyczar object
-func (ec *encodingController) SetEncoding(encoding KeyczarEncoding) {
-	ec.encoding = encoding
-}
-
-// return 'data' encoded based on the value of the 'encoding' field
-func (ec *encodingController) encode(data []byte) string {
-
-	switch ec.encoding {
-	case NO_ENCODING:
-		return string(data)
-	case BASE64W:
-		return encodeWeb64String(data)
-	}
-
-	panic("not reached")
-}
-
-// return 'data' decoded based on the value of the 'encoding' field
-func (ec *encodingController) decode(data string) ([]byte, error) {
-
-	switch ec.encoding {
-	case NO_ENCODING:
-		return []byte(data), nil
-	case BASE64W:
-		return decodeWeb64String(data)
-	}
-
-	panic("not reached")
-}
-
-type compressionController struct {
-	compression KeyczarCompression
-}
-
-// Compression returns the current compression type for keyczar object
-func (cc *compressionController) Compression() KeyczarCompression {
-	return cc.compression
-}
-
-// SetCompression sets the current compression type for the keyczar object
-func (cc *compressionController) SetCompression(compression KeyczarCompression) {
-	cc.compression = compression
-}
-
-// return 'data' compressed based on the value of the 'compression' field
-func (cc *compressionController) compress(data []byte) []byte {
-
-	switch cc.compression {
-	case NO_COMPRESSION:
-		return data
-	case GZIP:
-		var b bytes.Buffer
-		w := gzip.NewWriter(&b)
-		w.Write(data)
-		w.Close()
-		return b.Bytes()
-	case ZLIB:
-		var b bytes.Buffer
-		w := zlib.NewWriter(&b)
-		w.Write(data)
-		w.Close()
-		return b.Bytes()
-	}
-
-	panic("not reached")
-}
-
-// return 'data' decompressed based on the value of the 'compression' field
-func (cc *compressionController) decompress(data []byte) ([]byte, error) {
-
-	switch cc.compression {
-	case NO_COMPRESSION:
-		return data, nil
-
-	case GZIP:
-		b := bytes.NewBuffer(data)
-		r, err := gzip.NewReader(b)
-		if err != nil {
-			return nil, err
-		}
-		var br bytes.Buffer
-		io.Copy(&br, r)
-		r.Close()
-		return (&br).Bytes(), nil
-	case ZLIB:
-		b := bytes.NewBuffer(data)
-		r, err := zlib.NewReader(b)
-		if err != nil {
-			return nil, err
-		}
-		var br bytes.Buffer
-		io.Copy(&br, r)
-		r.Close()
-		return (&br).Bytes(), nil
-	}
-
-	panic("not reached")
-}
-
 type keyCrypter struct {
 	kz *keyCzar
 	encodingController
@@ -257,56 +118,51 @@ type keySignedDecrypter struct {
 // Encrypt plaintext and return encoded encrypted text as a string
 // All the heavy lifting is done by the key
 func (kc *keyCrypter) Encrypt(plaintext []uint8) (string, error) {
-
 	key := kc.kz.getPrimaryKey()
-
 	encryptKey := key.(encryptKey)
-
 	compressedPlaintext := kc.compress(plaintext)
-
 	ciphertext, err := encryptKey.Encrypt(compressedPlaintext)
 	if err != nil {
 		return "", err
 	}
-
 	s := kc.encode(ciphertext)
-
 	return s, nil
+}
 
+func (kc *keyCrypter) EncryptWriter(sink io.Writer) (io.WriteCloser, error) {
+	key := kc.kz.getPrimaryKey()
+	encryptKey := key.(encryptKey)
+	encodeWriterCloser := kc.encodeWriter(sink)
+	cipherWriter, err := encryptKey.EncryptWriter(encodeWriterCloser)
+	if err != nil {
+		return nil, err
+	}
+	compressedWriter := kc.compressWriter(cipherWriter)
+	return linkWriterCloser(compressedWriter, encodeWriterCloser), nil
 }
 
 func (kc *keySignedEncypter) Encrypt(plaintext []uint8) (string, error) {
-
 	key := kc.kz.getPrimaryKey()
-
 	encryptKey := key.(encryptKey)
-
 	compressedPlaintext := kc.compress(plaintext)
-
 	ciphertext, err := encryptKey.Encrypt(compressedPlaintext)
 	if err != nil {
 		return "", err
 	}
-
 	attachedMessage, err := kc.signer.AttachedSign(ciphertext, kc.nonce)
-
 	if err != nil {
 		return "", err
 	}
-
 	return attachedMessage, nil
 }
 
 // Decode and decrypt ciphertext and return plaintext as []byte
 // All the heavy lifting is done by the key
 func (kc *keyCrypter) Decrypt(ciphertext string) ([]uint8, error) {
-
 	b, kl, err := splitHeader(kc.encodingController, kc.kz, ciphertext, ErrShortCiphertext)
-
 	if err != nil {
 		return nil, err
 	}
-
 	for _, k := range kl {
 		decryptKey := k.(decryptEncryptKey)
 		compressedPlaintext, err := decryptKey.Decrypt(b)
@@ -314,22 +170,35 @@ func (kc *keyCrypter) Decrypt(ciphertext string) ([]uint8, error) {
 			return kc.decompress(compressedPlaintext)
 		}
 	}
-
 	return nil, ErrInvalidSignature
+}
+
+func (kc *keyCrypter) DecryptReader(cipheredReader io.Reader) (io.ReadCloser, error) {
+	return kc.decryptReader(cipheredReader, 0)
+}
+
+func (kc *keyCrypter) decryptReader(in io.Reader, kPos int) (io.ReadCloser, error) {
+	cipheredReader := kc.encodingController.decodeReader(in)
+	kl, err := readHeader(kc.kz, cipheredReader)
+	if err != nil {
+		return nil, err
+	}
+	decryptKey := kl[kPos].(decryptEncryptKey)
+	compReader, err := decryptKey.DecryptReader(cipheredReader)
+	if err != nil {
+		return nil, err
+	}
+	return kc.decompressReader(compReader)
 }
 
 // Decode and decrypt ciphertext and return plaintext as []byte
 // All the heavy lifting is done by the key
 func (kc *keySignedDecrypter) Decrypt(signedCiphertext string) ([]uint8, error) {
-
 	ciphertext, err := kc.verifier.AttachedVerify(signedCiphertext, kc.nonce)
-
 	if err != nil {
 		return nil, err
 	}
-
 	b, kl, err := splitHeaderBytes(kc.encodingController, kc.kz, ciphertext, ErrShortCiphertext)
-
 	if err != nil {
 		return nil, err
 	}
@@ -340,9 +209,7 @@ func (kc *keySignedDecrypter) Decrypt(signedCiphertext string) ([]uint8, error) 
 			return kc.decompress(compressedPlaintext)
 		}
 	}
-
 	return nil, ErrInvalidSignature
-
 }
 
 type currentTime func() int64
@@ -933,23 +800,17 @@ func newKeysFromReader(r KeyReader, kz *keyCzar, keyFromJSON func([]byte) (keyda
 
 // construct a keyczar object from a reader for a given purpose
 func newKeyCzar(r KeyReader) (*keyCzar, error) {
-
 	kz := new(keyCzar)
-
 	kz.primary = -1
-
 	s, err := r.GetMetadata()
 	if err != nil {
 		return nil, err
 	}
-
 	err = json.Unmarshal([]byte(s), &kz.keymeta)
 	if err != nil {
 		return nil, err
 	}
-
 	var f func(s []byte) (keydata, error)
-
 	switch kz.keymeta.Type {
 	case T_AES:
 		f = func(s []byte) (keydata, error) { return newAESKeyFromJSON(s) }
@@ -966,69 +827,6 @@ func newKeyCzar(r KeyReader) (*keyCzar, error) {
 	default:
 		return nil, ErrUnsupportedType
 	}
-
 	kz.keys, kz.idkeys, err = newKeysFromReader(r, kz, f)
-
 	return kz, err
-}
-
-const kzVersion = uint8(0)
-const kzHeaderLength = 5
-
-type kHeader struct {
-	version uint8
-	keyid   [4]uint8
-}
-
-// make and return a header for the given key
-func makeHeader(key keydata) []byte {
-	b := make([]byte, kzHeaderLength)
-	b[0] = kzVersion
-	copy(b[1:], key.KeyID())
-
-	return b
-}
-
-func splitHeaderBytes(ec encodingController, lookup lookupKeyIDer, cryptotext []byte, errTooShort error) ([]byte, []keydata, error) {
-
-	b := cryptotext
-
-	if len(b) < kzHeaderLength {
-		return nil, nil, errTooShort
-	}
-
-	if b[0] != kzVersion {
-		return nil, nil, ErrBadVersion
-	}
-
-	k, err := lookup.getKeyForID(b[1:5])
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return b, k, nil
-}
-
-func splitHeader(ec encodingController, lookup lookupKeyIDer, cryptotext string, errTooShort error) ([]byte, []keydata, error) {
-
-	b, err := ec.decode(cryptotext)
-
-	if err != nil {
-		return nil, nil, ErrBase64Decoding
-	}
-
-	if len(b) < kzHeaderLength {
-		return nil, nil, errTooShort
-	}
-
-	if b[0] != kzVersion {
-		return nil, nil, ErrBadVersion
-	}
-
-	k, err := lookup.getKeyForID(b[1:5])
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return b, k, nil
 }

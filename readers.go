@@ -1,6 +1,7 @@
 package dkeyczar
 
 import (
+	"bytes"
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/dsa"
@@ -132,49 +133,54 @@ type pbeCrypter struct {
 
 func (c *pbeCrypter) Decrypt(message string) ([]byte, error) {
 	var pbejson pbeKeyJSON
-
 	err := json.Unmarshal([]byte(message), &pbejson)
 	if err != nil {
 		return nil, err
 	}
+	return c.decrypt(pbejson)
+}
 
+func (c *pbeCrypter) decrypt(pbejson pbeKeyJSON) ([]byte, error) {
 	if pbejson.Cipher != "AES128" || pbejson.HMAC != "HMAC_SHA1" {
 		return nil, ErrUnsupportedType
 	}
-
 	salt, err := decodeWeb64String(pbejson.Salt)
 	if err != nil {
 		return nil, err
 	}
-
 	iv, err := decodeWeb64String(pbejson.Iv)
 	if err != nil {
 		return nil, err
 	}
-
 	ciphertext, err := decodeWeb64String(pbejson.Key)
 	if err != nil {
 		return nil, err
 	}
-
 	keybytes := pbkdf2.Key(c.password, salt, pbejson.IterationCount, 128/8, sha1.New)
-
 	aesCipher, err := aes.NewCipher(keybytes)
 	if err != nil {
 		return nil, err
 	}
-
 	crypter := cipher.NewCBCDecrypter(aesCipher, iv)
-
 	plaintext := make([]byte, len(ciphertext))
-
 	crypter.CryptBlocks(plaintext, ciphertext)
-
 	return plaintext, nil
 }
 
-func (c *pbeCrypter) Encrypt(plaintext []byte) (string, error) {
+func (c *pbeCrypter) DecryptReader(source io.Reader) (io.ReadCloser, error) {
+	var pbejson pbeKeyJSON
+	err := json.NewDecoder(source).Decode(&pbejson)
+	if err != nil {
+		return nil, err
+	}
+	data, err := c.decrypt(pbejson)
+	if err != nil {
+		return nil, err
+	}
+	return ioutil.NopCloser(bytes.NewBuffer(data)), nil
+}
 
+func (c *pbeCrypter) createAESCipher() (pbeKeyJSON, cipher.BlockMode, error) {
 	var pbejson pbeKeyJSON
 	pbejson.Cipher = "AES128"
 	pbejson.HMAC = "HMAC_SHA1"
@@ -191,6 +197,11 @@ func (c *pbeCrypter) Encrypt(plaintext []byte) (string, error) {
 	keybytes := pbkdf2.Key(c.password, salt, pbejson.IterationCount, 128/8, sha1.New)
 
 	aesCipher, err := aes.NewCipher(keybytes)
+	return pbejson, cipher.NewCBCEncrypter(aesCipher, iv), err
+}
+
+func (c *pbeCrypter) Encrypt(plaintext []byte) (string, error) {
+	pbejson, aesCipher, err := c.createAESCipher()
 	if err != nil {
 		return "", err
 	}
@@ -204,8 +215,7 @@ func (c *pbeCrypter) Encrypt(plaintext []byte) (string, error) {
 	}
 
 	ciphertext := make([]byte, len(p))
-	crypter := cipher.NewCBCEncrypter(aesCipher, iv)
-	crypter.CryptBlocks(ciphertext, p)
+	aesCipher.CryptBlocks(ciphertext, p)
 
 	pbejson.Key = encodeWeb64String(ciphertext)
 
@@ -215,6 +225,14 @@ func (c *pbeCrypter) Encrypt(plaintext []byte) (string, error) {
 	}
 
 	return string(j), nil
+}
+
+func (c *pbeCrypter) EncryptWriter(sink io.Writer) (io.WriteCloser, error) {
+	pbejson, aesCipher, err := c.createAESCipher()
+	if err != nil {
+		return nil, err
+	}
+	return &pbeCryptoWriter{pbe: pbejson, aesCipher: aesCipher, data: bytes.NewBuffer(nil), sink: sink}, nil
 }
 
 // a fake reader for an RSA private key

@@ -2,6 +2,7 @@ package dkeyczar
 
 import (
 	"bytes"
+	"io"
 	"testing"
 	"time"
 )
@@ -56,6 +57,33 @@ func testEncryptDecrypt(t *testing.T, keytype string, f KeyReader) {
 	}
 
 	if string(p) != INPUT {
+		t.Error(keytype + " decrypt(encrypt(p)) != p")
+	}
+}
+
+func testEncryptDecryptReader(t *testing.T, keytype string, f KeyReader) {
+
+	kz, err := NewCrypter(f)
+	if err != nil {
+		t.Fatal("failed to create crypter keytype " + keytype + ": " + err.Error())
+	}
+	data := bytes.NewBuffer([]byte(INPUT))
+	enc := bytes.NewBuffer(nil)
+	r, err := kz.EncryptWriter(enc)
+	if err != nil {
+		t.Fatal("failed to encrypt key for keytype " + keytype + ": " + err.Error())
+	}
+	io.Copy(r, data)
+
+	out, err := kz.DecryptReader(enc)
+	if err != nil {
+		t.Fatal("failed to decrypt keytype " + keytype + ": " + err.Error())
+	}
+
+	outData := bytes.NewBuffer(nil)
+	io.Copy(outData, out)
+
+	if outData.String() != INPUT {
 		t.Error(keytype + " decrypt(encrypt(p)) != p")
 	}
 }
@@ -219,6 +247,7 @@ func TestAESEncrypt(t *testing.T) {
 func TestAESEncryptDecrypt(t *testing.T) {
 	keytype := "aes"
 	testEncryptDecrypt(t, keytype, NewFileReader(TESTDATA+keytype))
+	testEncryptDecryptReader(t, keytype, NewFileReader(TESTDATA+keytype))
 }
 
 func TestAESDecrypt(t *testing.T) {
@@ -274,6 +303,7 @@ func TestRSAEncrypt(t *testing.T) {
 func TestRSAEncryptDecrypt(t *testing.T) {
 	keytype := "rsa"
 	testEncryptDecrypt(t, keytype, NewFileReader(TESTDATA+keytype))
+	testEncryptDecryptReader(t, keytype, NewFileReader(TESTDATA+keytype))
 }
 
 func TestRSADecrypt(t *testing.T) {
@@ -287,6 +317,7 @@ func TestRSAPEMImportDecrypt(t *testing.T) {
 		t.Fatal("failed to create import for rsa_pem")
 	}
 	testEncryptDecrypt(t, "rsa pem import", r)
+	testEncryptDecryptReader(t, "rsa pem import", r)
 }
 
 func TestRSAPEMImportSign(t *testing.T) {
@@ -316,6 +347,7 @@ func TestGeneratedAESEncryptDecrypt(t *testing.T) {
 	k, _ := generateAESKey(0)
 	r := newImportedAESKeyReader(k)
 	testEncryptDecrypt(t, "aes generated", r)
+	testEncryptDecryptReader(t, "aes generated", r)
 }
 
 // too slow
@@ -351,6 +383,7 @@ func TestPBEReader(t *testing.T) {
 	f := NewFileReader(TESTDATA + "pbe_json")
 	er := NewPBEReader(f, []byte("cartman"))
 	testEncryptDecrypt(t, "pbe_json", er)
+	testEncryptDecryptReader(t, "pbe_json", er)
 }
 
 func TestSessionEncryptDecrypt(t *testing.T) {

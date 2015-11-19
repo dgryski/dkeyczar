@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/base64"
 	"encoding/binary"
+	"io"
 	"math/big"
 )
 
@@ -109,4 +110,71 @@ func pkcs5unpad(data []byte) []byte {
 	pad := int(data[len(data)-1])
 	// FIXME: check that the padding bytes are all what we expect
 	return data[0 : len(data)-pad]
+}
+
+//Close wrappers
+type linkedWriterCloser struct {
+	io.Writer
+	io.Closer
+}
+
+func linkWriterCloser(w io.Writer, c io.Closer) io.WriteCloser {
+	return linkedWriterCloser{w, c}
+}
+
+//Nop closer for writes
+type nopWriteCloser struct {
+	io.Writer
+}
+
+func (n nopWriteCloser) Close() error {
+	return nil
+}
+
+func NewNopWriteCloser(w io.Writer) io.WriteCloser {
+	return nopWriteCloser{w}
+}
+
+//Nested writer closer
+type nestedWriterCloser struct {
+	io.WriteCloser
+	io.Closer
+}
+
+func (n nestedWriterCloser) Close() error {
+	if err := n.WriteCloser.Close(); err != nil {
+		return err
+	}
+	return n.Closer.Close()
+}
+
+func nestWriterCloser(r io.WriteCloser, c io.Closer) io.WriteCloser {
+	return nestedWriterCloser{r, c}
+}
+
+//Linked read closer
+type linkedReaderCloser struct {
+	io.Reader
+	io.Closer
+}
+
+func linkReaderCloser(r io.Reader, c io.Closer) io.ReadCloser {
+	return linkedReaderCloser{r, c}
+}
+
+//Nested read closer
+type nestedReaderCloser struct {
+	io.ReadCloser
+	io.Closer
+}
+
+func (n nestedReaderCloser) Close() error {
+	if err := n.ReadCloser.Close(); err != nil {
+		return err
+	}
+	return n.Closer.Close()
+}
+
+func nestReaderCloser(r io.ReadCloser, c io.Closer) io.ReadCloser {
+	return nestedReaderCloser{r, c}
 }
