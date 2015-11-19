@@ -137,3 +137,57 @@ func (cr *cryptoReader) Close() error {
 	cr.eof = true
 	return cr.source.Close()
 }
+
+type funcDecryptReader struct {
+	source      io.Reader
+	decryptFunc func([]byte) ([]byte, error)
+	buf         *bytes.Buffer
+}
+
+func (f *funcDecryptReader) Read(data []byte) (int, error) {
+	if f.buf == nil {
+		f.buf = bytes.NewBuffer(nil)
+		_, err := io.CopyN(f.buf, f.source, 100)
+		if err != nil {
+			return 0, err
+		}
+		out, err := f.decryptFunc(f.buf.Bytes())
+		if err != nil {
+			return 0, err
+		}
+		f.buf.Reset()
+		if _, err = f.buf.Write(out); err != nil {
+			return 0, err
+		}
+	}
+	return f.buf.Read(data)
+}
+
+func (f *funcDecryptReader) Close() error {
+	return nil
+}
+
+type funcEncryptWriter struct {
+	sink      io.Writer
+	cryptFunc func([]byte) ([]byte, error)
+}
+
+func (f *funcEncryptWriter) Write(data []byte) (int, error) {
+	ct, err := f.cryptFunc(data)
+	if err != nil {
+		return 0, err
+	}
+	wL := 0
+	for wL < len(ct) {
+		n, err := f.sink.Write(ct[wL:])
+		if err != nil {
+			return 0, err
+		}
+		wL += n
+	}
+	return len(data), nil
+}
+
+func (f *funcEncryptWriter) Close() error {
+	return nil
+}

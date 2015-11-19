@@ -221,30 +221,21 @@ type keySigner struct {
 }
 
 func (ks *keySigner) UnversionedSign(message []byte) (string, error) {
-
 	key := ks.kz.getPrimaryKey()
-
 	signingKey := key.(signVerifyKey)
-
 	signature, err := signingKey.Sign(message)
-
 	if err != nil {
 		return "", err
 	}
-
 	s := ks.encode(signature)
-
 	return s, nil
 }
 
 func (ks *keySigner) UnversionedVerify(message []byte, signature string) (bool, error) {
-
 	b, err := ks.decode(signature)
-
 	if err != nil {
 		return false, err
 	}
-
 	// without a key id, we have to check all the keys
 	for _, k := range ks.kz.keys {
 		verifyKey := k.(verifyKey)
@@ -254,24 +245,19 @@ func (ks *keySigner) UnversionedVerify(message []byte, signature string) (bool, 
 			return true, nil
 		}
 	}
-
 	return false, nil
 }
 
 // Verify the signature on 'msg'
 // All the heavy lifting is done by the key
 func (ks *keySigner) Verify(msg []byte, signature string) (bool, error) {
-
 	b, kl, err := splitHeader(ks.encodingController, ks.kz, signature, ErrShortSignature)
-
 	if err != nil {
 		return false, err
 	}
-
 	signedbytes := make([]byte, len(msg)+1)
 	copy(signedbytes, msg)
 	signedbytes[len(msg)] = kzVersion
-
 	for _, k := range kl {
 		sig := b[kzHeaderLength:]
 		verifyKey := k.(verifyKey)
@@ -280,33 +266,24 @@ func (ks *keySigner) Verify(msg []byte, signature string) (bool, error) {
 			return true, nil
 		}
 	}
-
 	return false, nil
 }
 
 // Return a signature for 'msg'
 // All the heavy lifting is done by the key
 func (ks *keySigner) Sign(msg []byte) (string, error) {
-
 	key := ks.kz.getPrimaryKey()
-
 	signingKey := key.(signVerifyKey)
-
 	signedbytes := make([]byte, len(msg)+1)
 	copy(signedbytes, msg)
 	signedbytes[len(msg)] = kzVersion
-
 	signature, err := signingKey.Sign(signedbytes)
-
 	if err != nil {
 		return "", err
 	}
-
 	h := makeHeader(key)
 	signature = append(h, signature...)
-
 	s := ks.encode(signature)
-
 	return s, nil
 }
 
