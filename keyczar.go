@@ -16,9 +16,11 @@ Encrypted data and signatures are encoded with web-safe base64.
 package dkeyczar
 
 import (
+	"bytes"
 	"crypto/rand"
 	"encoding/binary"
 	"encoding/json"
+	"fmt"
 	"io"
 	"time"
 )
@@ -138,7 +140,7 @@ func (kc *keyCrypter) EncryptWriter(sink io.Writer) (io.WriteCloser, error) {
 		return nil, err
 	}
 	compressedWriter := kc.compressWriter(cipherWriter)
-	return linkWriterCloser(compressedWriter, encodeWriterCloser), nil
+	return nestWriterCloser(compressedWriter, nestWriterCloser(cipherWriter, encodeWriterCloser)), nil
 }
 
 func (kc *keySignedEncypter) Encrypt(plaintext []uint8) (string, error) {
@@ -173,18 +175,25 @@ func (kc *keyCrypter) Decrypt(ciphertext string) ([]uint8, error) {
 	return nil, ErrInvalidSignature
 }
 
-func (kc *keyCrypter) DecryptReader(cipheredReader io.Reader) (io.ReadCloser, error) {
-	return kc.decryptReader(cipheredReader, 0)
+func (kc *keyCrypter) DecryptReader(source io.Reader) (io.ReadCloser, error) {
+	//TODO: Cast to ReaderSeeker if possible
+	return kc.decryptReader(source, 0)
 }
 
 func (kc *keyCrypter) decryptReader(in io.Reader, kPos int) (io.ReadCloser, error) {
 	cipheredReader := kc.encodingController.decodeReader(in)
-	kl, err := readHeader(kc.kz, cipheredReader)
+	headBuf := bytes.NewBuffer(nil)
+	headBuf.Grow(kzHeaderLength)
+	if _, err := io.CopyN(headBuf, cipheredReader, kzHeaderLength); err != nil {
+		return nil, err
+	}
+	kl, err := decodeHeader(kc.kz, headBuf.Bytes())
 	if err != nil {
+		fmt.Println("HEADER OOPS", err)
 		return nil, err
 	}
 	decryptKey := kl[kPos].(decryptEncryptKey)
-	compReader, err := decryptKey.DecryptReader(cipheredReader)
+	compReader, err := decryptKey.DecryptReader(io.MultiReader(headBuf, cipheredReader))
 	if err != nil {
 		return nil, err
 	}

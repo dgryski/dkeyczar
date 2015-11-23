@@ -104,9 +104,47 @@ func (ec *encodingController) decodeReader(data io.Reader) io.Reader {
 	case NO_ENCODING:
 		return data
 	case BASE64W:
-		return base64.NewDecoder(base64.RawURLEncoding, data)
+		return base64.NewDecoder(base64.URLEncoding, newB64ReadPadder(data))
 	}
 	panic("not reached")
+}
+
+func newB64ReadPadder(source io.Reader) io.Reader {
+	return &b64ReadPadder{0, source, bytes.NewBuffer(nil), nil}
+}
+
+type b64ReadPadder struct {
+	count  int
+	source io.Reader
+	buf    *bytes.Buffer
+	err    error
+}
+
+func (b *b64ReadPadder) Read(data []byte) (int, error) {
+	if b.err == io.EOF {
+		return b.buf.Read(data)
+	} else if b.err != nil {
+		return 0, b.err
+	}
+	n, err := b.source.Read(data)
+	if err != nil {
+		b.err = err
+		if err != io.EOF {
+			return 0, err
+		}
+	}
+	b.count += n
+	if _, err := b.buf.Write(data[:n]); err != nil {
+		b.err = err
+		return 0, err
+	}
+	if err == io.EOF && b.count%4 > 0 {
+		if _, err := b.buf.Write([]byte("====")[4-(b.count%4):]); err != nil {
+			b.err = err
+			return 0, err
+		}
+	}
+	return b.buf.Read(data)
 }
 
 type compressionController struct {
@@ -146,14 +184,16 @@ func (cc *compressionController) compress(data []byte) []byte {
 	panic("not reached")
 }
 
-func (cc *compressionController) compressWriter(data io.Writer) io.Writer {
+func (cc *compressionController) compressWriter(data io.Writer) io.WriteCloser {
 	switch cc.compression {
 	case GZIP:
-		data, _ = gzip.NewWriterLevel(data, gzip.BestCompression)
+		datac, _ := gzip.NewWriterLevel(data, gzip.BestCompression)
+		return datac
 	case ZLIB:
-		data, _ = zlib.NewWriterLevel(data, zlib.BestCompression)
+		datac, _ := zlib.NewWriterLevel(data, zlib.BestCompression)
+		return datac
 	}
-	return data
+	return NewNopWriteCloser(data)
 }
 
 // return 'data' decompressed based on the value of the 'compression' field

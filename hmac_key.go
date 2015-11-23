@@ -7,6 +7,7 @@ import (
 	"crypto/sha1"
 	"crypto/subtle"
 	"encoding/json"
+	"fmt"
 	"hash"
 	"io"
 )
@@ -102,9 +103,10 @@ func (hm *hmacKey) SignWriter(sink io.Writer) io.WriteCloser {
 }
 
 type hmacSignWriter struct {
-	sink io.Writer
-	hmac hash.Hash
-	err  error
+	sink    io.Writer
+	hmac    hash.Hash
+	written int
+	err     error
 }
 
 func (h *hmacSignWriter) Write(data []byte) (int, error) {
@@ -112,6 +114,7 @@ func (h *hmacSignWriter) Write(data []byte) (int, error) {
 	if n > 0 {
 		h.hmac.Write(data[:n])
 	}
+	h.written += n
 	return n, err
 }
 
@@ -125,11 +128,12 @@ func (h *hmacSignWriter) Close() error {
 		}
 		w += n
 	}
+	h.written += w
+	fmt.Println("HMAC Written", h.written, sign)
 	return nil
 }
 
 func (hm *hmacKey) Verify(msg []byte, signature []byte) (bool, error) {
-
 	sha1hmac := hmac.New(sha1.New, hm.key)
 	sha1hmac.Write(msg)
 	sig := sha1hmac.Sum(nil)
@@ -151,6 +155,7 @@ type hmacVerifyReader struct {
 	hmac   hash.Hash
 	buf    *bytes.Buffer
 	err    error
+	count  int
 }
 
 func (h *hmacVerifyReader) Read(data []byte) (int, error) {
@@ -159,6 +164,7 @@ func (h *hmacVerifyReader) Read(data []byte) (int, error) {
 		if n > 0 {
 			h.buf.Write(data[:n])
 		}
+		h.count += n
 		if err == io.EOF {
 			h.err = err
 		} else if err != nil {
@@ -170,12 +176,16 @@ func (h *hmacVerifyReader) Read(data []byte) (int, error) {
 		dataSize = len(data)
 	}
 	if dataSize > 0 {
-		copy(data, h.buf.Next(dataSize))
+		realData := h.buf.Next(dataSize)
+		copy(data, realData)
+		h.hmac.Write(realData)
 	}
 	return dataSize, h.err
 }
 
 func (hm *hmacVerifyReader) Close() error {
+	fmt.Println("HMAC TOTAL READ", hm.count, hm.err)
+	fmt.Printf("HMAC\n%v\n%v\n", hm.hmac.Sum(nil), hm.buf.Bytes())
 	if hmac.Equal(hm.hmac.Sum(nil), hm.buf.Bytes()) {
 		return nil
 	}

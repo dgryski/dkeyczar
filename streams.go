@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/cipher"
 	"encoding/json"
+	"fmt"
 	"io"
 )
 
@@ -48,6 +49,7 @@ type cryptoWriter struct {
 	bm     cipher.BlockMode
 	buffer *bytes.Buffer
 	sink   io.WriteCloser
+	count  int
 }
 
 func (c *cryptoWriter) Write(data []byte) (int, error) {
@@ -65,6 +67,7 @@ func (c *cryptoWriter) Write(data []byte) (int, error) {
 		}
 		wL += n
 	}
+	c.count += wL
 	return len(data), nil
 }
 
@@ -73,6 +76,7 @@ func (c *cryptoWriter) Close() error {
 		return nil
 	}
 	tmp := pkcs5pad(c.buffer.Next(c.buffer.Len()), c.bm.BlockSize())
+	c.bm.CryptBlocks(tmp, tmp)
 	wL := 0
 	for wL < len(tmp) {
 		n, err := c.sink.Write(tmp[wL:])
@@ -81,6 +85,8 @@ func (c *cryptoWriter) Close() error {
 		}
 		wL += n
 	}
+	c.count += wL
+	fmt.Println("ENC TOTAL WRITTEN IS", c.count)
 	return c.sink.Close()
 }
 
@@ -104,6 +110,7 @@ type cryptoReader struct {
 
 func (cr *cryptoReader) Read(data []byte) (int, error) {
 	missing := len(data) - cr.outBuf.Len()
+	fmt.Println("READ MISSING", missing)
 	for !cr.eof && missing > 0 {
 		toRead := missing + cr.bm.BlockSize() + 1 //Always go beyond the required data to be able to unpad when eof'ed
 		if off := toRead % cr.bm.BlockSize(); off > 0 {
@@ -111,21 +118,28 @@ func (cr *cryptoReader) Read(data []byte) (int, error) {
 		}
 		cr.inBuf.Grow(toRead)
 		n, err := io.CopyN(cr.inBuf, cr.source, int64(toRead))
+		fmt.Println("Read ", n, err)
 		if err == io.EOF {
 			cr.eof = true
 		} else if err != nil {
+			fmt.Println("DEC ERR", err)
 			return 0, err
 		}
-		if int(n)%cr.bm.BlockSize() > 0 {
-			return 0, ErrShortCiphertext //In case our read is not multiple of blocksize because of eof
+		readBytes := int(n)
+		if readBytes%cr.bm.BlockSize() > 0 && cr.eof {
+			fmt.Println("SHORT")
+			return 0, ErrShortCiphertext
 		}
-		tmpdata := cr.inBuf.Next(int(n)) //inBuf should be empty after this
+		bytesToDec := readBytes - readBytes%cr.bm.BlockSize()
+		fmt.Println("BYTES TO DEC", bytesToDec)
+		tmpdata := cr.inBuf.Next(bytesToDec)
 		cr.bm.CryptBlocks(tmpdata, tmpdata)
 		if _, err := cr.outBuf.Write(tmpdata); err != nil {
 			return 0, err
 		}
 		if cr.eof {
 			pad := cr.outBuf.Bytes()[cr.outBuf.Len()-1]
+			fmt.Println("UNPAD", pad)
 			cr.outBuf.Truncate(cr.outBuf.Len() - int(pad))
 		}
 		missing = len(data) - cr.outBuf.Len()

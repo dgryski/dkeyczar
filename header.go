@@ -69,11 +69,19 @@ func splitHeader(ec encodingController, lookup lookupKeyIDer, cryptotext string,
 
 func readHeader(lookup lookupKeyIDer, in io.Reader) ([]keydata, error) {
 	header := make([]byte, kzHeaderLength)
-	n, err := in.Read(header)
-	if err != nil {
-		return nil, err
+	w := 0
+	for w < kzHeaderLength {
+		n, err := in.Read(header[w:])
+		if err != nil {
+			return nil, err
+		}
+		w += n
 	}
-	if n != kzHeaderLength {
+	return decodeHeader(lookup, header[:w])
+}
+
+func decodeHeader(lookup lookupKeyIDer, header []byte) ([]keydata, error) {
+	if len(header) != kzHeaderLength {
 		return nil, ErrShortCiphertext
 	}
 	if header[0] != kzVersion {

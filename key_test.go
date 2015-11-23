@@ -2,6 +2,7 @@ package dkeyczar
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"testing"
 	"time"
@@ -67,6 +68,7 @@ func testEncryptDecryptReader(t *testing.T, keytype string, f KeyReader) {
 	if err != nil {
 		t.Fatal("failed to create crypter keytype " + keytype + ": " + err.Error())
 	}
+	fmt.Println("INITIAL TEST")
 	data := bytes.NewBuffer([]byte(INPUT))
 	enc := bytes.NewBuffer(nil)
 	r, err := kz.EncryptWriter(enc)
@@ -74,6 +76,12 @@ func testEncryptDecryptReader(t *testing.T, keytype string, f KeyReader) {
 		t.Fatal("failed to encrypt key for keytype " + keytype + ": " + err.Error())
 	}
 	io.Copy(r, data)
+	if err := r.Close(); err != nil {
+		t.Fatal("Could not end writting to cryptor", err)
+	}
+
+	//Direct Dec
+	fmt.Println("ENC LEN ", len(enc.String()))
 
 	out, err := kz.DecryptReader(enc)
 	if err != nil {
@@ -82,6 +90,9 @@ func testEncryptDecryptReader(t *testing.T, keytype string, f KeyReader) {
 
 	outData := bytes.NewBuffer(nil)
 	io.Copy(outData, out)
+	if err := out.Close(); err != nil {
+		t.Fatal("Could not properly decode message", err)
+	}
 
 	if outData.String() != INPUT {
 		t.Error(keytype + " decrypt(encrypt(p)) != p")
