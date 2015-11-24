@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"crypto/cipher"
 	"encoding/json"
-	"fmt"
 	"io"
 )
 
@@ -86,7 +85,6 @@ func (c *cryptoWriter) Close() error {
 		wL += n
 	}
 	c.count += wL
-	fmt.Println("ENC TOTAL WRITTEN IS", c.count)
 	return c.sink.Close()
 }
 
@@ -110,7 +108,6 @@ type cryptoReader struct {
 
 func (cr *cryptoReader) Read(data []byte) (int, error) {
 	missing := len(data) - cr.outBuf.Len()
-	fmt.Println("READ MISSING", missing)
 	for !cr.eof && missing > 0 {
 		toRead := missing + cr.bm.BlockSize() + 1 //Always go beyond the required data to be able to unpad when eof'ed
 		if off := toRead % cr.bm.BlockSize(); off > 0 {
@@ -118,20 +115,16 @@ func (cr *cryptoReader) Read(data []byte) (int, error) {
 		}
 		cr.inBuf.Grow(toRead)
 		n, err := io.CopyN(cr.inBuf, cr.source, int64(toRead))
-		fmt.Println("Read ", n, err)
 		if err == io.EOF {
 			cr.eof = true
 		} else if err != nil {
-			fmt.Println("DEC ERR", err)
 			return 0, err
 		}
 		readBytes := int(n)
 		if readBytes%cr.bm.BlockSize() > 0 && cr.eof {
-			fmt.Println("SHORT")
 			return 0, ErrShortCiphertext
 		}
 		bytesToDec := readBytes - readBytes%cr.bm.BlockSize()
-		fmt.Println("BYTES TO DEC", bytesToDec)
 		tmpdata := cr.inBuf.Next(bytesToDec)
 		cr.bm.CryptBlocks(tmpdata, tmpdata)
 		if _, err := cr.outBuf.Write(tmpdata); err != nil {
@@ -139,7 +132,6 @@ func (cr *cryptoReader) Read(data []byte) (int, error) {
 		}
 		if cr.eof {
 			pad := cr.outBuf.Bytes()[cr.outBuf.Len()-1]
-			fmt.Println("UNPAD", pad)
 			cr.outBuf.Truncate(cr.outBuf.Len() - int(pad))
 		}
 		missing = len(data) - cr.outBuf.Len()
@@ -150,58 +142,4 @@ func (cr *cryptoReader) Read(data []byte) (int, error) {
 func (cr *cryptoReader) Close() error {
 	cr.eof = true
 	return cr.source.Close()
-}
-
-type funcDecryptReader struct {
-	source      io.Reader
-	decryptFunc func([]byte) ([]byte, error)
-	buf         *bytes.Buffer
-}
-
-func (f *funcDecryptReader) Read(data []byte) (int, error) {
-	if f.buf == nil {
-		f.buf = bytes.NewBuffer(nil)
-		_, err := io.CopyN(f.buf, f.source, 100)
-		if err != nil {
-			return 0, err
-		}
-		out, err := f.decryptFunc(f.buf.Bytes())
-		if err != nil {
-			return 0, err
-		}
-		f.buf.Reset()
-		if _, err = f.buf.Write(out); err != nil {
-			return 0, err
-		}
-	}
-	return f.buf.Read(data)
-}
-
-func (f *funcDecryptReader) Close() error {
-	return nil
-}
-
-type funcEncryptWriter struct {
-	sink      io.Writer
-	cryptFunc func([]byte) ([]byte, error)
-}
-
-func (f *funcEncryptWriter) Write(data []byte) (int, error) {
-	ct, err := f.cryptFunc(data)
-	if err != nil {
-		return 0, err
-	}
-	wL := 0
-	for wL < len(ct) {
-		n, err := f.sink.Write(ct[wL:])
-		if err != nil {
-			return 0, err
-		}
-		wL += n
-	}
-	return len(data), nil
-}
-
-func (f *funcEncryptWriter) Close() error {
-	return nil
 }

@@ -20,7 +20,6 @@ import (
 	"crypto/rand"
 	"encoding/binary"
 	"encoding/json"
-	"fmt"
 	"io"
 	"time"
 )
@@ -133,7 +132,10 @@ func (kc *keyCrypter) Encrypt(plaintext []uint8) (string, error) {
 
 func (kc *keyCrypter) EncryptWriter(sink io.Writer) (io.WriteCloser, error) {
 	key := kc.kz.getPrimaryKey()
-	encryptKey := key.(encryptKey)
+	encryptKey, ok := key.(streamEncryptKey)
+	if !ok {
+		return nil, ErrCannotStream
+	}
 	encodeWriterCloser := kc.encodeWriter(sink)
 	cipherWriter, err := encryptKey.EncryptWriter(encodeWriterCloser)
 	if err != nil {
@@ -166,7 +168,10 @@ func (kc *keyCrypter) Decrypt(ciphertext string) ([]uint8, error) {
 		return nil, err
 	}
 	for _, k := range kl {
-		decryptKey := k.(decryptEncryptKey)
+		decryptKey, ok := k.(decryptEncryptKey)
+		if !ok {
+			return nil, ErrCannotStream
+		}
 		compressedPlaintext, err := decryptKey.Decrypt(b)
 		if err == nil {
 			return kc.decompress(compressedPlaintext)
@@ -189,10 +194,9 @@ func (kc *keyCrypter) decryptReader(in io.Reader, kPos int) (io.ReadCloser, erro
 	}
 	kl, err := decodeHeader(kc.kz, headBuf.Bytes())
 	if err != nil {
-		fmt.Println("HEADER OOPS", err)
 		return nil, err
 	}
-	decryptKey := kl[kPos].(decryptEncryptKey)
+	decryptKey := kl[kPos].(streamDecryptKey)
 	compReader, err := decryptKey.DecryptReader(io.MultiReader(headBuf, cipheredReader))
 	if err != nil {
 		return nil, err
@@ -326,31 +330,22 @@ func buildAttachedSignedBytes(msg []byte, nonce []byte) []byte {
 // Verify the attached signature on 'msg', and return the signed data if valid
 // All the heavy lifting is done by the key
 func (ks *keySigner) AttachedVerify(signedMsg string, nonce []byte) ([]byte, error) {
-
 	b, kl, err := splitHeader(ks.encodingController, ks.kz, signedMsg, ErrShortSignature)
-
 	if err != nil {
 		return nil, err
 	}
-
 	offs := kzHeaderLength
-
 	if len(b[offs:]) < 4 {
 		return nil, ErrShortSignature
 	}
-
 	msglen := int(binary.BigEndian.Uint32(b[offs:]))
-
 	offs += 4
-
 	if msglen > len(b[offs:]) {
 		return nil, ErrShortSignature
 	}
-
 	msg := b[offs : offs+msglen]
 	offs += msglen
 	sig := b[offs:]
-
 	signedbytes := buildAttachedSignedBytes(msg, nonce)
 	for _, k := range kl {
 		verifyKey := k.(verifyKey)
@@ -360,28 +355,20 @@ func (ks *keySigner) AttachedVerify(signedMsg string, nonce []byte) ([]byte, err
 			return msg, nil
 		}
 	}
-
 	return nil, ErrInvalidSignature
 }
 
 // Return a signature for 'msg' and the nonce
 // All the heavy lifting is done by the key
 func (ks *keySigner) AttachedSign(msg []byte, nonce []byte) (string, error) {
-
 	key := ks.kz.getPrimaryKey()
-
 	signingKey := key.(signVerifyKey)
-
 	signedbytes := buildAttachedSignedBytes(msg, nonce)
-
 	signature, err := signingKey.Sign(signedbytes)
-
 	if err != nil {
 		return "", err
 	}
-
 	h := makeHeader(key)
-
 	signedMsg := make([]byte, kzHeaderLength+4+len(msg)+len(signature))
 	offs := 0
 	copy(signedMsg[offs:], h)
@@ -391,9 +378,7 @@ func (ks *keySigner) AttachedSign(msg []byte, nonce []byte) (string, error) {
 	copy(signedMsg[offs:], msg)
 	offs += len(msg)
 	copy(signedMsg[offs:], signature)
-
 	s := ks.encode(signedMsg)
-
 	return s, nil
 }
 

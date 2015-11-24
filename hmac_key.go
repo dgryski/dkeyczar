@@ -7,7 +7,6 @@ import (
 	"crypto/sha1"
 	"crypto/subtle"
 	"encoding/json"
-	"fmt"
 	"hash"
 	"io"
 )
@@ -129,7 +128,6 @@ func (h *hmacSignWriter) Close() error {
 		w += n
 	}
 	h.written += w
-	fmt.Println("HMAC Written", h.written, sign)
 	return nil
 }
 
@@ -184,8 +182,6 @@ func (h *hmacVerifyReader) Read(data []byte) (int, error) {
 }
 
 func (hm *hmacVerifyReader) Close() error {
-	fmt.Println("HMAC TOTAL READ", hm.count, hm.err)
-	fmt.Printf("HMAC\n%v\n%v\n", hm.hmac.Sum(nil), hm.buf.Bytes())
 	if hmac.Equal(hm.hmac.Sum(nil), hm.buf.Bytes()) {
 		return nil
 	}

@@ -25,12 +25,19 @@ type keydata interface {
 type encryptKey interface {
 	keydata
 	Encrypt(b []byte) ([]byte, error)
+}
+
+type streamEncryptKey interface {
 	EncryptWriter(io.Writer) (io.WriteCloser, error)
 }
 
 type decryptEncryptKey interface {
 	encryptKey
 	Decrypt(b []byte) ([]byte, error)
+}
+
+type streamDecryptKey interface {
+	decryptEncryptKey
 	DecryptReader(io.Reader) (io.ReadCloser, error)
 }
 

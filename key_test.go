@@ -2,7 +2,6 @@ package dkeyczar
 
 import (
 	"bytes"
-	"fmt"
 	"io"
 	"testing"
 	"time"
@@ -63,12 +62,10 @@ func testEncryptDecrypt(t *testing.T, keytype string, f KeyReader) {
 }
 
 func testEncryptDecryptReader(t *testing.T, keytype string, f KeyReader) {
-
 	kz, err := NewCrypter(f)
 	if err != nil {
 		t.Fatal("failed to create crypter keytype " + keytype + ": " + err.Error())
 	}
-	fmt.Println("INITIAL TEST")
 	data := bytes.NewBuffer([]byte(INPUT))
 	enc := bytes.NewBuffer(nil)
 	r, err := kz.EncryptWriter(enc)
@@ -81,7 +78,13 @@ func testEncryptDecryptReader(t *testing.T, keytype string, f KeyReader) {
 	}
 
 	//Direct Dec
-	fmt.Println("ENC LEN ", len(enc.String()))
+	directout, err := kz.Decrypt(enc.String())
+	if err != nil {
+		t.Fatal("Direct Decode failed", err)
+	}
+	if !bytes.Equal(directout, []byte(INPUT)) {
+		t.Fatal("Direct decode failed: len %d vs %d", len(directout), len(INPUT))
+	}
 
 	out, err := kz.DecryptReader(enc)
 	if err != nil {
@@ -314,7 +317,6 @@ func TestRSAEncrypt(t *testing.T) {
 func TestRSAEncryptDecrypt(t *testing.T) {
 	keytype := "rsa"
 	testEncryptDecrypt(t, keytype, NewFileReader(TESTDATA+keytype))
-	testEncryptDecryptReader(t, keytype, NewFileReader(TESTDATA+keytype))
 }
 
 func TestRSADecrypt(t *testing.T) {
@@ -328,7 +330,6 @@ func TestRSAPEMImportDecrypt(t *testing.T) {
 		t.Fatal("failed to create import for rsa_pem")
 	}
 	testEncryptDecrypt(t, "rsa pem import", r)
-	testEncryptDecryptReader(t, "rsa pem import", r)
 }
 
 func TestRSAPEMImportSign(t *testing.T) {
@@ -345,12 +346,9 @@ func TestRSACertImport(t *testing.T) {
 
 	r, err := ImportRSAPublicKeyFromCertificateForVerify("thawte.crt")
 
-        fmt.Println("err=", err)
 
 	kz, err := NewVerifier(r)
-        fmt.Println("err=", err)
 
-        fmt.Println("kz=", kz)
 }
 */
 

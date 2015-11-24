@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/base64"
 	"encoding/binary"
-	"fmt"
 	"io"
 	"math/big"
 )
@@ -80,9 +79,7 @@ func lenPrefixUnpack(packed []byte) [][]byte {
 
 // only needed by AES?
 func pkcs5pad(data []byte, blocksize int) []byte {
-	fmt.Println("PAD", len(data), blocksize)
 	pad := blocksize - len(data)%blocksize
-	fmt.Println("PAD", len(data), "bs", blocksize, "pad", pad)
 	b := make([]byte, pad, pad)
 	for i := 0; i < pad; i++ {
 		b[i] = uint8(pad)
@@ -91,9 +88,7 @@ func pkcs5pad(data []byte, blocksize int) []byte {
 }
 
 func pkcs5unpad(data []byte) []byte {
-	fmt.Println("UNPAD", len(data))
 	pad := int(data[len(data)-1])
-	fmt.Println("PAD L", pad)
 	// FIXME: check that the padding bytes are all what we expect
 	return data[0 : len(data)-pad]
 }

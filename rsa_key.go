@@ -7,7 +7,6 @@ import (
 	"crypto/sha1"
 	"encoding/binary"
 	"encoding/json"
-	"io"
 	"math/big"
 )
 
@@ -271,21 +270,8 @@ func (rk *rsaPublicKey) Encrypt(msg []byte) ([]byte, error) {
 	return h, nil
 }
 
-func (rk *rsaPublicKey) EncryptWriter(sink io.Writer) (io.WriteCloser, error) {
-	return &funcEncryptWriter{
-		sink: sink,
-		cryptFunc: func(plaintext []byte) ([]byte, error) {
-			return rsa.EncryptOAEP(sha1.New(), rand.Reader, &rk.key, plaintext, nil)
-		},
-	}, nil
-}
-
 func (rk *rsaKey) Encrypt(msg []byte) ([]byte, error) {
 	return rk.publicKey.Encrypt(msg)
-}
-
-func (rk *rsaKey) EncryptWriter(sink io.Writer) (io.WriteCloser, error) {
-	return rk.publicKey.EncryptWriter(sink)
 }
 
 func (rk *rsaKey) Decrypt(msg []byte) ([]byte, error) {
@@ -294,13 +280,4 @@ func (rk *rsaKey) Decrypt(msg []byte) ([]byte, error) {
 		return nil, err
 	}
 	return s, nil
-}
-
-func (rk *rsaKey) DecryptReader(source io.Reader) (io.ReadCloser, error) {
-	return &funcDecryptReader{
-		source: source,
-		decryptFunc: func(ciphertext []byte) ([]byte, error) {
-			return rsa.DecryptOAEP(sha1.New(), rand.Reader, &rk.key, ciphertext, nil)
-		},
-	}, nil
 }
