@@ -86,7 +86,7 @@ func testEncryptDecryptReader(t *testing.T, keytype string, f KeyReader) {
 		t.Fatal("Direct decode failed: len %d vs %d", len(directout), len(INPUT))
 	}
 
-	out, err := kz.DecryptReader(enc)
+	out, _, err := kz.DecryptReader(enc, 0)
 	if err != nil {
 		t.Fatal("failed to decrypt keytype " + keytype + ": " + err.Error())
 	}

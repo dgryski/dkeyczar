@@ -46,7 +46,7 @@ type Crypter interface {
 	Encrypter
 	// Decrypt returns the plaintext bytes of an encrypted string
 	Decrypt(ciphertext string) ([]uint8, error)
-	DecryptReader(io.Reader) (io.ReadCloser, error)
+	DecryptReader(io.Reader, int) (io.ReadCloser, int, error)
 }
 
 // A SignedEncrypter can be used for encrypting and signing
@@ -180,28 +180,27 @@ func (kc *keyCrypter) Decrypt(ciphertext string) ([]uint8, error) {
 	return nil, ErrInvalidSignature
 }
 
-func (kc *keyCrypter) DecryptReader(source io.Reader) (io.ReadCloser, error) {
-	//TODO: Cast to ReaderSeeker if possible
-	return kc.decryptReader(source, 0)
-}
-
-func (kc *keyCrypter) decryptReader(in io.Reader, kPos int) (io.ReadCloser, error) {
+func (kc *keyCrypter) DecryptReader(in io.Reader, kPos int) (io.ReadCloser, int, error) {
 	cipheredReader := kc.encodingController.decodeReader(in)
 	headBuf := bytes.NewBuffer(nil)
 	headBuf.Grow(kzHeaderLength)
 	if _, err := io.CopyN(headBuf, cipheredReader, kzHeaderLength); err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	kl, err := decodeHeader(kc.kz, headBuf.Bytes())
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	decryptKey := kl[kPos].(streamDecryptKey)
 	compReader, err := decryptKey.DecryptReader(io.MultiReader(headBuf, cipheredReader))
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
-	return kc.decompressReader(compReader)
+	decReader, err := kc.decompressReader(compReader)
+	if err != nil {
+		return nil, 0, err
+	}
+	return decReader, len(kl), nil
 }
 
 // Decode and decrypt ciphertext and return plaintext as []byte

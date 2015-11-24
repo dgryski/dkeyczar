@@ -167,17 +167,17 @@ func (c *pbeCrypter) decrypt(pbejson pbeKeyJSON) ([]byte, error) {
 	return plaintext, nil
 }
 
-func (c *pbeCrypter) DecryptReader(source io.Reader) (io.ReadCloser, error) {
+func (c *pbeCrypter) DecryptReader(source io.Reader, kp int) (io.ReadCloser, int, error) {
 	var pbejson pbeKeyJSON
 	err := json.NewDecoder(source).Decode(&pbejson)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	data, err := c.decrypt(pbejson)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
-	return ioutil.NopCloser(bytes.NewBuffer(data)), nil
+	return ioutil.NopCloser(bytes.NewBuffer(data)), 1, nil
 }
 
 func (c *pbeCrypter) createAESCipher() (pbeKeyJSON, cipher.BlockMode, error) {
