@@ -1,20 +1,14 @@
 /*
 Package dkeyczar is a simplified wrapper around Go's native cryptography libraries.
-
 It is modeled after and compatible with Google's Keyczar library (http://keyczar.org)
-
 Sample usage is:
 	reader := NewFileReader("/path/to/keys")
 	crypter := NewCrypter(reader)
 	ciphertext := crypter.Encrypt(plaintext)
-
 Decryption, Signing and Verification use the same minimal API.
-
 Encrypted data and signatures are encoded with web-safe base64.
-
 */
 package dkeyczar
-
 import (
 	"bytes"
 	"crypto/rand"
@@ -23,7 +17,6 @@ import (
 	"io"
 	"time"
 )
-
 // Our main base type.  We only expose this through one of the interfaces.
 type keyCzar struct {
 	keymeta keyMeta              // metadata for this key
@@ -71,11 +64,9 @@ type Signer interface {
 	// Sign returns a cryptographic signature for the message
 	Sign(message []byte) (string, error)
 	AttachedSign(message []byte, nonce []byte) (string, error)
-
 	// TimeoutSign returns a signature for the message that is valid until expiration
 	// expiration should be milliseconds since 1/1/1970 GMT
 	TimeoutSign(message []byte, expiration int64) (string, error)
-
 	// UnversionedSign signs the message with a plain, non-Keyczar-tagged signature
 	UnversionedSign(message []byte) (string, error)
 }
@@ -86,10 +77,8 @@ type Verifier interface {
 	// Verify checks the cryptographic signature for a message
 	Verify(message []byte, signature string) (bool, error)
 	AttachedVerify(signedMessage string, nonce []byte) ([]byte, error)
-
 	// TimeoutVerify checks the cryptographic signature for a message and ensure it hasn't expired.
 	TimeoutVerify(message []byte, signature string) (bool, error)
-
 	// UnversionedVerify checks the plained, non-Keyczar-tagged cryptographic signature for a message
 	UnversionedVerify(message []byte, signature string) (bool, error)
 }
@@ -225,7 +214,6 @@ func (kc *keySignedDecrypter) Decrypt(signedCiphertext string) ([]uint8, error) 
 }
 
 type currentTime func() int64
-
 type keySigner struct {
 	kz *keyCzar
 	currentTime
@@ -300,14 +288,12 @@ func (ks *keySigner) Sign(msg []byte) (string, error) {
 }
 
 func buildAttachedSignedBytes(msg []byte, nonce []byte) []byte {
-
 	signedBytesLen := len(msg) + 1
 	if nonce != nil {
 		signedBytesLen += 4 + len(nonce)
 	} else {
 		signedBytesLen += 4
 	}
-
 	signedbytes := make([]byte, signedBytesLen)
 	offs := 0
 	copy(signedbytes[offs:], msg)
@@ -322,7 +308,6 @@ func buildAttachedSignedBytes(msg []byte, nonce []byte) []byte {
 		offs += 4
 	}
 	signedbytes[offs] = kzVersion
-
 	return signedbytes
 }
 
@@ -349,7 +334,6 @@ func (ks *keySigner) AttachedVerify(signedMsg string, nonce []byte) ([]byte, err
 	for _, k := range kl {
 		verifyKey := k.(verifyKey)
 		valid, _ := verifyKey.Verify(signedbytes, sig)
-
 		if valid {
 			return msg, nil
 		}
@@ -382,81 +366,54 @@ func (ks *keySigner) AttachedSign(msg []byte, nonce []byte) (string, error) {
 }
 
 const timestampSize = 8
-
 func buildTimeoutSignedBytes(msg []byte, expiration int64) []byte {
-
 	signedBytesLen := timestampSize + len(msg) + 1
-
 	signedbytes := make([]byte, signedBytesLen)
 	offs := 0
-
 	binary.BigEndian.PutUint64(signedbytes[offs:], uint64(expiration))
 	offs += timestampSize
-
 	copy(signedbytes[offs:], msg)
 	offs += len(msg)
-
 	signedbytes[offs] = kzVersion
-
 	return signedbytes
 }
 
 // construct and return a timeout signature
 func (ks *keySigner) TimeoutSign(msg []byte, expiration int64) (string, error) {
-
 	key := ks.kz.getPrimaryKey()
-
 	signingKey := key.(signVerifyKey)
-
 	h := makeHeader(key)
-
 	signedbytes := buildTimeoutSignedBytes(msg, expiration)
-
 	signature, err := signingKey.Sign(signedbytes)
-
 	if err != nil {
 		return "", err
 	}
-
 	signedMsg := make([]byte, kzHeaderLength+timestampSize+len(signature))
 	offs := 0
-
 	copy(signedMsg[offs:], h)
 	offs += kzHeaderLength
-
 	binary.BigEndian.PutUint64(signedMsg[offs:], uint64(expiration))
 	offs += timestampSize
-
 	copy(signedMsg[offs:], signature)
-
 	s := ks.encode(signedMsg)
-
 	return s, nil
 }
 
 // validate a timeout signature.  must be both cryptographically valid and not yet expired.
 func (ks *keySigner) TimeoutVerify(message []byte, signature string) (bool, error) {
-
 	sig, kl, err := splitHeader(ks.encodingController, ks.kz, signature, ErrShortSignature)
-
 	if err != nil {
 		return false, err
 	}
-
 	offs := kzHeaderLength
-
 	if len(sig[offs:]) < timestampSize {
 		return false, ErrShortSignature
 	}
-
 	expiration := int64(binary.BigEndian.Uint64(sig[offs:]))
 	offs += timestampSize
-
 	sig = sig[offs:]
-
 	signedbytes := buildTimeoutSignedBytes(message, expiration)
 	currentMillis := ks.currentTime()
-
 	for _, k := range kl {
 		verifyKey := k.(verifyKey)
 		valid, _ := verifyKey.Verify(signedbytes, sig)
@@ -464,7 +421,6 @@ func (ks *keySigner) TimeoutVerify(message []byte, signature string) (bool, erro
 			return currentMillis < expiration, nil
 		}
 	}
-
 	return false, nil
 }
 
@@ -473,20 +429,16 @@ func NewCrypter(r KeyReader) (Crypter, error) {
 	k := new(keyCrypter)
 	var err error
 	k.kz, err = newKeyCzar(r)
-
 	if err != nil {
 		return nil, err
 	}
-
 	if !k.kz.isAcceptablePurpose(P_DECRYPT_AND_ENCRYPT) {
 		return nil, ErrUnacceptablePurpose
 	}
-
 	err = k.kz.loadPrimaryKey()
 	if err != nil {
 		return nil, err
 	}
-
 	return k, err
 }
 
@@ -496,20 +448,16 @@ func NewSignedEncrypter(r KeyReader, signer Signer, nonce []byte) (SignedEncrypt
 	k.kz, err = newKeyCzar(r)
 	k.nonce = nonce
 	k.signer = signer
-
 	if err != nil {
 		return nil, err
 	}
-
 	if !k.kz.isAcceptablePurpose(P_DECRYPT_AND_ENCRYPT) {
 		return nil, ErrUnacceptablePurpose
 	}
-
 	err = k.kz.loadPrimaryKey()
 	if err != nil {
 		return nil, err
 	}
-
 	return k, err
 }
 
@@ -519,20 +467,16 @@ func NewSignedDecrypter(r KeyReader, verifier Verifier, nonce []byte) (SignedDec
 	k.kz, err = newKeyCzar(r)
 	k.nonce = nonce
 	k.verifier = verifier
-
 	if err != nil {
 		return nil, err
 	}
-
 	if !k.kz.isAcceptablePurpose(P_DECRYPT_AND_ENCRYPT) {
 		return nil, ErrUnacceptablePurpose
 	}
-
 	err = k.kz.loadPrimaryKey()
 	if err != nil {
 		return nil, err
 	}
-
 	return k, err
 }
 
@@ -541,20 +485,16 @@ func NewEncrypter(r KeyReader) (Encrypter, error) {
 	k := new(keyCrypter)
 	var err error
 	k.kz, err = newKeyCzar(r)
-
 	if err != nil {
 		return nil, err
 	}
-
 	if !k.kz.isAcceptablePurpose(P_ENCRYPT) {
 		return nil, ErrUnacceptablePurpose
 	}
-
 	err = k.kz.loadPrimaryKey()
 	if err != nil {
 		return nil, err
 	}
-
 	return k, err
 }
 
@@ -566,15 +506,12 @@ func NewVerifier(r KeyReader) (Verifier, error) {
 	}
 	var err error
 	k.kz, err = newKeyCzar(r)
-
 	if err != nil {
 		return nil, err
 	}
-
 	if !k.kz.isAcceptablePurpose(P_VERIFY) {
 		return nil, ErrUnacceptablePurpose
 	}
-
 	return k, err
 }
 
@@ -584,15 +521,12 @@ func NewVerifierTimeProvider(r KeyReader, t currentTime) (Verifier, error) {
 	k.currentTime = t
 	var err error
 	k.kz, err = newKeyCzar(r)
-
 	if err != nil {
 		return nil, err
 	}
-
 	if !k.kz.isAcceptablePurpose(P_VERIFY) {
 		return nil, ErrUnacceptablePurpose
 	}
-
 	return k, err
 }
 
@@ -601,97 +535,77 @@ func NewSigner(r KeyReader) (Signer, error) {
 	k := new(keySigner)
 	var err error
 	k.kz, err = newKeyCzar(r)
-
 	if err != nil {
 		return nil, err
 	}
-
 	if !k.kz.isAcceptablePurpose(P_SIGN_AND_VERIFY) {
 		return nil, ErrUnacceptablePurpose
 	}
-
 	err = k.kz.loadPrimaryKey()
 	if err != nil {
 		return nil, err
 	}
-
 	return k, err
 }
 
 // NewSessionEncrypter returns an Encrypter that has been initailized with a random session key.  This key material is encrypted with crypter and returned.
 func NewSessionEncrypter(encrypter Encrypter) (Crypter, string, error) {
-
 	aeskey, _ := generateAESKey(0) // shouldn't fail
 	r := newImportedAESKeyReader(aeskey)
-
 	keys, err := encrypter.Encrypt(aeskey.packedKeys())
 	if err != nil {
 		return nil, "", err
 	}
 	sessionCrypter, err := NewCrypter(r)
-
 	return sessionCrypter, keys, err
 }
 
 // NewSessionDecrypter decrypts the sessionKeys string and returns a new Crypter using these keys.
 func NewSessionDecrypter(crypter Crypter, sessionKeys string) (Crypter, error) {
-
 	packedKeys, err := crypter.Decrypt(sessionKeys)
 	if err != nil {
 		return nil, err
 	}
-
 	aeskey, err := newAESFromPackedKeys(packedKeys)
 	if err != nil {
 		return nil, err
 	}
 	r := newImportedAESKeyReader(aeskey)
-
 	return NewCrypter(r)
 }
 
 // NewSignedSessionEncrypter returns an Encrypter that has been initailized with a random session key.  This key material is encrypted with crypter and returned.
 func NewSignedSessionEncrypter(encrypter Encrypter, signer Signer) (SignedEncrypter, string, error) {
-
 	aeskey, _ := generateAESKey(0) // shouldn't fail
 	r := newImportedAESKeyReader(aeskey)
-
 	nonce := make([]byte, 16)
 	io.ReadFull(rand.Reader, nonce)
-
 	sm := new(sessionMaterial)
 	sm.key = *aeskey
 	sm.nonce = nonce
-
 	keys, err := encrypter.Encrypt(sm.ToSessionMaterialJSON())
 	if err != nil {
 		return nil, "", err
 	}
-
 	sessionCrypter, err := NewSignedEncrypter(r, signer, nonce)
-
 	return sessionCrypter, keys, err
 }
 
 // NewSignedSessionDecrypter decrypts the sessionKeys string and returns a new Crypter using these keys.
 func NewSignedSessionDecrypter(crypter Crypter, verifier Verifier, sessionKeys string) (SignedDecrypter, error) {
-
 	smJSON, err := crypter.Decrypt(sessionKeys)
 	if err != nil {
 		return nil, err
 	}
-
 	sm, err := newSessionMaterialFromJSON(smJSON)
 	if err != nil {
 		return nil, err
 	}
 	r := newImportedAESKeyReader(&sm.key)
-
 	return NewSignedDecrypter(r, verifier, sm.nonce)
 }
 
 func (kz *keyCzar) loadPrimaryKey() error {
-
 	// search for the primary key
 	kz.primary = -1
 	for _, v := range kz.keymeta.Versions {
@@ -703,14 +617,11 @@ func (kz *keyCzar) loadPrimaryKey() error {
 			}
 		}
 	}
-
 	// not found :(
 	if kz.primary == -1 {
 		return ErrNoPrimaryKey
 	}
-
 	return nil
-
 }
 
 func (kz *keyCzar) getPrimaryKey() keydata {
@@ -729,18 +640,14 @@ type lookupKeyIDer interface {
 }
 
 func (kz *keyCzar) getKeyForID(id []byte) ([]keydata, error) {
-
 	kl, ok := kz.idkeys[binary.BigEndian.Uint32(id)]
-
 	if !ok || len(kl) == 0 {
 		return kl, ErrKeyNotFound
 	}
-
 	return kl, nil
 }
 
 func newKeysFromReader(r KeyReader, kz *keyCzar, keyFromJSON func([]byte) (keydata, error)) (map[int]keydata, map[uint32][]keydata, error) {
-
 	keys := make(map[int]keydata)
 	idkeys := make(map[uint32][]keydata)
 	for _, kv := range kz.keymeta.Versions {
@@ -751,12 +658,10 @@ func newKeysFromReader(r KeyReader, kz *keyCzar, keyFromJSON func([]byte) (keyda
 		if err != nil {
 			return nil, nil, err
 		}
-
 		k, err := keyFromJSON([]byte(s))
 		if err != nil {
 			return nil, nil, err
 		}
-
 		keys[kv.VersionNumber] = k
 		//initialize fast lookup for keys
 		hash := binary.BigEndian.Uint32(k.KeyID())
@@ -764,7 +669,6 @@ func newKeysFromReader(r KeyReader, kz *keyCzar, keyFromJSON func([]byte) (keyda
 		kl = append(kl, k)
 		idkeys[hash] = kl
 	}
-
 	return keys, idkeys, nil
 }
 
@@ -800,3 +704,4 @@ func newKeyCzar(r KeyReader) (*keyCzar, error) {
 	kz.keys, kz.idkeys, err = newKeysFromReader(r, kz, f)
 	return kz, err
 }
+

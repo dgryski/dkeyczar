@@ -1,7 +1,5 @@
 package dkeyczar
-
 type keyType int
-
 const (
 	T_AES keyType = iota
 	T_HMAC_SHA1
@@ -10,7 +8,6 @@ const (
 	T_RSA_PRIV
 	T_RSA_PUB
 )
-
 // This struct copies the Java layout, but suffers from YAGNI
 // The sizing and output fields aren't really used (yet...)
 var keyTypeInfo = map[keyType]struct {
@@ -30,11 +27,9 @@ var keyTypeInfo = map[keyType]struct {
 
 func (k keyType) String() string {
 	ktinfo, ok := keyTypeInfo[k]
-
 	if !ok {
 		panic("unknown keytype in String()!")
 	}
-
 	return ktinfo.str
 }
 
@@ -56,56 +51,45 @@ func (k *keyType) UnmarshalJSON(b []byte) error {
 }
 
 func (k keyType) MarshalJSON() ([]byte, error) {
-
 	ktinfo, _ := keyTypeInfo[k]
-
 	return ktinfo.qstr, nil
 }
 
 func (k keyType) defaultSize() uint {
 	ktinfo, _ := keyTypeInfo[k]
-
 	return ktinfo.sizes[0]
 }
 
 func (k keyType) outputSize(size uint) uint {
 	ktinfo, _ := keyTypeInfo[k]
-
 	if ktinfo.output != 0 {
 		return ktinfo.output
 	}
-
 	for i, sz := range ktinfo.sizes {
 		if sz == size {
 			return ktinfo.outputs[i]
 		}
 	}
-
 	// FIXME: 0? Is that the best you could do?
-
 	return 0
 }
 
 func (k keyType) isAcceptableSize(size uint) bool {
 	ktinfo, _ := keyTypeInfo[k]
-
 	for _, sz := range ktinfo.sizes {
 		if sz == size {
 			return true
 		}
 	}
-
 	return false
 }
 
 type keyStatus int
-
 const (
 	S_PRIMARY keyStatus = iota
 	S_ACTIVE
 	S_INACTIVE
 )
-
 func (k keyStatus) String() string {
 	switch k {
 	case S_PRIMARY:
@@ -115,7 +99,6 @@ func (k keyStatus) String() string {
 	case S_INACTIVE:
 		return "INACTIVE"
 	}
-
 	return "(unknown KeyStatus)"
 }
 
@@ -127,7 +110,6 @@ var keyStatusLookup = map[string]keyStatus{
 
 func (k *keyStatus) UnmarshalJSON(b []byte) error {
 	ks, ok := keyStatusLookup[string(b[1:len(b)-1])]
-
 	if ok {
 		*k = ks
 	}
@@ -143,12 +125,10 @@ func (k keyStatus) MarshalJSON() ([]byte, error) {
 	case S_INACTIVE:
 		return []byte("\"INACTIVE\""), nil
 	}
-
 	return []byte("\"(unknown KeyStatus)\""), nil
 }
 
 type keyPurpose int
-
 const (
 	P_DECRYPT_AND_ENCRYPT keyPurpose = iota
 	P_ENCRYPT
@@ -156,7 +136,6 @@ const (
 	P_VERIFY
 	P_TEST
 )
-
 func (k keyPurpose) String() string {
 	switch k {
 	case P_DECRYPT_AND_ENCRYPT:
@@ -170,7 +149,6 @@ func (k keyPurpose) String() string {
 	case P_TEST:
 		return "TEST"
 	}
-
 	return "(unknown keyPurpose)"
 }
 
@@ -183,7 +161,6 @@ var keyPurposeLookup = map[string]keyPurpose{
 }
 
 func (k keyPurpose) isAcceptablePurpose(want keyPurpose) bool {
-
 	switch want {
 	case P_ENCRYPT:
 		return k == P_DECRYPT_AND_ENCRYPT || k == P_ENCRYPT
@@ -194,7 +171,6 @@ func (k keyPurpose) isAcceptablePurpose(want keyPurpose) bool {
 	case P_SIGN_AND_VERIFY:
 		return k == P_SIGN_AND_VERIFY
 	}
-
 	panic("unknown purpose: " + string(want))
 }
 
@@ -219,7 +195,6 @@ func (k keyPurpose) MarshalJSON() ([]byte, error) {
 	case P_TEST:
 		return []byte("\"TEST\""), nil
 	}
-
 	return []byte("\"(unknown keyPurpose)\""), nil
 }
 
@@ -238,7 +213,6 @@ type keyVersion struct {
 }
 
 type cipherMode int
-
 // FIXME: need rest of info for cipher modes
 const (
 	cmCBC     cipherMode = iota
@@ -246,7 +220,6 @@ const (
 	cmECB                // unsupported
 	cmDET_CBC            // unsupported
 )
-
 func (c cipherMode) String() string {
 	switch c {
 	case cmCBC:
@@ -258,7 +231,6 @@ func (c cipherMode) String() string {
 	case cmDET_CBC:
 		return "DET_CBC"
 	}
-
 	return "(unknown CipherMode)"
 }
 
@@ -288,6 +260,6 @@ func (c cipherMode) MarshalJSON() ([]byte, error) {
 	case cmDET_CBC:
 		return []byte("\"DET_CBC\""), nil
 	}
-
 	return []byte("\"(unknown CipherMode)\""), nil
 }
+

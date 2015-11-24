@@ -1,7 +1,5 @@
 package dkeyczar
-
 import "errors"
-
 var (
 	ErrBadVersion          = errors.New("keyczar: bad version number in header")
 	ErrBase64Decoding      = errors.New("keyczar: error during base64 decode")

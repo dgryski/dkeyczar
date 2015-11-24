@@ -1,25 +1,17 @@
 /*
 Package dkeyczar is a simplified wrapper around Go's native cryptography libraries.
-
 It is modeled after and compatible with Google's Keyczar library (http://keyczar.org)
-
 Sample usage is:
 	reader := NewFileReader("/path/to/keys")
 	crypter := NewCrypter(reader)
 	ciphertext := crypter.Encrypt(plaintext)
-
 Decryption, Signing and Verification use the same minimal API.
-
 Encrypted data and signatures are encoded with web-safe base64.
-
 */
 package dkeyczar
-
 import "io"
-
 const kzVersion = uint8(0)
 const kzHeaderLength = 5
-
 type kHeader struct {
 	version uint8
 	keyid   [4]uint8
@@ -30,7 +22,6 @@ func makeHeader(key keydata) []byte {
 	b := make([]byte, kzHeaderLength)
 	b[0] = kzVersion
 	copy(b[1:], key.KeyID())
-
 	return b
 }
 
@@ -93,3 +84,4 @@ func decodeHeader(lookup lookupKeyIDer, header []byte) ([]keydata, error) {
 	}
 	return k, nil
 }
+

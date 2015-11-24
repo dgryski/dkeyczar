@@ -1,21 +1,14 @@
 /*
 Package dkeyczar is a simplified wrapper around Go's native cryptography libraries.
-
 It is modeled after and compatible with Google's Keyczar library (http://keyczar.org)
-
 Sample usage is:
 	reader := NewFileReader("/path/to/keys")
 	crypter := NewCrypter(reader)
 	ciphertext := crypter.Encrypt(plaintext)
-
 Decryption, Signing and Verification use the same minimal API.
-
 Encrypted data and signatures are encoded with web-safe base64.
-
 */
-
 package dkeyczar
-
 import (
 	"bytes"
 	"compress/gzip"
@@ -23,22 +16,17 @@ import (
 	"encoding/base64"
 	"io"
 )
-
 type KeyczarEncoding int
-
 const (
 	BASE64W     KeyczarEncoding = iota // Encode the output with web-safe base64 [default]
 	NO_ENCODING                        // Do not encode the output
 )
-
 type KeyczarCompression int
-
 const (
 	NO_COMPRESSION KeyczarCompression = iota // Do not compress the plaintext before encrypting [default]
 	GZIP                                     // Use gzip compression
 	ZLIB                                     // Use zlib compression
 )
-
 type KeyczarCompressionController interface {
 	// Set the current compression level
 	SetCompression(compression KeyczarCompression)
@@ -163,7 +151,6 @@ func (cc *compressionController) SetCompression(compression KeyczarCompression) 
 
 // return 'data' compressed based on the value of the 'compression' field
 func (cc *compressionController) compress(data []byte) []byte {
-
 	switch cc.compression {
 	case NO_COMPRESSION:
 		return data
@@ -180,7 +167,6 @@ func (cc *compressionController) compress(data []byte) []byte {
 		w.Close()
 		return b.Bytes()
 	}
-
 	panic("not reached")
 }
 
@@ -198,11 +184,9 @@ func (cc *compressionController) compressWriter(data io.Writer) io.WriteCloser {
 
 // return 'data' decompressed based on the value of the 'compression' field
 func (cc *compressionController) decompress(data []byte) ([]byte, error) {
-
 	switch cc.compression {
 	case NO_COMPRESSION:
 		return data, nil
-
 	case GZIP:
 		b := bytes.NewBuffer(data)
 		r, err := gzip.NewReader(b)
@@ -224,7 +208,6 @@ func (cc *compressionController) decompress(data []byte) ([]byte, error) {
 		r.Close()
 		return (&br).Bytes(), nil
 	}
-
 	panic("not reached")
 }
 
@@ -246,5 +229,5 @@ func (cc *compressionController) decompressReader(data io.ReadCloser) (io.ReadCl
 		return nestReaderCloser(r, data), nil
 	}
 	panic("unknown compressor")
-
 }
+

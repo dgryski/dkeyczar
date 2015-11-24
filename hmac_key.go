@@ -1,5 +1,4 @@
 package dkeyczar
-
 import (
 	"bytes"
 	"crypto/hmac"
@@ -10,10 +9,8 @@ import (
 	"hash"
 	"io"
 )
-
 // we only support one hmac size for the moment
 const hmacSigLength = 20
-
 type hmacKeyJSON struct {
 	HMACKeyString string `json:"hmacKeyString"`
 	Size          uint   `json:"size"`
@@ -26,45 +23,34 @@ type hmacKey struct {
 
 func generateHMACKey() (*hmacKey, error) {
 	hk := new(hmacKey)
-
 	hk.key = make([]byte, T_HMAC_SHA1.defaultSize()/8)
 	io.ReadFull(rand.Reader, hk.key)
-
 	return hk, nil
 }
 
 func newHMACKeyFromJSON(s []byte) (*hmacKey, error) {
-
 	hmackey := new(hmacKey)
 	hmacjson := new(hmacKeyJSON)
-
 	var err error
 	err = json.Unmarshal(s, &hmacjson)
 	if err != nil {
 		return nil, err
 	}
-
 	if !T_HMAC_SHA1.isAcceptableSize(hmacjson.Size) {
 		return nil, ErrInvalidKeySize
 	}
-
 	hmackey.key, err = decodeWeb64String(hmacjson.HMACKeyString)
 	if err != nil {
 		return nil, ErrBase64Decoding
 	}
-
 	return hmackey, nil
-
 }
 
 func newHMACJSONFromKey(hm *hmacKey) *hmacKeyJSON {
 	hmacjson := new(hmacKeyJSON)
-
 	hmacjson.HMACKeyString = encodeWeb64String(hm.key)
 	hmacjson.Size = uint(len(hm.key)) * 8
-
 	return hmacjson
-
 }
 
 func (hm *hmacKey) ToKeyJSON() []byte {
@@ -74,16 +60,12 @@ func (hm *hmacKey) ToKeyJSON() []byte {
 }
 
 func (hm *hmacKey) KeyID() []byte {
-
 	if len(hm.id) != 0 {
 		return hm.id
 	}
-
 	h := sha1.New()
 	h.Write(hm.key)
-
 	hm.id = h.Sum(nil)[:4]
-
 	return hm.id
 }
 
@@ -135,7 +117,6 @@ func (hm *hmacKey) Verify(msg []byte, signature []byte) (bool, error) {
 	sha1hmac := hmac.New(sha1.New, hm.key)
 	sha1hmac.Write(msg)
 	sig := sha1hmac.Sum(nil)
-
 	return subtle.ConstantTimeCompare(sig, signature) == 1, nil
 }
 
@@ -187,3 +168,4 @@ func (hm *hmacVerifyReader) Close() error {
 	}
 	return ErrInvalidSignature
 }
+

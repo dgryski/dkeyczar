@@ -1,61 +1,47 @@
 package dkeyczar
-
 import (
 	"bytes"
 	"io"
 	"testing"
 	"time"
 )
-
 const INPUT = "This is some test data"
-
 const TESTDATA = "testdata/existing-data/cpp/"
-
 func testEncrypt(t *testing.T, keytype string, f KeyReader) {
-
 	kz, err := NewEncrypter(f)
-
 	if err != nil {
 		t.Fatal("failed to load key for keytype " + keytype + ": " + err.Error())
 	}
-
 	c, err := kz.Encrypt([]byte(INPUT))
 	if err != nil {
 		t.Fatal("failed to encrypt key for keytype " + keytype + ": " + err.Error())
 	}
-
 	crypter, err := NewCrypter(f)
 	if err != nil {
 		t.Fatal("failed to create crypter with keyreader for keytype " + keytype + ": " + err.Error())
 	}
-
 	p, err := crypter.Decrypt(c)
 	if err != nil {
 		t.Fatal("failed to decrypt keytype " + keytype + ": " + err.Error())
 	}
-
 	if string(p) != INPUT {
 		t.Error(keytype + " encryption failed")
 	}
 }
 
 func testEncryptDecrypt(t *testing.T, keytype string, f KeyReader) {
-
 	kz, err := NewCrypter(f)
 	if err != nil {
 		t.Fatal("failed to create crypter keytype " + keytype + ": " + err.Error())
 	}
-
 	c, err := kz.Encrypt([]byte(INPUT))
 	if err != nil {
 		t.Fatal("failed to encrypt key for keytype " + keytype + ": " + err.Error())
 	}
-
 	p, err := kz.Decrypt(c)
 	if err != nil {
 		t.Fatal("failed to decrypt keytype " + keytype + ": " + err.Error())
 	}
-
 	if string(p) != INPUT {
 		t.Error(keytype + " decrypt(encrypt(p)) != p")
 	}
@@ -76,7 +62,6 @@ func testEncryptDecryptReader(t *testing.T, keytype string, f KeyReader) {
 	if err := r.Close(); err != nil {
 		t.Fatal("Could not end writting to cryptor", err)
 	}
-
 	//Direct Dec
 	directout, err := kz.Decrypt(enc.String())
 	if err != nil {
@@ -85,42 +70,34 @@ func testEncryptDecryptReader(t *testing.T, keytype string, f KeyReader) {
 	if !bytes.Equal(directout, []byte(INPUT)) {
 		t.Fatal("Direct decode failed: len %d vs %d", len(directout), len(INPUT))
 	}
-
 	out, _, err := kz.DecryptReader(enc, 0)
 	if err != nil {
 		t.Fatal("failed to decrypt keytype " + keytype + ": " + err.Error())
 	}
-
 	outData := bytes.NewBuffer(nil)
 	io.Copy(outData, out)
 	if err := out.Close(); err != nil {
 		t.Fatal("Could not properly decode message", err)
 	}
-
 	if outData.String() != INPUT {
 		t.Error(keytype + " decrypt(encrypt(p)) != p")
 	}
 }
 
 func testVerify(t *testing.T, keytype string, f KeyReader) {
-
 	kz, err := NewVerifier(f)
 	if err != nil {
 		t.Fatal("failed to create verifier for keytype " + keytype + ": " + err.Error())
 	}
-
 	for _, out := range []string{"1.out", "2.out"} {
-
 		c, err := slurp(TESTDATA + keytype + "/" + out)
 		if err != nil {
 			t.Fatal("failed to load  " + out + " for keytype " + keytype + ": " + err.Error())
 		}
-
 		goodsig, _ := kz.Verify([]byte(INPUT), c)
 		if err != nil {
 			t.Fatal("failed to verify " + out + " for keytype " + keytype + ": " + err.Error())
 		}
-
 		if !goodsig {
 			t.Error("failed signature for " + keytype + "/" + out)
 		}
@@ -128,125 +105,98 @@ func testVerify(t *testing.T, keytype string, f KeyReader) {
 }
 
 func testSignVerify(t *testing.T, keytype string, f KeyReader) {
-
 	kz, err := NewSigner(f)
 	if err != nil {
 		t.Fatal("failed to create signer for keytype " + keytype + ": " + err.Error())
 	}
-
 	s, err := kz.Sign([]byte(INPUT))
 	if err != nil {
 		t.Fatal("failed to sign for keytype " + keytype + ": " + err.Error())
 	}
-
 	kv, err := NewVerifier(f)
 	if err != nil {
 		t.Fatal("failed to create verifier for keytype " + keytype + ": " + err.Error())
 	}
-
 	b, _ := kv.Verify([]byte(INPUT), s)
 	if err != nil {
 		t.Fatal("failed to verify for keytype " + keytype + ": " + err.Error())
 	}
-
 	if !b {
 		t.Error(keytype + " verify failed")
 	}
-
 	s, err = kz.AttachedSign([]byte(INPUT), []byte{0, 1, 2, 3, 4, 5, 6, 7})
 	if err != nil {
 		t.Fatal("failed to attachedsign for keytype " + keytype + ": " + err.Error())
 	}
-
 	msg, _ := kv.AttachedVerify(s, []byte{0, 1, 2, 3, 4, 5, 6, 7})
 	if err != nil {
 		t.Fatal("failed to attachedverify for keytype " + keytype + ": " + err.Error())
 	}
-
 	if msg == nil || !bytes.Equal(msg, []byte(INPUT)) {
 		t.Error(keytype + " attachedverify failed")
 	}
-
 	s, err = kz.AttachedSign([]byte(INPUT), nil)
 	if err != nil {
 		t.Fatal("failed to attachedsign (no nonce) for keytype " + keytype + ": " + err.Error())
 	}
-
 	msg, _ = kv.AttachedVerify(s, nil)
 	if err != nil {
 		t.Fatal("failed to attachedverify (no nonce) for keytype " + keytype + ": " + err.Error())
 	}
-
 	if msg == nil || !bytes.Equal(msg, []byte(INPUT)) {
 		t.Error(keytype + " attachedverify (no nonce) failed")
 	}
-
 	futureMillis := int64(2*time.Minute) + time.Now().UnixNano()/int64(time.Millisecond)
-
 	s, err = kz.TimeoutSign([]byte(INPUT), futureMillis)
 	if err != nil {
 		t.Fatal("failed to timeoutSign(future) for keytype " + keytype + ": " + err.Error())
 	}
-
 	b, err = kv.TimeoutVerify([]byte(INPUT), s)
 	if err != nil {
 		t.Fatal("failed to timeoutverify(future) for keytype " + keytype + ": " + err.Error())
 	}
-
 	if !b {
 		t.Error(keytype + " timeoutverify(future) failed")
 	}
-
 	pastMillis := int64(-2*time.Minute) + time.Now().UnixNano()/int64(time.Millisecond)
-
 	s, err = kz.TimeoutSign([]byte(INPUT), pastMillis)
 	if err != nil {
 		t.Fatal("failed to timeoutSign(past) for keytype " + keytype + ": " + err.Error())
 	}
-
 	b, err = kv.TimeoutVerify([]byte(INPUT), s)
 	if err != nil {
 		t.Fatal("failed to timeoutverify(past) for keytype " + keytype + ": " + err.Error())
 	}
-
 	if b {
 		t.Error(keytype + " timeoutverify(past) didn't fail!")
 	}
-
 	s, err = kz.UnversionedSign([]byte(INPUT))
 	if err != nil {
 		t.Fatal("failed to unversionedsign for keytype " + keytype + ": " + err.Error())
 	}
-
 	b, err = kv.UnversionedVerify([]byte(INPUT), s)
 	if err != nil {
 		t.Fatal("failed to unversionedverify for keytype " + keytype + ": " + err.Error())
 	}
-
 	if !b {
 		t.Error(keytype + " unversionedverify failed")
 	}
 }
 
 func testDecrypt(t *testing.T, keytype string, f KeyReader) {
-
 	kz, err := NewCrypter(f)
 	if err != nil {
 		t.Fatal("failed to create crypter for keytype " + keytype + ": " + err.Error())
 	}
-
 	for _, out := range []string{"1.out", "2.out"} {
-
 		c, err := slurp(TESTDATA + keytype + "/" + out)
 		if err != nil {
 			t.Fatal("failed slurp " + out + " for keytype " + keytype + ": " + err.Error())
 		}
-
 		p, err := kz.Decrypt(c)
 		if err != nil {
 			t.Fatal("failed decrypt for keytype " + keytype + ": " + err.Error())
 		}
-
 		if string(p) != INPUT {
 			t.Error("decrypt failed for " + keytype + "/" + out)
 		}
@@ -343,15 +293,11 @@ func TestRSAPEMImportSign(t *testing.T) {
 // commented until I get around to pointing this at a cert that exists elsewhere than on my machine
 /*
 func TestRSACertImport(t *testing.T) {
-
 	r, err := ImportRSAPublicKeyFromCertificateForVerify("thawte.crt")
-
-
 	kz, err := NewVerifier(r)
-
 }
-*/
 
+*/
 func TestGeneratedAESEncryptDecrypt(t *testing.T) {
 	k, _ := generateAESKey(0)
 	r := newImportedAESKeyReader(k)
@@ -366,12 +312,11 @@ func TestGeneratedRSA(t *testing.T) {
 	k := generateRSAKey()
 	r := newImportedRSAPrivateKeyReader(&k.key, P_DECRYPT_AND_ENCRYPT)
 	testEncryptDecrypt(t, "rsa generated", r)
-
 	r = newImportedRSAPrivateKeyReader(&k.key, P_SIGN_AND_VERIFY)
 	testSignVerify(t, "rsa generated", r)
 }
-*/
 
+*/
 func TestGeneratedDSA(t *testing.T) {
 	k, _ := generateDSAKey(0)
 	r := newImportedDSAPrivateKeyReader(&k.key)
@@ -396,138 +341,109 @@ func TestPBEReader(t *testing.T) {
 }
 
 func TestSessionEncryptDecrypt(t *testing.T) {
-
 	f := NewFileReader(TESTDATA + "rsa")
-
 	kz, err := NewCrypter(f)
 	if err != nil {
 		t.Fatal("failed to create crypter with rsa: " + err.Error())
 	}
-
 	sess1, keys, err := NewSessionEncrypter(kz)
 	if err != nil {
 		t.Fatal("failed to create session encrypter: " + err.Error())
 	}
-
 	c, err := sess1.Encrypt([]byte(INPUT))
 	if err != nil {
 		t.Fatal("failed to session encrypt: " + err.Error())
 	}
-
 	sess2, err := NewSessionDecrypter(kz, keys)
 	if err != nil {
 		t.Fatal("failed to create session decrypter: " + err.Error())
 	}
-
 	p, err := sess2.Decrypt(c)
 	if err != nil {
 		t.Fatal("failed to session decrypt: " + err.Error())
 	}
-
 	if string(p) != INPUT {
 		t.Error("session decrypt(encrypt(p)) != p")
 	}
 }
 
 func TestEncryptDecryptCompressed(t *testing.T) {
-
 	f := NewFileReader(TESTDATA + "aes")
-
 	longinput := INPUT + INPUT + INPUT + INPUT + INPUT
 	longinput = longinput + INPUT + INPUT + INPUT + INPUT + INPUT
 	longinput = longinput + INPUT + INPUT + INPUT + INPUT + INPUT
 	longinput = longinput + INPUT + INPUT + INPUT + INPUT + INPUT
 	longinput = longinput + INPUT + INPUT + INPUT + INPUT + INPUT
 	longinput = longinput + INPUT + INPUT + INPUT + INPUT + INPUT
-
 	kz, err := NewCrypter(f)
 	if err != nil {
 		t.Fatal("failed to create crypter for aes: " + err.Error())
 	}
-
 	c, err := kz.Encrypt([]byte(longinput))
 	if err != nil {
 		t.Fatal("failed to encrypt: " + err.Error())
 	}
-
 	uncompressedLen := len(c)
 	p, err := kz.Decrypt(c)
 	if err != nil {
 		t.Fatal("failed to decrypt: " + err.Error())
 	}
-
 	if string(p) != longinput {
 		t.Error("aes decrypt(encrypt(p)) != p")
 	}
-
 	for _, compression := range []struct {
 		kc    KeyczarCompression
 		ctype string
 	}{{GZIP, "gzip"}, {ZLIB, "zlib"}} {
-
 		kz.SetCompression(compression.kc)
 		c, err = kz.Encrypt([]byte(longinput))
 		if err != nil {
 			t.Fatal("failed to encrypt with compression " + compression.ctype)
 		}
 		compressedLen := len(c)
-
 		p, err = kz.Decrypt(c)
 		if err != nil {
 			t.Fatal("failed to decrypt with compression " + compression.ctype)
 		}
-
 		if string(p) != longinput {
 			t.Error(compression.ctype + " raw decrypt(encrypt(p)) != p")
 		}
-
 		if compressedLen >= uncompressedLen {
 			t.Error(compression.ctype + " failed to compress")
 		}
-
 	}
-
 }
 
 func TestSignVerifyBase64(t *testing.T) {
-
 	f := NewFileReader(TESTDATA + "dsa")
-
 	kz, err := NewSigner(f)
 	if err != nil {
 		t.Fatal("failed to create signer: " + err.Error())
 	}
-
 	s, err := kz.Sign([]byte(INPUT))
 	if err != nil {
 		t.Fatal("failed to sign: " + err.Error())
 	}
-
 	if s[0] != 'A' { // first byte will 0, so first byte of base64 will be 'A'
 		t.Error("bad version byte for base64 signature")
 	}
-
 	kz.SetEncoding(NO_ENCODING)
 	s, err = kz.Sign([]byte(INPUT))
 	if err != nil {
 		t.Fatal("failed to sign with no encoding: " + err.Error())
 	}
-
 	if s[0] != 0 {
 		t.Error("bad version byte for raw signature")
 	}
-
 	kv, err := NewVerifier(f)
 	if err != nil {
 		t.Fatal("failed to create verifier")
 	}
 	kv.SetEncoding(NO_ENCODING)
-
 	b, err := kv.Verify([]byte(INPUT), s)
 	if err != nil {
 		t.Fatal("failed to verify with no encoding: " + err.Error())
 	}
-
 	if !b {
 		t.Error("dsa raw encoding verify failed")
 	}
@@ -546,7 +462,6 @@ var pkcs5padtests = []struct {
 }
 
 func TestPKCS5Pad(t *testing.T) {
-
 	for _, pkcs := range pkcs5padtests {
 		unpad := make([]byte, len(pkcs.s))
 		copy(unpad, pkcs.s)
@@ -554,26 +469,20 @@ func TestPKCS5Pad(t *testing.T) {
 		if bytes.Compare(pkcs.r, r) != 0 {
 			t.Error("pkcs5pad: got: ", r, "expected: ", pkcs.r)
 		}
-
 		u := pkcs5unpad(r)
 		if bytes.Compare(unpad, u) != 0 {
 			t.Error("pkcs5unpad: got: ", u, "expected: ", unpad)
 		}
-
 	}
 }
 
 func TestLenPrefixPack(t *testing.T) {
-
 	b := lenPrefixPack([]byte{4, 5, 6, 2, 1}, []byte{1, 4, 2, 8, 5, 7}, []byte{1, 2, 3, 4, 5, 6, 7, 8, 9}, []byte{1})
 	arrays := lenPrefixUnpack(b)
-
 	// FIXME: make this test more complete
-
 	if len(arrays[3]) != 1 || arrays[3][0] != 1 {
 		t.Error("unpack error")
 	}
-
 }
 
 // FIXME: DecodeWeb64String / EncodeWeb64String

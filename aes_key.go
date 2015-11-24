@@ -2,16 +2,12 @@ package dkeyczar
 
 /*
 This file handles all the actual cryptographic routines and key handling.
-
 There are two main types in use: fooKey and fooKeyJSON
-
 The fooKeyJSON match the on-disk representation of stored keys.  The fooKey
 store just the key material.  There are routines for converting back and forth
 between these two types.
-
 There are types for AES+HMAC, HMAC, RSA and RSA Public, DSA and DSA Public.
 */
-
 import (
 	"bytes"
 	"crypto/aes"
@@ -38,21 +34,15 @@ type aesKey struct {
 
 func generateAESKey(size uint) (*aesKey, error) {
 	ak := new(aesKey)
-
 	if size == 0 {
 		size = T_AES.defaultSize()
 	}
-
 	if !T_AES.isAcceptableSize(size) {
 		return nil, ErrInvalidKeySize
 	}
-
 	ak.key = make([]byte, size/8)
-
 	io.ReadFull(rand.Reader, ak.key)
-
 	ak.hmac, _ = generateHMACKey()
-
 	return ak, nil
 }
 
@@ -65,39 +55,28 @@ func (ak *aesKey) packedKeys() []byte {
 // this is used for session encryption
 // unpack the b array and return a new aes+hmac struct
 func newAESFromPackedKeys(b []byte) (*aesKey, error) {
-
 	keys := lenPrefixUnpack(b)
-
 	if len(keys) != 2 || !T_AES.isAcceptableSize(uint(len(keys[0]))*8) || !T_HMAC_SHA1.isAcceptableSize(uint(len(keys[1]))*8) {
 		return nil, ErrInvalidKeySize
 	}
-
 	ak := new(aesKey)
 	ak.hmac = &hmacKey{key: keys[1]}
-
 	// FIXME: make+copy? I think we're safe if lPU gives us 'fresh' data
 	ak.key = keys[0]
 	ak.hmac.key = keys[1]
-
 	return ak, nil
 }
 
 func (ak *aesKey) KeyID() []byte {
-
 	if len(ak.id) != 0 {
 		return ak.id
 	}
-
 	h := sha1.New()
-
 	binary.Write(h, binary.BigEndian, uint32(len(ak.key)))
 	h.Write(ak.key)
 	h.Write(ak.hmac.key)
-
 	ak.id = h.Sum(nil)[:4]
-
 	return ak.id
-
 }
 
 func newAESKeyFromJSON(s []byte) (*aesKey, error) {
@@ -128,15 +107,12 @@ func newAESKeyFromJSON(s []byte) (*aesKey, error) {
 
 func newAESJSONFromKey(key *aesKey) *aesKeyJSON {
 	// inverse of code with newAESKeys
-
 	aesjson := new(aesKeyJSON)
-
 	aesjson.AESKeyString = encodeWeb64String(key.key)
 	aesjson.Size = uint(len(key.key)) * 8
 	aesjson.HMACKey.HMACKeyString = encodeWeb64String(key.hmac.key)
 	aesjson.HMACKey.Size = uint(len(key.hmac.key)) * 8
 	aesjson.Mode = cmCBC
-
 	return aesjson
 }
 
@@ -193,19 +169,12 @@ func (ak *aesKey) EncryptWriter(sink io.Writer) (io.WriteCloser, error) {
 
 /*
 We do a bunch of array splicing below.
-
 The data array should contain the following fields:
-
 |header|iv|ciphertext|signature|
-
 with lengths
-
 |kzHeaderLength|aes.BlockSize|<unknown>|hmacSigLength|
-
 The expressions could probably be simplified.
-
 */
-
 func (ak *aesKey) Decrypt(data []byte) ([]byte, error) {
 	if len(data) < kzHeaderLength+aes.BlockSize+hmacSigLength {
 		return nil, ErrShortCiphertext

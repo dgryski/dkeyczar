@@ -1,5 +1,4 @@
 package dkeyczar
-
 import (
 	"bytes"
 	"crypto/aes"
@@ -15,10 +14,8 @@ import (
 	"io/ioutil"
 	"os"
 	"strconv"
-
 	"golang.org/x/crypto/pbkdf2"
 )
-
 // KeyReader provides an interface for returning information about a particular key.
 type KeyReader interface {
 	// GetMetadata returns the meta information for this key
@@ -34,14 +31,12 @@ type fileReader struct {
 // NewFileReader returns a KeyReader that reads a keyczar key from a directory on the file system.
 func NewFileReader(location string) KeyReader {
 	r := new(fileReader)
-
 	// make sure 'location' ends with our path separator
 	if location[len(location)-1] == os.PathSeparator {
 		r.location = location
 	} else {
 		r.location = location + string(os.PathSeparator)
 	}
-
 	return r
 }
 
@@ -69,10 +64,8 @@ type encryptedReader struct {
 // NewEncryptedReader returns a KeyReader which decrypts the key returned by the wrapped 'reader'.
 func NewEncryptedReader(reader KeyReader, crypter Crypter) KeyReader {
 	r := new(encryptedReader)
-
 	r.crypter = crypter
 	r.reader = reader
-
 	return r
 }
 
@@ -84,25 +77,19 @@ func (r *encryptedReader) GetMetadata() (string, error) {
 // decrypt and return an encrypted key
 func (r *encryptedReader) GetKey(version int) (string, error) {
 	s, err := r.reader.GetKey(version)
-
 	if err != nil {
 		return "", err
-
 	}
-
 	b, err := r.crypter.Decrypt(s)
 	if err != nil {
 		return "", err
 	}
-
 	return string(b), nil
 }
 
 // NewPBEReader returns a KeyReader which decrypts keys encrypted with password-based encryption
 func NewPBEReader(reader KeyReader, password []byte) KeyReader {
-
 	pbe := NewPBECrypter(password)
-
 	return NewEncryptedReader(reader, pbe)
 }
 
@@ -185,17 +172,13 @@ func (c *pbeCrypter) createAESCipher() (pbeKeyJSON, cipher.BlockMode, error) {
 	pbejson.Cipher = "AES128"
 	pbejson.HMAC = "HMAC_SHA1"
 	pbejson.IterationCount = 4096
-
 	salt := make([]byte, 16)
 	io.ReadFull(rand.Reader, salt)
 	pbejson.Salt = encodeWeb64String(salt)
-
 	iv := make([]byte, 16)
 	io.ReadFull(rand.Reader, iv)
 	pbejson.Iv = encodeWeb64String(iv)
-
 	keybytes := pbkdf2.Key(c.password, salt, pbejson.IterationCount, 128/8, sha1.New)
-
 	aesCipher, err := aes.NewCipher(keybytes)
 	return pbejson, cipher.NewCBCEncrypter(aesCipher, iv), err
 }
@@ -205,7 +188,6 @@ func (c *pbeCrypter) Encrypt(plaintext []byte) (string, error) {
 	if err != nil {
 		return "", err
 	}
-
 	// make sure plaintext is multiple of 16 bytes, padded with spaces
 	needed := 16 - len(plaintext)%16
 	p := make([]byte, len(plaintext)+needed)
@@ -213,17 +195,13 @@ func (c *pbeCrypter) Encrypt(plaintext []byte) (string, error) {
 	for i := len(plaintext); i < len(p); i++ {
 		p[i] = ' '
 	}
-
 	ciphertext := make([]byte, len(p))
 	aesCipher.CryptBlocks(ciphertext, p)
-
 	pbejson.Key = encodeWeb64String(ciphertext)
-
 	j, err := json.Marshal(pbejson)
 	if err != nil {
 		return "", err
 	}
-
 	return string(j), nil
 }
 
@@ -246,9 +224,7 @@ func newImportedRSAPrivateKeyReader(key *rsa.PrivateKey, purpose keyPurpose) Key
 	r := new(importedRSAPrivateKeyReader)
 	kv := keyVersion{0, S_PRIMARY, false}
 	r.km = keyMeta{"Imported RSA Private Key", T_RSA_PRIV, purpose, false, []keyVersion{kv}}
-
 	r.rsajson = *newRSAJSONFromKey(key)
-
 	return r
 }
 
@@ -267,47 +243,37 @@ func (r *importedRSAPrivateKeyReader) GetKey(version int) (string, error) {
 
 // load and return an rsa private key from a PEM file specified in 'location'
 func getRSAKeyFromPEM(location string) (*rsa.PrivateKey, error) {
-
 	buf, err := slurp(location)
 	if err != nil {
 		return nil, err
 	}
-
 	block, _ := pem.Decode([]byte(buf))
-
 	priv, err := x509.ParsePKCS1PrivateKey(block.Bytes)
 	if err != nil {
 		return nil, err
 	}
-
 	return priv, nil
 }
 
 // ImportRSAKeyFromPEMForSigning returns a KeyReader for the RSA Private Key contained in the PEM file specified in the location.
 // The resulting key can be used for signing and verification only
 func ImportRSAKeyFromPEMForSigning(location string) (KeyReader, error) {
-
 	priv, err := getRSAKeyFromPEM(location)
 	if err != nil {
 		return nil, err
 	}
-
 	r := newImportedRSAPrivateKeyReader(priv, P_SIGN_AND_VERIFY)
-
 	return r, nil
 }
 
 // ImportRSAKeyFromPEMForCrypt returns a KeyReader for the RSA Private Key contained in the PEM file specified in the location.
 // The resulting key can be used for encryption and decryption only
 func ImportRSAKeyFromPEMForCrypt(location string) (KeyReader, error) {
-
 	priv, err := getRSAKeyFromPEM(location)
 	if err != nil {
 		return nil, err
 	}
-
 	r := newImportedRSAPrivateKeyReader(priv, P_DECRYPT_AND_ENCRYPT)
-
 	return r, nil
 }
 
@@ -322,9 +288,7 @@ func newImportedRSAPublicKeyReader(key *rsa.PublicKey, purpose keyPurpose) KeyRe
 	r := new(importedRSAPublicKeyReader)
 	kv := keyVersion{0, S_PRIMARY, false}
 	r.km = keyMeta{"Imported RSA Public Key", T_RSA_PUB, purpose, false, []keyVersion{kv}}
-
 	r.rsajson = *newRSAPublicJSONFromKey(key)
-
 	return r
 }
 
@@ -343,102 +307,82 @@ func (r *importedRSAPublicKeyReader) GetKey(version int) (string, error) {
 
 // load and return an rsa public key from a PEM file specified in 'location'
 func getRSAPublicKeyFromPEM(location string) (*rsa.PublicKey, error) {
-
 	buf, err := slurp(location)
 	if err != nil {
 		return nil, err
 	}
-
 	block, _ := pem.Decode([]byte(buf))
-
 	pub, err := x509.ParsePKIXPublicKey(block.Bytes)
 	if err != nil {
 		return nil, err
 	}
-
 	rsapub, ok := pub.(*rsa.PublicKey)
-
 	if !ok {
 		// FIXME: lousy error message :(
 		return nil, ErrUnsupportedType
 	}
-
 	return rsapub, nil
 }
 
 // ImportRSAPublicKeyFromPEMForEncryption returns a KeyReader for the RSA Public Key contained in the PEM file specified in the location.
 // The resulting key can be used for encryption only.
 func ImportRSAPublicKeyFromPEMForEncryption(location string) (KeyReader, error) {
-
 	rsapub, err := getRSAPublicKeyFromPEM(location)
 	if err != nil {
 		return nil, err
 	}
 	r := newImportedRSAPublicKeyReader(rsapub, P_ENCRYPT)
-
 	return r, nil
 }
 
 // ImportRSAPublicKeyFromPEMForVerify returns a KeyReader for the RSA Public Key contained in the PEM file specified in the location.
 // The resulting key can be used for verification only.
 func ImportRSAPublicKeyFromPEMForVerify(location string) (KeyReader, error) {
-
 	rsapub, err := getRSAPublicKeyFromPEM(location)
 	if err != nil {
 		return nil, err
 	}
 	r := newImportedRSAPublicKeyReader(rsapub, P_VERIFY)
-
 	return r, nil
 }
 
 func getRSAPublicKeyFromCertificate(location string) (*rsa.PublicKey, error) {
-
 	buf, err := slurp(location)
 	if err != nil {
 		return nil, err
 	}
-
 	block, _ := pem.Decode([]byte(buf))
-
 	cert, err := x509.ParseCertificate(block.Bytes)
 	if err != nil {
 		return nil, err
 	}
-
 	rsapub, ok := cert.PublicKey.(*rsa.PublicKey)
-
 	if !ok {
 		// FIXME: lousy error message :(
 		return nil, ErrUnsupportedType
 	}
-
 	return rsapub, nil
 }
 
 // ImportRSAPublicKeyFromCertificateForVerify returns a KeyReader for the RSA Public Key contained in the certificate file specified in the location.
 // The resulting key can be used for verification only.
 func ImportRSAPublicKeyFromCertificateForVerify(location string) (KeyReader, error) {
-
 	rsapub, err := getRSAPublicKeyFromCertificate(location)
 	if err != nil {
 		return nil, err
 	}
 	r := newImportedRSAPublicKeyReader(rsapub, P_VERIFY)
-
 	return r, nil
 }
 
 // ImportRSAPublicKeyFromCertificateForCrypt returns a KeyReader for the RSA Public Key contained in the certificate file specified in the location.
 // The resulting key can be used for encryption only.
 func ImportRSAPublicKeyFromCertificateForCrypt(location string) (KeyReader, error) {
-
 	rsapub, err := getRSAPublicKeyFromCertificate(location)
 	if err != nil {
 		return nil, err
 	}
 	r := newImportedRSAPublicKeyReader(rsapub, P_ENCRYPT)
-
 	return r, nil
 }
 
@@ -453,9 +397,7 @@ func newImportedAESKeyReader(key *aesKey) KeyReader {
 	r := new(importedAESKeyReader)
 	kv := keyVersion{0, S_PRIMARY, false}
 	r.km = keyMeta{"Imported AES Key", T_AES, P_DECRYPT_AND_ENCRYPT, false, []keyVersion{kv}}
-
 	r.aesjson = *newAESJSONFromKey(key)
-
 	return r
 }
 
@@ -483,9 +425,7 @@ func newImportedDSAPrivateKeyReader(key *dsa.PrivateKey) KeyReader {
 	r := new(importedDSAPrivateKeyReader)
 	kv := keyVersion{0, S_PRIMARY, false}
 	r.km = keyMeta{"Imported DSA Private Key", T_DSA_PRIV, P_SIGN_AND_VERIFY, false, []keyVersion{kv}}
-
 	r.dsajson = *newDSAJSONFromKey(key)
-
 	return r
 }
 
@@ -501,3 +441,4 @@ func (r *importedDSAPrivateKeyReader) GetKey(version int) (string, error) {
 	b, err := json.Marshal(r.dsajson)
 	return string(b), err
 }
+

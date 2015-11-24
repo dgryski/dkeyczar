@@ -1,5 +1,4 @@
 package dkeyczar
-
 import (
 	"bytes"
 	"encoding/base64"
@@ -7,7 +6,6 @@ import (
 	"io"
 	"math/big"
 )
-
 func bigIntBytes(value *big.Int) []byte {
 	absbytes := value.Bytes()
 	if absbytes[0]&0x80 != 0x00 {
@@ -159,3 +157,4 @@ func (n nestedReaderCloser) Close() error {
 func nestReaderCloser(r io.ReadCloser, c io.Closer) io.ReadCloser {
 	return nestedReaderCloser{r, c}
 }
+
