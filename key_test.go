@@ -1,12 +1,15 @@
 package dkeyczar
+
 import (
 	"bytes"
 	"io"
 	"testing"
 	"time"
 )
+
 const INPUT = "This is some test data"
 const TESTDATA = "testdata/existing-data/cpp/"
+
 func testEncrypt(t *testing.T, keytype string, f KeyReader) {
 	kz, err := NewEncrypter(f)
 	if err != nil {
@@ -52,35 +55,40 @@ func testEncryptDecryptReader(t *testing.T, keytype string, f KeyReader) {
 	if err != nil {
 		t.Fatal("failed to create crypter keytype " + keytype + ": " + err.Error())
 	}
-	data := bytes.NewBuffer([]byte(INPUT))
-	enc := bytes.NewBuffer(nil)
-	r, err := kz.EncryptWriter(enc)
-	if err != nil {
-		t.Fatal("failed to encrypt key for keytype " + keytype + ": " + err.Error())
-	}
-	io.Copy(r, data)
-	if err := r.Close(); err != nil {
-		t.Fatal("Could not end writting to cryptor", err)
-	}
-	//Direct Dec
-	directout, err := kz.Decrypt(enc.String())
-	if err != nil {
-		t.Fatal("Direct Decode failed", err)
-	}
-	if !bytes.Equal(directout, []byte(INPUT)) {
-		t.Fatal("Direct decode failed: len %d vs %d", len(directout), len(INPUT))
-	}
-	out, _, err := kz.DecryptReader(enc, 0)
-	if err != nil {
-		t.Fatal("failed to decrypt keytype " + keytype + ": " + err.Error())
-	}
-	outData := bytes.NewBuffer(nil)
-	io.Copy(outData, out)
-	if err := out.Close(); err != nil {
-		t.Fatal("Could not properly decode message", err)
-	}
-	if outData.String() != INPUT {
-		t.Error(keytype + " decrypt(encrypt(p)) != p")
+	maxSize := 256
+	source := make([]byte, maxSize)
+	for i := 5; i < maxSize; i++ {
+		testInput := source[:i]
+		data := bytes.NewBuffer(testInput)
+		enc := bytes.NewBuffer(nil)
+		r, err := kz.EncryptWriter(enc)
+		if err != nil {
+			t.Fatal("failed to encrypt key for keytype " + keytype + ": " + err.Error())
+		}
+		io.Copy(r, data)
+		if err := r.Close(); err != nil {
+			t.Fatal("Could not end writting to cryptor", err)
+		}
+		//Direct Dec
+		directout, err := kz.Decrypt(enc.String())
+		if err != nil {
+			t.Fatal("Direct Decode failed", err)
+		}
+		if !bytes.Equal(directout, []byte(INPUT)) {
+			t.Fatal("Direct decode failed: len %d vs %d", len(directout), len(INPUT))
+		}
+		out, _, err := kz.DecryptReader(enc, 0)
+		if err != nil {
+			t.Fatal("failed to decrypt keytype " + keytype + ": " + err.Error())
+		}
+		outData := bytes.NewBuffer(nil)
+		io.Copy(outData, out)
+		if err := out.Close(); err != nil {
+			t.Fatal("Could not properly decode message", err)
+		}
+		if !bytes.Equal(outData.Bytes(), testInput) {
+			t.Error(keytype + " decrypt(encrypt(p)) != p")
+		}
 	}
 }
 
@@ -363,6 +371,39 @@ func TestSessionEncryptDecrypt(t *testing.T) {
 		t.Fatal("failed to session decrypt: " + err.Error())
 	}
 	if string(p) != INPUT {
+		t.Error("session decrypt(encrypt(p)) != p")
+	}
+}
+
+func TestSessionEncryptDecryptStream(t *testing.T) {
+	f := NewFileReader(TESTDATA + "rsa")
+	kz, err := NewCrypter(f)
+	if err != nil {
+		t.Fatal("failed to create crypter with rsa: " + err.Error())
+	}
+	buf := bytes.NewBuffer(nil)
+	encoder, err := NewSessionEncryptWriter(kz, buf)
+	if err != nil {
+		t.Fatal("failed to create session encrypter: " + err.Error())
+	}
+	if _, err := io.WriteString(encoder, INPUT); err != nil {
+		t.Fatal("failed to encrypt with session", err)
+	}
+	if err := encoder.Close(); err != nil {
+		t.Fatal("Failed to close encoder", err)
+	}
+	plainReader, err := NewSessionDecryptReader(kz, buf)
+	if err != nil {
+		t.Fatal("failed to create session decrypter: " + err.Error())
+	}
+	out := bytes.NewBuffer(nil)
+	if _, err := out.ReadFrom(plainReader); err != nil && err != io.EOF {
+		t.Fatal("Error reading session ciphered data", err)
+	}
+	if err := plainReader.Close(); err != nil {
+		t.Fatal("Could not close reader", err)
+	}
+	if out.String() != INPUT {
 		t.Error("session decrypt(encrypt(p)) != p")
 	}
 }
