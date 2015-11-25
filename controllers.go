@@ -16,42 +16,42 @@ import (
 	"encoding/base64"
 	"io"
 )
-type KeyczarEncoding int
+type Encoding int
 const (
-	BASE64W     KeyczarEncoding = iota // Encode the output with web-safe base64 [default]
+	BASE64W     Encoding = iota // Encode the output with web-safe base64 [default]
 	NO_ENCODING                        // Do not encode the output
 )
-type KeyczarCompression int
+type Compression int
 const (
-	NO_COMPRESSION KeyczarCompression = iota // Do not compress the plaintext before encrypting [default]
+	NO_COMPRESSION Compression = iota // Do not compress the plaintext before encrypting [default]
 	GZIP                                     // Use gzip compression
 	ZLIB                                     // Use zlib compression
 )
-type KeyczarCompressionController interface {
+type CompressionController interface {
 	// Set the current compression level
-	SetCompression(compression KeyczarCompression)
+	SetCompression(compression Compression)
 	// Return the current compression level
-	Compression() KeyczarCompression
+	Compression() Compression
 }
 
-type KeyczarEncodingController interface {
+type EncodingController interface {
 	// Set the current output encoding
-	SetEncoding(encoding KeyczarEncoding)
+	SetEncoding(encoding Encoding)
 	// Return the current output encoding
-	Encoding() KeyczarEncoding
+	Encoding() Encoding
 }
 
 type encodingController struct {
-	encoding KeyczarEncoding
+	encoding Encoding
 }
 
 // Encoding returns the current output encoding for the keyczar object
-func (ec *encodingController) Encoding() KeyczarEncoding {
+func (ec *encodingController) Encoding() Encoding {
 	return ec.encoding
 }
 
 // SetEncoding sets the current output encoding for the keyczar object
-func (ec *encodingController) SetEncoding(encoding KeyczarEncoding) {
+func (ec *encodingController) SetEncoding(encoding Encoding) {
 	ec.encoding = encoding
 }
 
@@ -136,16 +136,16 @@ func (b *b64ReadPadder) Read(data []byte) (int, error) {
 }
 
 type compressionController struct {
-	compression KeyczarCompression
+	compression Compression
 }
 
 // Compression returns the current compression type for keyczar object
-func (cc *compressionController) Compression() KeyczarCompression {
+func (cc *compressionController) Compression() Compression {
 	return cc.compression
 }
 
 // SetCompression sets the current compression type for the keyczar object
-func (cc *compressionController) SetCompression(compression KeyczarCompression) {
+func (cc *compressionController) SetCompression(compression Compression) {
 	cc.compression = compression
 }
 

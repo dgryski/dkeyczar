@@ -113,8 +113,8 @@ func NewPBEEncrypter(password []byte) Encrypter {
 
 // for writing pbe-json keys
 type pbeCrypter struct {
-	KeyczarCompressionController
-	KeyczarEncodingController
+	CompressionController
+	EncodingController
 	password []byte // the password to use for the PBE
 }
 

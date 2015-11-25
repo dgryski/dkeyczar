@@ -59,7 +59,7 @@ func testEncryptDecryptReader(t *testing.T, keytype string, f KeyReader) {
 	maxSize := 256
 	source := make([]byte, maxSize)
 	io.ReadFull(rand.Reader, source)
-	//kz.SetCompression(GZIP)
+	kz.SetCompression(GZIP)
 	for i := 16; i < maxSize; i++ {
 		testInput := source[:i]
 		data := bytes.NewBuffer(testInput)
@@ -441,7 +441,7 @@ func TestEncryptDecryptCompressed(t *testing.T) {
 		t.Error("aes decrypt(encrypt(p)) != p")
 	}
 	for _, compression := range []struct {
-		kc    KeyczarCompression
+		kc    Compression
 		ctype string
 	}{{GZIP, "gzip"}, {ZLIB, "zlib"}} {
 		kz.SetCompression(compression.kc)

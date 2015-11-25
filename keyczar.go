@@ -28,8 +28,8 @@ type keyCzar struct {
 
 // An Encrypter can be used for encrypting
 type Encrypter interface {
-	KeyczarEncodingController
-	KeyczarCompressionController
+	EncodingController
+	CompressionController
 	// Encrypt returns an encrypted string representing the plaintext bytes passed.
 	Encrypt(plaintext []uint8) (string, error)
 }
@@ -58,16 +58,16 @@ type CryptStreamer interface {
 
 // A SignedEncrypter can be used for encrypting and signing
 type SignedEncrypter interface {
-	KeyczarEncodingController
-	KeyczarCompressionController
+	EncodingController
+	CompressionController
 	// Encrypt returns an encrypted string representing the plaintext bytes passed.
 	Encrypt(plaintext []uint8) (string, error)
 }
 
 // A SignedDecrypter can be used for decrypting and verifying
 type SignedDecrypter interface {
-	KeyczarEncodingController
-	KeyczarCompressionController
+	EncodingController
+	CompressionController
 	// Decrypt returns the plaintext bytes of an encrypted string
 	Decrypt(ciphertext string) ([]uint8, error)
 }
@@ -87,7 +87,7 @@ type Signer interface {
 
 // A Verifier can be used for verification
 type Verifier interface {
-	KeyczarEncodingController
+	EncodingController
 	// Verify checks the cryptographic signature for a message
 	Verify(message []byte, signature string) (bool, error)
 	AttachedVerify(signedMessage string, nonce []byte) ([]byte, error)
