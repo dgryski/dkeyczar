@@ -32,6 +32,12 @@ type Encrypter interface {
 	KeyczarCompressionController
 	// Encrypt returns an encrypted string representing the plaintext bytes passed.
 	Encrypt(plaintext []uint8) (string, error)
+}
+
+//An EncryptStreamer can encrypt a stream through a writer
+//Remember to close the writer to flush everything down the original writer
+type EncryptStreamer interface {
+	Encrypter
 	EncryptWriter(io.Writer) (io.WriteCloser, error)
 }
 
@@ -39,6 +45,13 @@ type Encrypter interface {
 type Crypter interface {
 	Encrypter
 	// Decrypt returns the plaintext bytes of an encrypted string
+	Decrypt(ciphertext string) ([]uint8, error)
+}
+
+//An CryptStreamer can encrypt and decrypt through a stream (reader for decrypt, writer for encrypt)
+//Remember to close the streams to flush everything down the original one and check everything went ok
+type CryptStreamer interface {
+	EncryptStreamer
 	Decrypt(ciphertext string) ([]uint8, error)
 	DecryptReader(io.Reader, int) (io.ReadCloser, int, error)
 }
@@ -90,6 +103,10 @@ type keyCrypter struct {
 	compressionController
 }
 
+type keyCryptStreamer struct {
+	*keyCrypter
+}
+
 type keySignedEncypter struct {
 	kz *keyCzar
 	encodingController
@@ -120,7 +137,7 @@ func (kc *keyCrypter) Encrypt(plaintext []uint8) (string, error) {
 	return s, nil
 }
 
-func (kc *keyCrypter) EncryptWriter(sink io.Writer) (io.WriteCloser, error) {
+func (kc *keyCryptStreamer) EncryptWriter(sink io.Writer) (io.WriteCloser, error) {
 	key := kc.kz.getPrimaryKey()
 	encryptKey, ok := key.(streamEncryptKey)
 	if !ok {
@@ -170,7 +187,7 @@ func (kc *keyCrypter) Decrypt(ciphertext string) ([]uint8, error) {
 	return nil, ErrInvalidSignature
 }
 
-func (kc *keyCrypter) DecryptReader(in io.Reader, kPos int) (io.ReadCloser, int, error) {
+func (kc *keyCryptStreamer) DecryptReader(in io.Reader, kPos int) (io.ReadCloser, int, error) {
 	cipheredReader := kc.encodingController.decodeReader(in)
 	headBuf := bytes.NewBuffer(nil)
 	headBuf.Grow(kzHeaderLength)
@@ -215,6 +232,7 @@ func (kc *keySignedDecrypter) Decrypt(signedCiphertext string) ([]uint8, error) 
 }
 
 type currentTime func() int64
+
 type keySigner struct {
 	kz *keyCzar
 	currentTime
@@ -428,6 +446,21 @@ func (ks *keySigner) TimeoutVerify(message []byte, signature string) (bool, erro
 
 // NewCrypter returns an object capable of encrypting and decrypting using the key provded by the reader
 func NewCrypter(r KeyReader) (Crypter, error) {
+	return newCrypter(r)
+}
+
+func NewCryptStreamer(r KeyReader) (CryptStreamer, error) {
+	c, err := newCrypter(r)
+	if err != nil {
+		return nil, err
+	}
+	if _, ok := c.kz.getPrimaryKey().(streamEncryptKey); !ok {
+		return nil, ErrCannotStream
+	}
+	return &keyCryptStreamer{c}, nil
+}
+
+func newCrypter(r KeyReader) (*keyCrypter, error) {
 	k := new(keyCrypter)
 	var err error
 	k.kz, err = newKeyCzar(r)
@@ -441,7 +474,7 @@ func NewCrypter(r KeyReader) (Crypter, error) {
 	if err != nil {
 		return nil, err
 	}
-	return k, err
+	return k, nil
 }
 
 func NewSignedEncrypter(r KeyReader, signer Signer, nonce []byte) (SignedEncrypter, error) {
@@ -484,6 +517,21 @@ func NewSignedDecrypter(r KeyReader, verifier Verifier, nonce []byte) (SignedDec
 
 // NewEncrypter returns an object capable of encrypting using the key provded by the reader
 func NewEncrypter(r KeyReader) (Encrypter, error) {
+	return newEncrypter(r)
+}
+
+func NewEncryptStreamer(r KeyReader) (EncryptStreamer, error) {
+	e, err := newEncrypter(r)
+	if err != nil {
+		return nil, err
+	}
+	if _, ok := e.kz.getPrimaryKey().(streamDecryptKey); !ok {
+		return nil, ErrCannotStream
+	}
+	return &keyCryptStreamer{e}, nil
+}
+
+func newEncrypter(r KeyReader) (*keyCrypter, error) {
 	k := new(keyCrypter)
 	var err error
 	k.kz, err = newKeyCzar(r)

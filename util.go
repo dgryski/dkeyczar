@@ -112,7 +112,7 @@ func (n nopWriteCloser) Close() error {
 	return nil
 }
 
-func NewNopWriteCloser(w io.Writer) io.WriteCloser {
+func newNopWriteCloser(w io.Writer) io.WriteCloser {
 	return nopWriteCloser{w}
 }
 

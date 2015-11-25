@@ -8,14 +8,14 @@ import (
 )
 
 // NewSessionEncrypter returns an Encrypter that has been initailized with a random session key.  This key material is encrypted with crypter and returned.
-func NewSessionEncrypter(encrypter Encrypter) (Crypter, string, error) {
+func NewSessionEncrypter(encrypter Encrypter) (CryptStreamer, string, error) {
 	aeskey, _ := generateAESKey(0) // shouldn't fail
 	r := newImportedAESKeyReader(aeskey)
 	keys, err := encrypter.Encrypt(aeskey.packedKeys())
 	if err != nil {
 		return nil, "", err
 	}
-	sessionCrypter, err := NewCrypter(r)
+	sessionCrypter, err := NewCryptStreamer(r)
 	return sessionCrypter, keys, err
 }
 
@@ -36,7 +36,7 @@ func NewSessionEncryptWriter(encrypter Encrypter, sink io.Writer) (io.WriteClose
 }
 
 // NewSessionDecrypter decrypts the sessionKeys string and returns a new Crypter using these keys.
-func NewSessionDecrypter(crypter Crypter, sessionKeys string) (Crypter, error) {
+func NewSessionDecrypter(crypter Crypter, sessionKeys string) (CryptStreamer, error) {
 	packedKeys, err := crypter.Decrypt(sessionKeys)
 	if err != nil {
 		return nil, err
@@ -46,7 +46,7 @@ func NewSessionDecrypter(crypter Crypter, sessionKeys string) (Crypter, error) {
 		return nil, err
 	}
 	r := newImportedAESKeyReader(aeskey)
-	return NewCrypter(r)
+	return NewCryptStreamer(r)
 }
 
 func NewSessionDecryptReader(crypter Crypter, source io.Reader) (io.ReadCloser, error) {

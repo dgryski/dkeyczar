@@ -69,7 +69,7 @@ func (ec *encodingController) encode(data []byte) string {
 func (ec *encodingController) encodeWriter(data io.Writer) io.WriteCloser {
 	switch ec.encoding {
 	case NO_ENCODING:
-		return NewNopWriteCloser(data)
+		return newNopWriteCloser(data)
 	case BASE64W:
 		return base64.NewEncoder(base64.RawURLEncoding, data)
 	}
@@ -179,7 +179,7 @@ func (cc *compressionController) compressWriter(data io.Writer) io.WriteCloser {
 		datac, _ := zlib.NewWriterLevel(data, zlib.BestCompression)
 		return datac
 	}
-	return NewNopWriteCloser(data)
+	return newNopWriteCloser(data)
 }
 
 // return 'data' decompressed based on the value of the 'compression' field

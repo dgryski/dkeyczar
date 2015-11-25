@@ -52,7 +52,7 @@ func testEncryptDecrypt(t *testing.T, keytype string, f KeyReader) {
 }
 
 func testEncryptDecryptReader(t *testing.T, keytype string, f KeyReader) {
-	kz, err := NewCrypter(f)
+	kz, err := NewCryptStreamer(f)
 	if err != nil {
 		t.Fatal("failed to create crypter keytype " + keytype + ": " + err.Error())
 	}
