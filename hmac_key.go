@@ -1,4 +1,5 @@
 package dkeyczar
+
 import (
 	"bytes"
 	"crypto/hmac"
@@ -9,8 +10,10 @@ import (
 	"hash"
 	"io"
 )
+
 // we only support one hmac size for the moment
 const hmacSigLength = 20
+
 type hmacKeyJSON struct {
 	HMACKeyString string `json:"hmacKeyString"`
 	Size          uint   `json:"size"`
@@ -94,8 +97,8 @@ func (h *hmacSignWriter) Write(data []byte) (int, error) {
 	n, err := h.sink.Write(data)
 	if n > 0 {
 		h.hmac.Write(data[:n])
+		h.written += n
 	}
-	h.written += n
 	return n, err
 }
 
@@ -168,4 +171,3 @@ func (hm *hmacVerifyReader) Close() error {
 	}
 	return ErrInvalidSignature
 }
-

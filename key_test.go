@@ -2,6 +2,7 @@ package dkeyczar
 
 import (
 	"bytes"
+	"crypto/rand"
 	"io"
 	"testing"
 	"time"
@@ -57,37 +58,44 @@ func testEncryptDecryptReader(t *testing.T, keytype string, f KeyReader) {
 	}
 	maxSize := 256
 	source := make([]byte, maxSize)
-	for i := 5; i < maxSize; i++ {
+	io.ReadFull(rand.Reader, source)
+	//kz.SetCompression(GZIP)
+	for i := 16; i < maxSize; i++ {
 		testInput := source[:i]
 		data := bytes.NewBuffer(testInput)
 		enc := bytes.NewBuffer(nil)
-		r, err := kz.EncryptWriter(enc)
+		encWriter, err := kz.EncryptWriter(enc)
 		if err != nil {
-			t.Fatal("failed to encrypt key for keytype " + keytype + ": " + err.Error())
+			t.Fatalf("Stream %d: failed to encrypt key for keytype %s: %s", keytype, err)
 		}
-		io.Copy(r, data)
-		if err := r.Close(); err != nil {
-			t.Fatal("Could not end writting to cryptor", err)
+		if n, err := io.Copy(encWriter, data); err != nil {
+			t.Fatalf("Stream %d: Error while copying data: %s", i, err)
+		} else if n < int64(i) {
+			t.Fatalf("Stream %d: Could only copy %d bytes", i, n)
 		}
+		if err := encWriter.Close(); err != nil {
+			t.Fatalf("Stream %d: Could not end writting to cryptor: %s", i, err)
+		}
+
 		//Direct Dec
 		directout, err := kz.Decrypt(enc.String())
 		if err != nil {
-			t.Fatal("Direct Decode failed", err)
+			t.Fatalf("Stream %d: Direct decode failed: %s", i, err)
 		}
-		if !bytes.Equal(directout, []byte(INPUT)) {
-			t.Fatal("Direct decode failed: len %d vs %d", len(directout), len(INPUT))
+		if !bytes.Equal(directout, testInput) {
+			t.Fatalf("Stream %d: Direct decode failed: len %d vs %d", i, len(directout), len(testInput))
 		}
 		out, _, err := kz.DecryptReader(enc, 0)
 		if err != nil {
-			t.Fatal("failed to decrypt keytype " + keytype + ": " + err.Error())
+			t.Fatalf("Stream %d: Failed to decrypt keytype %s: %s", keytype, err)
 		}
 		outData := bytes.NewBuffer(nil)
 		io.Copy(outData, out)
 		if err := out.Close(); err != nil {
-			t.Fatal("Could not properly decode message", err)
+			t.Fatalf("Stream %d: Could not properly decode message: %s", i, err)
 		}
 		if !bytes.Equal(outData.Bytes(), testInput) {
-			t.Error(keytype + " decrypt(encrypt(p)) != p")
+			t.Errorf("Stream %d: %s decrypt(encrypt(p)) != p", i, keytype)
 		}
 	}
 }

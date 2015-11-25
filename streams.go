@@ -1,10 +1,12 @@
 package dkeyczar
+
 import (
 	"bytes"
 	"crypto/cipher"
 	"encoding/json"
 	"io"
 )
+
 type pbeCryptoWriter struct {
 	pbe       pbeKeyJSON
 	aesCipher cipher.BlockMode
@@ -66,9 +68,6 @@ func (c *cryptoWriter) Write(data []byte) (int, error) {
 }
 
 func (c *cryptoWriter) Close() error {
-	if c.buffer.Len() == 0 {
-		return nil
-	}
 	tmp := pkcs5pad(c.buffer.Next(c.buffer.Len()), c.bm.BlockSize())
 	c.bm.CryptBlocks(tmp, tmp)
 	wL := 0
@@ -138,4 +137,3 @@ func (cr *cryptoReader) Close() error {
 	cr.eof = true
 	return cr.source.Close()
 }
-

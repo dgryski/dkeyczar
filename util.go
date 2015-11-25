@@ -1,4 +1,5 @@
 package dkeyczar
+
 import (
 	"bytes"
 	"encoding/base64"
@@ -6,6 +7,7 @@ import (
 	"io"
 	"math/big"
 )
+
 func bigIntBytes(value *big.Int) []byte {
 	absbytes := value.Bytes()
 	if absbytes[0]&0x80 != 0x00 {
@@ -88,7 +90,7 @@ func pkcs5pad(data []byte, blocksize int) []byte {
 func pkcs5unpad(data []byte) []byte {
 	pad := int(data[len(data)-1])
 	// FIXME: check that the padding bytes are all what we expect
-	return data[0 : len(data)-pad]
+	return data[:len(data)-pad]
 }
 
 //Close wrappers
@@ -157,4 +159,3 @@ func (n nestedReaderCloser) Close() error {
 func nestReaderCloser(r io.ReadCloser, c io.Closer) io.ReadCloser {
 	return nestedReaderCloser{r, c}
 }
-

@@ -9,7 +9,6 @@ between these two types.
 There are types for AES+HMAC, HMAC, RSA and RSA Public, DSA and DSA Public.
 */
 import (
-	"bytes"
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
@@ -151,18 +150,23 @@ func (ak *aesKey) Encrypt(data []byte) ([]byte, error) {
 func (ak *aesKey) EncryptWriter(sink io.Writer) (io.WriteCloser, error) {
 	signerCloser := ak.hmac.SignWriter(sink)
 	iv := make([]byte, aes.BlockSize)
-	io.ReadFull(rand.Reader, iv)
+	if _, err := io.ReadFull(rand.Reader, iv); err != nil {
+		return nil, err
+	}
 	aesCipher, err := aes.NewCipher(ak.key)
 	if err != nil {
 		return nil, err
 	}
 	// aes only ever created with CBC as a mode
 	crypter := cipher.NewCBCEncrypter(aesCipher, iv)
-	fullHeader := bytes.NewBuffer(nil)
-	fullHeader.Write(makeHeader(ak))
-	fullHeader.Write(iv)
-	if _, err := fullHeader.WriteTo(signerCloser); err != nil {
-		return nil, err
+	fullHeader := append(makeHeader(ak), iv...)
+	w := 0
+	for w < len(fullHeader) {
+		n, err := signerCloser.Write(fullHeader[w:])
+		if err != nil {
+			return nil, err
+		}
+		w += n
 	}
 	return newCryptoWriter(crypter, signerCloser), nil
 }
