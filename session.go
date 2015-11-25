@@ -8,14 +8,14 @@ import (
 )
 
 // NewSessionEncrypter returns an Encrypter that has been initailized with a random session key.  This key material is encrypted with crypter and returned.
-func NewSessionEncrypter(encrypter Encrypter) (CryptStreamer, string, error) {
+func NewSessionEncrypter(encrypter Encrypter) (EncryptStreamer, string, error) {
 	aeskey, _ := generateAESKey(0) // shouldn't fail
 	r := newImportedAESKeyReader(aeskey)
 	keys, err := encrypter.Encrypt(aeskey.packedKeys())
 	if err != nil {
 		return nil, "", err
 	}
-	sessionCrypter, err := NewCryptStreamer(r)
+	sessionCrypter, err := NewEncryptStreamer(r)
 	return sessionCrypter, keys, err
 }
 
