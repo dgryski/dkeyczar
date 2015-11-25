@@ -9,6 +9,7 @@ Decryption, Signing and Verification use the same minimal API.
 Encrypted data and signatures are encoded with web-safe base64.
 */
 package dkeyczar
+
 import (
 	"bytes"
 	"compress/gzip"
@@ -16,17 +17,22 @@ import (
 	"encoding/base64"
 	"io"
 )
+
 type Encoding int
+
 const (
 	BASE64W     Encoding = iota // Encode the output with web-safe base64 [default]
-	NO_ENCODING                        // Do not encode the output
+	NO_ENCODING                 // Do not encode the output
 )
+
 type Compression int
+
 const (
 	NO_COMPRESSION Compression = iota // Do not compress the plaintext before encrypting [default]
-	GZIP                                     // Use gzip compression
-	ZLIB                                     // Use zlib compression
+	GZIP                              // Use gzip compression
+	ZLIB                              // Use zlib compression
 )
+
 type CompressionController interface {
 	// Set the current compression level
 	SetCompression(compression Compression)
@@ -173,7 +179,7 @@ func (cc *compressionController) compress(data []byte) []byte {
 func (cc *compressionController) compressWriter(data io.Writer) io.WriteCloser {
 	switch cc.compression {
 	case GZIP:
-		datac, _ := gzip.NewWriterLevel(data, gzip.BestCompression)
+		datac, _ := gzip.NewWriterLevel(data, gzip.DefaultCompression) //, gzip.BestCompression)
 		return datac
 	case ZLIB:
 		datac, _ := zlib.NewWriterLevel(data, zlib.BestCompression)
@@ -230,4 +236,3 @@ func (cc *compressionController) decompressReader(data io.ReadCloser) (io.ReadCl
 	}
 	panic("unknown compressor")
 }
-

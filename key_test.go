@@ -59,11 +59,15 @@ func testEncryptDecryptReader(t *testing.T, keytype string, f KeyReader) {
 	maxSize := 256
 	source := make([]byte, maxSize)
 	io.ReadFull(rand.Reader, source)
-	kz.SetCompression(GZIP)
+	compList := []Compression{NO_COMPRESSION, ZLIB, GZIP}
+	encList := []Encoding{NO_ENCODING, BASE64W}
 	for i := 16; i < maxSize; i++ {
 		testInput := source[:i]
 		data := bytes.NewBuffer(testInput)
 		enc := bytes.NewBuffer(nil)
+		kz.SetCompression(compList[i%len(compList)])
+		kz.SetEncoding(encList[i%len(encList)])
+		kz.SetEncoding(NO_ENCODING)
 		encWriter, err := kz.EncryptWriter(enc)
 		if err != nil {
 			t.Fatalf("Stream %d: failed to encrypt key for keytype %s: %s", keytype, err)
@@ -76,7 +80,6 @@ func testEncryptDecryptReader(t *testing.T, keytype string, f KeyReader) {
 		if err := encWriter.Close(); err != nil {
 			t.Fatalf("Stream %d: Could not end writting to cryptor: %s", i, err)
 		}
-
 		//Direct Dec
 		directout, err := kz.Decrypt(enc.String())
 		if err != nil {
@@ -389,6 +392,9 @@ func TestSessionEncryptDecryptStream(t *testing.T) {
 	if err != nil {
 		t.Fatal("failed to create crypter with rsa: " + err.Error())
 	}
+	kz.SetCompression(ZLIB)
+	source := make([]byte, 1024*1024)
+	io.ReadFull(rand.Reader, source)
 	buf := bytes.NewBuffer(nil)
 	encoder, err := NewSessionEncryptWriter(kz, buf)
 	if err != nil {
