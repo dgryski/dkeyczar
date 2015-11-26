@@ -52,7 +52,7 @@ type encodingController struct {
 }
 
 // Encoding returns the current output encoding for the keyczar object
-func (ec *encodingController) Encoding() Encoding {
+func (ec encodingController) Encoding() Encoding {
 	return ec.encoding
 }
 
@@ -62,7 +62,7 @@ func (ec *encodingController) SetEncoding(encoding Encoding) {
 }
 
 // return 'data' encoded based on the value of the 'encoding' field
-func (ec *encodingController) encode(data []byte) string {
+func (ec encodingController) encode(data []byte) string {
 	switch ec.encoding {
 	case NO_ENCODING:
 		return string(data)
@@ -72,7 +72,7 @@ func (ec *encodingController) encode(data []byte) string {
 	panic("not reached")
 }
 
-func (ec *encodingController) encodeWriter(data io.Writer) io.WriteCloser {
+func (ec encodingController) encodeWriter(data io.Writer) io.WriteCloser {
 	switch ec.encoding {
 	case NO_ENCODING:
 		return newNopWriteCloser(data)
@@ -83,7 +83,7 @@ func (ec *encodingController) encodeWriter(data io.Writer) io.WriteCloser {
 }
 
 // return 'data' decoded based on the value of the 'encoding' field
-func (ec *encodingController) decode(data string) ([]byte, error) {
+func (ec encodingController) decode(data string) ([]byte, error) {
 	switch ec.encoding {
 	case NO_ENCODING:
 		return []byte(data), nil
@@ -93,7 +93,7 @@ func (ec *encodingController) decode(data string) ([]byte, error) {
 	panic("not reached")
 }
 
-func (ec *encodingController) decodeReader(data io.Reader) io.Reader {
+func (ec encodingController) decodeReader(data io.Reader) io.Reader {
 	switch ec.encoding {
 	case NO_ENCODING:
 		return data
@@ -146,7 +146,7 @@ type compressionController struct {
 }
 
 // Compression returns the current compression type for keyczar object
-func (cc *compressionController) Compression() Compression {
+func (cc compressionController) Compression() Compression {
 	return cc.compression
 }
 
@@ -156,7 +156,7 @@ func (cc *compressionController) SetCompression(compression Compression) {
 }
 
 // return 'data' compressed based on the value of the 'compression' field
-func (cc *compressionController) compress(data []byte) []byte {
+func (cc compressionController) compress(data []byte) []byte {
 	switch cc.compression {
 	case NO_COMPRESSION:
 		return data
@@ -176,7 +176,7 @@ func (cc *compressionController) compress(data []byte) []byte {
 	panic("not reached")
 }
 
-func (cc *compressionController) compressWriter(data io.Writer) io.WriteCloser {
+func (cc compressionController) compressWriter(data io.Writer) io.WriteCloser {
 	switch cc.compression {
 	case GZIP:
 		datac, _ := gzip.NewWriterLevel(data, gzip.BestCompression)
@@ -189,7 +189,7 @@ func (cc *compressionController) compressWriter(data io.Writer) io.WriteCloser {
 }
 
 // return 'data' decompressed based on the value of the 'compression' field
-func (cc *compressionController) decompress(data []byte) ([]byte, error) {
+func (cc compressionController) decompress(data []byte) ([]byte, error) {
 	switch cc.compression {
 	case NO_COMPRESSION:
 		return data, nil
@@ -217,7 +217,7 @@ func (cc *compressionController) decompress(data []byte) ([]byte, error) {
 	panic("not reached")
 }
 
-func (cc *compressionController) decompressReader(data io.ReadCloser) (io.ReadCloser, error) {
+func (cc compressionController) decompressReader(data io.ReadCloser) (io.ReadCloser, error) {
 	switch cc.compression {
 	case NO_COMPRESSION:
 		return data, nil

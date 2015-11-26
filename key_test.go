@@ -395,31 +395,35 @@ func TestSessionEncryptDecryptStream(t *testing.T) {
 	kz.SetCompression(ZLIB)
 	source := make([]byte, 1024*1024)
 	io.ReadFull(rand.Reader, source)
-	buf := bytes.NewBuffer(nil)
-	encoder, err := NewSessionEncryptWriter(kz, buf)
-	if err != nil {
-		t.Fatal("failed to create session encrypter: " + err.Error())
-	}
-	dumper := bytes.NewBuffer(source)
-	if _, err := dumper.WriteTo(encoder); err != nil {
-		t.Fatal("failed to encrypt with session", err)
-	}
-	if err := encoder.Close(); err != nil {
-		t.Fatal("Failed to close encoder", err)
-	}
-	plainReader, err := NewSessionDecryptReader(kz, buf)
-	if err != nil {
-		t.Fatal("failed to create session decrypter: " + err.Error())
-	}
-	out := bytes.NewBuffer(nil)
-	if _, err := out.ReadFrom(plainReader); err != nil && err != io.EOF {
-		t.Fatal("Error reading session ciphered data", err)
-	}
-	if err := plainReader.Close(); err != nil {
-		t.Fatal("Could not close reader", err)
-	}
-	if !bytes.Equal(out.Bytes(), source) {
-		t.Error("session decrypt(encrypt(p)) != p")
+	for _, enc := range []Encoding{NO_ENCODING, BASE64W} {
+		for _, compr := range []Compression{NO_COMPRESSION, ZLIB, GZIP} {
+			buf := bytes.NewBuffer(nil)
+			encoder, err := NewSessionEncryptWriter(kz, buf, enc, compr)
+			if err != nil {
+				t.Fatal("failed to create session encrypter: " + err.Error())
+			}
+			dumper := bytes.NewBuffer(source)
+			if _, err := dumper.WriteTo(encoder); err != nil {
+				t.Fatal("failed to encrypt with session", err)
+			}
+			if err := encoder.Close(); err != nil {
+				t.Fatal("Failed to close encoder", err)
+			}
+			plainReader, err := NewSessionDecryptReader(kz, buf, enc, compr)
+			if err != nil {
+				t.Fatal("failed to create session decrypter: " + err.Error())
+			}
+			out := bytes.NewBuffer(nil)
+			if _, err := out.ReadFrom(plainReader); err != nil && err != io.EOF {
+				t.Fatal("Error reading session ciphered data", err)
+			}
+			if err := plainReader.Close(); err != nil {
+				t.Fatal("Could not close reader", err)
+			}
+			if !bytes.Equal(out.Bytes(), source) {
+				t.Error("session decrypt(encrypt(p)) != p")
+			}
+		}
 	}
 }
 
@@ -454,12 +458,12 @@ func TestEncryptDecryptCompressed(t *testing.T) {
 		kz.SetCompression(compression.kc)
 		c, err = kz.Encrypt([]byte(longinput))
 		if err != nil {
-			t.Fatal("failed to encrypt with compression " + compression.ctype)
+			t.Fatalf("failed to encrypt with compression %s: %s", compression.ctype, err)
 		}
 		compressedLen := len(c)
 		p, err = kz.Decrypt(c)
 		if err != nil {
-			t.Fatal("failed to decrypt with compression " + compression.ctype)
+			t.Fatalf("failed to decrypt with compression %s: %s", compression.ctype, err)
 		}
 		if string(p) != longinput {
 			t.Error(compression.ctype + " raw decrypt(encrypt(p)) != p")

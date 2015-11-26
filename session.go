@@ -19,20 +19,34 @@ func NewSessionEncrypter(encrypter Encrypter) (EncryptStreamer, string, error) {
 	return sessionCrypter, keys, err
 }
 
-func NewSessionEncryptWriter(encrypter Encrypter, sink io.Writer) (io.WriteCloser, error) {
-	sessionCrypter, keystring, err := NewSessionEncrypter(encrypter)
+func NewSessionEncryptWriter(encrypter Encrypter, sink io.Writer, encoding Encoding, compression Compression) (io.WriteCloser, error) {
+	oldEnc := encrypter.Encoding()
+	defer encrypter.SetEncoding(oldEnc)
+	oldComp := encrypter.Compression()
+	defer encrypter.SetCompression(oldComp)
+
+	encrypter.SetEncoding(NO_ENCODING)
+	encrypter.SetCompression(compression)
+	sessEncrypter, keystring, err := NewSessionEncrypter(encrypter)
 	if err != nil {
 		return nil, err
 	}
+	sessEncrypter.SetEncoding(NO_ENCODING)
+	sessEncrypter.SetCompression(compression)
 	keydata := []byte(keystring)
-	if err := binary.Write(sink, binary.BigEndian, int32(len(keydata))); err != nil {
+	encSink := encodingController{encoding}.encodeWriter(sink)
+	if err := binary.Write(encSink, binary.BigEndian, int32(len(keydata))); err != nil {
 		return nil, err
 	}
 	buf := bytes.NewBuffer(keydata)
-	if _, err := buf.WriteTo(sink); err != nil {
+	if _, err := buf.WriteTo(encSink); err != nil {
 		return nil, err
 	}
-	return sessionCrypter.EncryptWriter(sink)
+	cryptSink, err := sessEncrypter.EncryptWriter(encSink)
+	if err != nil {
+		return nil, err
+	}
+	return nestWriterCloser(cryptSink, encSink), nil
 }
 
 // NewSessionDecrypter decrypts the sessionKeys string and returns a new Crypter using these keys.
@@ -49,7 +63,13 @@ func NewSessionDecrypter(crypter Crypter, sessionKeys string) (CryptStreamer, er
 	return NewCryptStreamer(r)
 }
 
-func NewSessionDecryptReader(crypter Crypter, source io.Reader) (io.ReadCloser, error) {
+func NewSessionDecryptReader(crypter Crypter, source io.Reader, encoding Encoding, compression Compression) (io.ReadCloser, error) {
+	oldEnc := crypter.Encoding()
+	defer crypter.SetEncoding(oldEnc)
+	oldComp := crypter.Compression()
+	defer crypter.SetCompression(oldComp)
+
+	source = encodingController{encoding}.decodeReader(source)
 	var keyLen int32
 	if err := binary.Read(source, binary.BigEndian, &keyLen); err != nil {
 		return nil, err
@@ -58,11 +78,15 @@ func NewSessionDecryptReader(crypter Crypter, source io.Reader) (io.ReadCloser, 
 	if _, err := io.ReadFull(source, keydata); err != nil {
 		return nil, err
 	}
-	sessDec, err := NewSessionDecrypter(crypter, string(keydata))
+	crypter.SetEncoding(NO_ENCODING)
+	crypter.SetCompression(compression)
+	sessCrypter, err := NewSessionDecrypter(crypter, string(keydata))
 	if err != nil {
 		return nil, err
 	}
-	reader, _, err := sessDec.DecryptReader(source, 0)
+	sessCrypter.SetEncoding(NO_ENCODING)
+	sessCrypter.SetCompression(compression)
+	reader, _, err := sessCrypter.DecryptReader(source, 0)
 	return reader, err
 }
 
