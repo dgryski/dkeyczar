@@ -1,7 +1,5 @@
 package dkeyczar
-
 import "errors"
-
 var (
 	ErrBadVersion          = errors.New("keyczar: bad version number in header")
 	ErrBase64Decoding      = errors.New("keyczar: error during base64 decode")
@@ -14,4 +12,5 @@ var (
 	ErrUnacceptablePurpose = errors.New("keyczar: unacceptable key purpose")
 	ErrInvalidKeySize      = errors.New("keyczar: bad key size")
 	ErrNoSuchKeyVersion    = errors.New("keyczar: no such key version")
+	ErrCannotStream        = errors.New("keyczar: key type cannot stream")
 )

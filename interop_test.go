@@ -1,16 +1,11 @@
 package dkeyczar
-
 import (
 	"bytes"
 	"testing"
 )
-
 var INTEROP_INPUT = "This is some test data"
-
 var INTEROP_TESTDATA = "testdata/interop-data/"
-
 var INTEROP_LANGS = []string{"cs", "py", "py3", "j", "go"}
-
 func testPath(lang string, subdir string) string {
 	return INTEROP_TESTDATA + lang + "_data" + "/" + subdir
 }
@@ -24,21 +19,17 @@ func testInteropVerify(t *testing.T, subdir string) {
 			t.Error("failed to create verifier for " + path + ": " + err.Error())
 			continue
 		}
-
 		for _, out := range []string{"1.out", "2.out"} {
-
 			c, err := slurp(path + "/" + out)
 			if err != nil {
 				t.Error("failed to load  " + out + " for " + path + ": " + err.Error())
 				continue
 			}
-
 			goodsig, err := kz.Verify([]byte(INTEROP_INPUT), c)
 			if err != nil {
 				t.Error("failed to verify " + out + " for " + path + ": " + err.Error())
 				continue
 			}
-
 			if !goodsig {
 				t.Error("failed signature for " + path + "/" + out)
 				continue
@@ -51,13 +42,11 @@ func testInteropVerifyTimeout(t *testing.T, subdir string, unexpired bool) {
 	for _, lang := range INTEROP_LANGS {
 		path := testPath(lang, subdir)
 		f := NewFileReader(path)
-
 		ct := func() int64 {
 			//http://www.epochconverter.com/
 			//Fri, 21 Dec 2012 11:16:00 GMT
 			return int64(1356088560000)
 		}
-
 		if unexpired {
 			ct = func() int64 {
 				//http://www.epochconverter.com/
@@ -65,27 +54,22 @@ func testInteropVerifyTimeout(t *testing.T, subdir string, unexpired bool) {
 				return int64(1356087960000)
 			}
 		}
-
 		kz, err := NewVerifierTimeProvider(f, ct)
 		if err != nil {
 			t.Error("failed to create verifier for " + path + ": " + err.Error())
 			continue
 		}
-
 		for _, out := range []string{"2.timeout"} {
-
 			c, err := slurp(path + "/" + out)
 			if err != nil {
 				t.Error("failed to load  " + out + " for " + path + ": " + err.Error())
 				continue
 			}
-
 			goodsig, err := kz.TimeoutVerify([]byte(INTEROP_INPUT), c)
 			if err != nil {
 				t.Error("failed to verify " + out + " for " + path + ": " + err.Error())
 				continue
 			}
-
 			if goodsig != unexpired {
 				t.Error("Expiration incorrect: " + path + "/" + out)
 				continue
@@ -103,21 +87,17 @@ func testInteropVerifySizes(t *testing.T, subdir string, sizes []string) {
 			t.Error("failed to create verifier for " + path + ": " + err.Error())
 			continue
 		}
-
 		for _, out := range sizes {
-
 			c, err := slurp(path + "/" + out + ".out")
 			if err != nil {
 				t.Error("failed to load  " + out + ".out" + " for " + path + ": " + err.Error())
 				continue
 			}
-
 			goodsig, err := kz.Verify([]byte(INTEROP_INPUT), c)
 			if err != nil {
 				t.Error("failed to verify " + out + " for " + path + ": " + err.Error())
 				continue
 			}
-
 			if !goodsig {
 				t.Error("failed signature for " + path + "/" + out)
 				continue
@@ -135,21 +115,17 @@ func testInteropDecrypt(t *testing.T, subdir string) {
 			t.Error("failed to create crypter for " + path + ": " + err.Error())
 			continue
 		}
-
 		for _, out := range []string{"1.out", "2.out"} {
-
 			c, err := slurp(path + "/" + out)
 			if err != nil {
 				t.Error("failed slurp " + out + " for " + path + ": " + err.Error())
 				continue
 			}
-
 			p, err := kz.Decrypt(c)
 			if err != nil {
 				t.Error("failed decrypt for " + path + ": " + err.Error())
 				continue
 			}
-
 			if string(p) != INTEROP_INPUT {
 				t.Error("decrypt failed for " + path + "/" + out)
 				continue
@@ -167,7 +143,6 @@ func testInteropSessionDecrypt(t *testing.T, subdir string) {
 			t.Error("failed to create crypter for " + path + ": " + err.Error())
 			continue
 		}
-
 		for _, out := range []string{"2.session"} {
 			m, err := slurp(path + "/" + out + ".material")
 			if err != nil {
@@ -179,19 +154,16 @@ func testInteropSessionDecrypt(t *testing.T, subdir string) {
 				t.Error("failed slurp " + out + " for " + path + ": " + err.Error())
 				continue
 			}
-
 			kz, err := NewSessionDecrypter(crypter, m)
 			if err != nil {
 				t.Error("failed to create session decrypter for " + path + ": " + err.Error())
 				continue
 			}
-
 			p, err := kz.Decrypt(c)
 			if err != nil {
 				t.Error("failed decrypt for " + path + ": " + err.Error())
 				continue
 			}
-
 			if string(p) != INTEROP_INPUT {
 				t.Error("decrypt failed for " + path + "/" + out)
 				continue
@@ -209,7 +181,6 @@ func testInteropSignedSessionDecrypt(t *testing.T, subdir string, subverify stri
 			t.Error("failed to create crypter for " + path + ": " + err.Error())
 			continue
 		}
-
 		path2 := testPath(lang, subverify)
 		f2 := NewFileReader(path2)
 		verifier, err := NewVerifier(f2)
@@ -217,7 +188,6 @@ func testInteropSignedSessionDecrypt(t *testing.T, subdir string, subverify stri
 			t.Error("failed to create crypter for " + path + ": " + err.Error())
 			continue
 		}
-
 		for _, out := range []string{"2.signedsession"} {
 			m, err := slurp(path + "/" + out + ".material")
 			if err != nil {
@@ -229,19 +199,16 @@ func testInteropSignedSessionDecrypt(t *testing.T, subdir string, subverify stri
 				t.Error("failed slurp " + out + " for " + path + ": " + err.Error())
 				continue
 			}
-
 			kz, err := NewSignedSessionDecrypter(crypter, verifier, m)
 			if err != nil {
 				t.Error("failed to create session decrypter for " + path + ": " + err.Error())
 				continue
 			}
-
 			p, err := kz.Decrypt(c)
 			if err != nil {
 				t.Error("failed decrypt for " + path + ": " + err.Error())
 				continue
 			}
-
 			if string(p) != INTEROP_INPUT {
 				t.Error("decrypt failed for " + path + "/" + out)
 				continue
@@ -259,21 +226,17 @@ func testInteropVerifyUnversioned(t *testing.T, subdir string) {
 			t.Error("failed to create verifier for " + path + ": " + err.Error())
 			continue
 		}
-
 		for _, out := range []string{"2.unversioned"} {
-
 			c, err := slurp(path + "/" + out)
 			if err != nil {
 				t.Error("failed to load  " + out + " for " + path + ": " + err.Error())
 				continue
 			}
-
 			goodsig, err := kz.UnversionedVerify([]byte(INTEROP_INPUT), c)
 			if err != nil {
 				t.Error("failed to verify " + out + " for " + path + ": " + err.Error())
 				continue
 			}
-
 			if !goodsig {
 				t.Error("failed signature for " + path + "/" + out)
 				continue
@@ -291,7 +254,6 @@ func testInteropVerifyAttached(t *testing.T, subdir string, secret string) {
 			t.Error("failed to create verifier for " + path + ": " + err.Error())
 			continue
 		}
-
 		for _, out := range []string{"2"} {
 			ext := ".attached"
 			var nonce []byte
@@ -309,7 +271,6 @@ func testInteropVerifyAttached(t *testing.T, subdir string, secret string) {
 				t.Error("failed to verify " + out + ext + " for " + path + ": " + err.Error())
 				continue
 			}
-
 			if msg == nil || !bytes.Equal(msg, []byte(INTEROP_INPUT)) {
 				t.Error(path + "/" + out + ext + " attachedverify failed")
 			}
@@ -325,21 +286,17 @@ func testInteropDecryptSizes(t *testing.T, subdir string, sizes []string) {
 		if err != nil {
 			t.Error("failed to create crypter for " + path + ": " + err.Error())
 		}
-
 		for _, out := range sizes {
-
 			c, err := slurp(path + "/" + out + ".out")
 			if err != nil {
 				t.Error("failed slurp " + out + ".out" + " for " + path + ": " + err.Error())
 				continue
 			}
-
 			p, err := kz.Decrypt(c)
 			if err != nil {
 				t.Error("failed decrypt for " + path + ": " + err.Error())
 				continue
 			}
-
 			if string(p) != INTEROP_INPUT {
 				t.Error("decrypt failed for " + path + "/" + out)
 				continue
@@ -443,3 +400,4 @@ func TestRSAInteropVerifyTimeoutSucess(t *testing.T) {
 func TestRSAInteropVerifyTimeoutExpired(t *testing.T) {
 	testInteropVerifyTimeout(t, "rsa-sign", false)
 }
+
