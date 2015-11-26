@@ -179,7 +179,7 @@ func (cc *compressionController) compress(data []byte) []byte {
 func (cc *compressionController) compressWriter(data io.Writer) io.WriteCloser {
 	switch cc.compression {
 	case GZIP:
-		datac, _ := gzip.NewWriterLevel(data, gzip.DefaultCompression) //, gzip.BestCompression)
+		datac, _ := gzip.NewWriterLevel(data, gzip.BestCompression)
 		return datac
 	case ZLIB:
 		datac, _ := zlib.NewWriterLevel(data, zlib.BestCompression)

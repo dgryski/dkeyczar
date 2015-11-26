@@ -400,7 +400,8 @@ func TestSessionEncryptDecryptStream(t *testing.T) {
 	if err != nil {
 		t.Fatal("failed to create session encrypter: " + err.Error())
 	}
-	if _, err := io.WriteString(encoder, INPUT); err != nil {
+	dumper := bytes.NewBuffer(source)
+	if _, err := dumper.WriteTo(encoder); err != nil {
 		t.Fatal("failed to encrypt with session", err)
 	}
 	if err := encoder.Close(); err != nil {
@@ -417,7 +418,7 @@ func TestSessionEncryptDecryptStream(t *testing.T) {
 	if err := plainReader.Close(); err != nil {
 		t.Fatal("Could not close reader", err)
 	}
-	if out.String() != INPUT {
+	if !bytes.Equal(out.Bytes(), source) {
 		t.Error("session decrypt(encrypt(p)) != p")
 	}
 }
