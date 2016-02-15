@@ -18,7 +18,7 @@ type KeyManager interface {
 }
 
 type keyManager struct {
-	kz *keyCzar
+	kz *keyczar
 }
 
 // NewKeyManager returns a new KeyManager
@@ -28,13 +28,13 @@ func NewKeyManager() KeyManager {
 
 func (m *keyManager) Load(reader KeyReader) error {
 	var err error
-	m.kz, err = newKeyCzar(reader)
+	m.kz, err = newKeyczar(reader)
 	return err
 }
 
 func (m *keyManager) Create(name string, purpose keyPurpose, ktype keyType) error {
 
-	m.kz = &keyCzar{
+	m.kz = &keyczar{
 		keymeta: keyMeta{name, ktype, purpose, false, nil},
 		keys:    make(map[int]keydata),
 		idkeys:  make(map[uint32][]keydata),
@@ -177,7 +177,7 @@ func (m *keyManager) PubKeys() KeyManager {
 		return nil // unknown types
 	}
 
-	km.kz = &keyCzar{keyMeta{m.kz.keymeta.Name, kt, kp, false, nil}, nil, nil, -1}
+	km.kz = &keyczar{keyMeta{m.kz.keymeta.Name, kt, kp, false, nil}, nil, nil, -1}
 
 	km.kz.keymeta.Versions = make([]keyVersion, len(m.kz.keymeta.Versions))
 
