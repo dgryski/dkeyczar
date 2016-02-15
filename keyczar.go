@@ -42,7 +42,7 @@ const (
 )
 
 // Our main base type.  We only expose this through one of the interfaces.
-type keyCzar struct {
+type keyczar struct {
 	keymeta keyMeta              // metadata for this key
 	keys    map[int]keydata      // maps versions to keys
 	idkeys  map[uint32][]keydata // maps keyids to keys
@@ -233,13 +233,13 @@ func (cc *compressionController) decompress(data []byte) ([]byte, error) {
 }
 
 type keyCrypter struct {
-	kz *keyCzar
+	kz *keyczar
 	encodingController
 	compressionController
 }
 
 type keySignedEncypter struct {
-	kz *keyCzar
+	kz *keyczar
 	encodingController
 	compressionController
 	nonce  []byte
@@ -247,7 +247,7 @@ type keySignedEncypter struct {
 }
 
 type keySignedDecrypter struct {
-	kz *keyCzar
+	kz *keyczar
 	encodingController
 	compressionController
 	nonce    []byte
@@ -348,7 +348,7 @@ func (kc *keySignedDecrypter) Decrypt(signedCiphertext string) ([]uint8, error) 
 type currentTime func() int64
 
 type keySigner struct {
-	kz *keyCzar
+	kz *keyczar
 	currentTime
 	encodingController
 }
@@ -635,7 +635,7 @@ func (ks *keySigner) TimeoutVerify(message []byte, signature string) (bool, erro
 func NewCrypter(r KeyReader) (Crypter, error) {
 	k := new(keyCrypter)
 	var err error
-	k.kz, err = newKeyCzar(r)
+	k.kz, err = newKeyczar(r)
 
 	if err != nil {
 		return nil, err
@@ -656,7 +656,7 @@ func NewCrypter(r KeyReader) (Crypter, error) {
 func NewSignedEncrypter(r KeyReader, signer Signer, nonce []byte) (SignedEncrypter, error) {
 	k := new(keySignedEncypter)
 	var err error
-	k.kz, err = newKeyCzar(r)
+	k.kz, err = newKeyczar(r)
 	k.nonce = nonce
 	k.signer = signer
 
@@ -679,7 +679,7 @@ func NewSignedEncrypter(r KeyReader, signer Signer, nonce []byte) (SignedEncrypt
 func NewSignedDecrypter(r KeyReader, verifier Verifier, nonce []byte) (SignedDecrypter, error) {
 	k := new(keySignedDecrypter)
 	var err error
-	k.kz, err = newKeyCzar(r)
+	k.kz, err = newKeyczar(r)
 	k.nonce = nonce
 	k.verifier = verifier
 
@@ -703,7 +703,7 @@ func NewSignedDecrypter(r KeyReader, verifier Verifier, nonce []byte) (SignedDec
 func NewEncrypter(r KeyReader) (Encrypter, error) {
 	k := new(keyCrypter)
 	var err error
-	k.kz, err = newKeyCzar(r)
+	k.kz, err = newKeyczar(r)
 
 	if err != nil {
 		return nil, err
@@ -728,7 +728,7 @@ func NewVerifier(r KeyReader) (Verifier, error) {
 		return time.Now().UnixNano() / int64(time.Millisecond)
 	}
 	var err error
-	k.kz, err = newKeyCzar(r)
+	k.kz, err = newKeyczar(r)
 
 	if err != nil {
 		return nil, err
@@ -746,7 +746,7 @@ func NewVerifierTimeProvider(r KeyReader, t currentTime) (Verifier, error) {
 	k := new(keySigner)
 	k.currentTime = t
 	var err error
-	k.kz, err = newKeyCzar(r)
+	k.kz, err = newKeyczar(r)
 
 	if err != nil {
 		return nil, err
@@ -763,7 +763,7 @@ func NewVerifierTimeProvider(r KeyReader, t currentTime) (Verifier, error) {
 func NewSigner(r KeyReader) (Signer, error) {
 	k := new(keySigner)
 	var err error
-	k.kz, err = newKeyCzar(r)
+	k.kz, err = newKeyczar(r)
 
 	if err != nil {
 		return nil, err
@@ -853,7 +853,7 @@ func NewSignedSessionDecrypter(crypter Crypter, verifier Verifier, sessionKeys s
 	return NewSignedDecrypter(r, verifier, sm.nonce)
 }
 
-func (kz *keyCzar) loadPrimaryKey() error {
+func (kz *keyczar) loadPrimaryKey() error {
 
 	// search for the primary key
 	kz.primary = -1
@@ -876,14 +876,14 @@ func (kz *keyCzar) loadPrimaryKey() error {
 
 }
 
-func (kz *keyCzar) getPrimaryKey() keydata {
+func (kz *keyczar) getPrimaryKey() keydata {
 	if kz.primary == -1 {
 		return nil
 	}
 	return kz.keys[kz.primary]
 }
 
-func (kz *keyCzar) isAcceptablePurpose(purpose keyPurpose) bool {
+func (kz *keyczar) isAcceptablePurpose(purpose keyPurpose) bool {
 	return kz.keymeta.Purpose.isAcceptablePurpose(purpose)
 }
 
@@ -891,7 +891,7 @@ type lookupKeyIDer interface {
 	getKeyForID(id []byte) ([]keydata, error)
 }
 
-func (kz *keyCzar) getKeyForID(id []byte) ([]keydata, error) {
+func (kz *keyczar) getKeyForID(id []byte) ([]keydata, error) {
 
 	kl, ok := kz.idkeys[binary.BigEndian.Uint32(id)]
 
@@ -902,7 +902,7 @@ func (kz *keyCzar) getKeyForID(id []byte) ([]keydata, error) {
 	return kl, nil
 }
 
-func newKeysFromReader(r KeyReader, kz *keyCzar, keyFromJSON func([]byte) (keydata, error)) (map[int]keydata, map[uint32][]keydata, error) {
+func newKeysFromReader(r KeyReader, kz *keyczar, keyFromJSON func([]byte) (keydata, error)) (map[int]keydata, map[uint32][]keydata, error) {
 
 	keys := make(map[int]keydata)
 	idkeys := make(map[uint32][]keydata)
@@ -932,9 +932,9 @@ func newKeysFromReader(r KeyReader, kz *keyCzar, keyFromJSON func([]byte) (keyda
 }
 
 // construct a keyczar object from a reader for a given purpose
-func newKeyCzar(r KeyReader) (*keyCzar, error) {
+func newKeyczar(r KeyReader) (*keyczar, error) {
 
-	kz := new(keyCzar)
+	kz := new(keyczar)
 
 	kz.primary = -1
 

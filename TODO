@@ -1,9 +1,9 @@
     - Make all encrypt/decrypt/sign/verify calls expose same api, if possible
-        -- If you want an attached signature, created an AttachedSigner 
+        -- If you want an attached signature, created an AttachedSigner
     - improve external docs (README, examples, ...)
     - improve tests -- not enough failure cases are checked
     - key.Type() => ktFOO constant
-    - some of the keyman routines poke into keyCzar internals
+    - some of the keyman routines poke into keyczar internals
     - some of the ImportFOOForBar would be easier if we exported the KeyPurpose enum
     - fix keymeta.Versions so Versions[versionNumber] is correct (placeholder? nil?)
     - write functions to abstract byte-stream format
