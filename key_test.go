@@ -393,35 +393,37 @@ func TestSessionEncryptDecryptStream(t *testing.T) {
 		t.Fatal("failed to create crypter with rsa: " + err.Error())
 	}
 	kz.SetCompression(ZLIB)
-	source := make([]byte, 1024*1024)
-	io.ReadFull(rand.Reader, source)
-	for _, enc := range []Encoding{NO_ENCODING, BASE64W} {
-		for _, compr := range []Compression{NO_COMPRESSION, ZLIB, GZIP} {
-			buf := bytes.NewBuffer(nil)
-			encoder, err := NewSessionEncryptWriter(kz, buf, enc, compr)
-			if err != nil {
-				t.Fatal("failed to create session encrypter: " + err.Error())
-			}
-			dumper := bytes.NewBuffer(source)
-			if _, err := dumper.WriteTo(encoder); err != nil {
-				t.Fatal("failed to encrypt with session", err)
-			}
-			if err := encoder.Close(); err != nil {
-				t.Fatal("Failed to close encoder", err)
-			}
-			plainReader, err := NewSessionDecryptReader(kz, buf, enc, compr)
-			if err != nil {
-				t.Fatal("failed to create session decrypter: " + err.Error())
-			}
-			out := bytes.NewBuffer(nil)
-			if _, err := out.ReadFrom(plainReader); err != nil && err != io.EOF {
-				t.Fatal("Error reading session ciphered data", err)
-			}
-			if err := plainReader.Close(); err != nil {
-				t.Fatal("Could not close reader", err)
-			}
-			if !bytes.Equal(out.Bytes(), source) {
-				t.Error("session decrypt(encrypt(p)) != p")
+	for size := 1024 * 1024; size < 1024*1024+5; size += 1 {
+		source := make([]byte, size)
+		io.ReadFull(rand.Reader, source)
+		for iE, enc := range []Encoding{NO_ENCODING, BASE64W} {
+			for iC, compr := range []Compression{NO_COMPRESSION, ZLIB, GZIP} {
+				buf := bytes.NewBuffer(nil)
+				encoder, err := NewSessionEncryptWriter(kz, buf, enc, compr)
+				if err != nil {
+					t.Fatal("failed to create session encrypter: " + err.Error())
+				}
+				dumper := bytes.NewBuffer(source)
+				if _, err := dumper.WriteTo(encoder); err != nil {
+					t.Fatal("failed to encrypt with session", err)
+				}
+				if err := encoder.Close(); err != nil {
+					t.Fatal("Failed to close encoder", err)
+				}
+				plainReader, err := NewSessionDecryptReader(kz, buf, enc, compr)
+				if err != nil {
+					t.Fatal("failed to create session decrypter: " + err.Error())
+				}
+				out := bytes.NewBuffer(nil)
+				if _, err := out.ReadFrom(plainReader); err != nil && err != io.EOF {
+					t.Fatalf("[Test %d/%d] Error reading session ciphered data: %s", iE, iC, err)
+				}
+				if err := plainReader.Close(); err != nil {
+					t.Fatal("Could not close reader", err)
+				}
+				if !bytes.Equal(out.Bytes(), source) {
+					t.Error("session decrypt(encrypt(p)) != p")
+				}
 			}
 		}
 	}

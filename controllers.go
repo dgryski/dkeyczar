@@ -98,9 +98,32 @@ func (ec encodingController) decodeReader(data io.Reader) io.Reader {
 	case NO_ENCODING:
 		return data
 	case BASE64W:
-		return base64.NewDecoder(base64.URLEncoding, newB64ReadPadder(data))
+		return base64.NewDecoder(base64.RawURLEncoding, data)
+		//return base64.NewDecoder(base64.URLEncoding, newB64ReadPadder(data))
 	}
 	panic("not reached")
+}
+
+func newB64WriteUnpadder(sink io.Writer) io.Writer {
+	return &b64WriteUnpadder{sink, 0}
+}
+
+type b64WriteUnpadder struct {
+	sink  io.Writer
+	count int
+}
+
+func (b *b64WriteUnpadder) Write(data []byte) (int, error) {
+	vl := len(data)
+	for vl > 0 && data[vl-1] == byte('=') {
+		vl -= 1
+	}
+	n, err := b.sink.Write(data[:vl])
+	b.count += n
+	if n == vl {
+		n = len(data)
+	}
+	return n, err
 }
 
 func newB64ReadPadder(source io.Reader) io.Reader {
@@ -173,6 +196,7 @@ func (cc compressionController) compress(data []byte) []byte {
 		w.Close()
 		return b.Bytes()
 	}
+
 	panic("not reached")
 }
 
