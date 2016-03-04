@@ -99,69 +99,8 @@ func (ec encodingController) decodeReader(data io.Reader) io.Reader {
 		return data
 	case BASE64W:
 		return base64.NewDecoder(base64.RawURLEncoding, data)
-		//return base64.NewDecoder(base64.URLEncoding, newB64ReadPadder(data))
 	}
 	panic("not reached")
-}
-
-func newB64WriteUnpadder(sink io.Writer) io.Writer {
-	return &b64WriteUnpadder{sink, 0}
-}
-
-type b64WriteUnpadder struct {
-	sink  io.Writer
-	count int
-}
-
-func (b *b64WriteUnpadder) Write(data []byte) (int, error) {
-	vl := len(data)
-	for vl > 0 && data[vl-1] == byte('=') {
-		vl -= 1
-	}
-	n, err := b.sink.Write(data[:vl])
-	b.count += n
-	if n == vl {
-		n = len(data)
-	}
-	return n, err
-}
-
-func newB64ReadPadder(source io.Reader) io.Reader {
-	return &b64ReadPadder{0, source, bytes.NewBuffer(nil), nil}
-}
-
-type b64ReadPadder struct {
-	count  int
-	source io.Reader
-	buf    *bytes.Buffer
-	err    error
-}
-
-func (b *b64ReadPadder) Read(data []byte) (int, error) {
-	if b.err == io.EOF {
-		return b.buf.Read(data)
-	} else if b.err != nil {
-		return 0, b.err
-	}
-	n, err := b.source.Read(data)
-	if err != nil {
-		b.err = err
-		if err != io.EOF {
-			return 0, err
-		}
-	}
-	b.count += n
-	if _, err := b.buf.Write(data[:n]); err != nil {
-		b.err = err
-		return 0, err
-	}
-	if err == io.EOF && b.count%4 > 0 {
-		if _, err := b.buf.Write([]byte("====")[4-(b.count%4):]); err != nil {
-			b.err = err
-			return 0, err
-		}
-	}
-	return b.buf.Read(data)
 }
 
 type compressionController struct {
