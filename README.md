@@ -1,3 +1,9 @@
+
+*Important note:* Keyczar is deprecated.  The Keyczar developers recommend [Tink](https://github.com/google/tink).
+
+---------------------------
+
+
 This is a port of Google's Keyczar library to Go.
 
 Copyright (c) 2011 Damian Gryski <damian@gryski.com>
